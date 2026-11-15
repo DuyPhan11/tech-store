@@ -10,7 +10,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-004 | COD + ONLINE_MOCK, không tích hợp tiền thật | Proposed; await scope approval | Checkout/payment |
 | ADR-005 | Backend source of truth cho giá, stock, coupon | Proposed | Checkout invariants |
 | ADR-006 | Figma approved frames/tokens là chuẩn UI | Needs Figma URL | Frontend components |
-| ADR-007 | Kiểm tra và chốt stack FE build, Java version, auth strategy, migration strategy | Open | Scaffold |
+| ADR-007 | Frontend dùng React + TypeScript, Vite, React Router, CSS Modules + CSS Variables và npm | Frontend đã chốt. Phiên bản Java, chiến lược xác thực và migration còn mở. | Scaffold |
 | ADR-008 | Request idempotency cho checkout (mechanism) | Open | Checkout/API/schema |
 
 ## Mẫu một quyết định
