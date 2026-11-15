@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, useRoutes } from 'react-router'
 import { routes } from './app/routes'
+import { AuthProvider } from './features/auth/AuthContext'
 import './styles/tokens.css'
 
 function App() {
@@ -11,7 +12,9 @@ function App() {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
 )

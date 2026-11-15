@@ -10,6 +10,8 @@ import { categories, brands } from '../features/catalog/list/catalogSample'
 import { mockCatalogSource } from '../features/catalog/list/mockCatalogSource'
 import { ProductDetailPage } from '../features/catalog/detail/ProductDetailPage'
 import { mockProductDetailSource } from '../features/catalog/detail/mockProductDetailSource'
+import { LoginPage } from '../features/auth/LoginPage'
+import { ProtectedRoute, GuestRoute, ForbiddenPage } from '../features/auth/RouteGuard'
 
 export const routes: RouteObject[] = [
   { path: '/', element: <CustomerLayout><HomePage data={homeSample} /></CustomerLayout> },
@@ -19,6 +21,12 @@ export const routes: RouteObject[] = [
   { path: '/products/:slug', element: <CustomerLayout>
     <ProductDetailPage source={mockProductDetailSource} categories={categories} brands={brands} />
   </CustomerLayout> },
-  { path: '/admin', element: <AdminLayout><ContentSlot /></AdminLayout> },
+  { path: '/login', element: <GuestRoute><CustomerLayout><LoginPage /></CustomerLayout></GuestRoute> },
+  { path: '/forbidden', element: <CustomerLayout><ForbiddenPage /></CustomerLayout> },
+  { path: '/admin', element: (
+    <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_STAFF']}>
+      <AdminLayout><ContentSlot /></AdminLayout>
+    </ProtectedRoute>
+  ) },
   ...(import.meta.env.DEV ? [{ path: '/__dev/components', element: <ComponentDemo /> }] : []),
 ]

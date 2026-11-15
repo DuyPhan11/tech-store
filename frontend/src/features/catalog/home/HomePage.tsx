@@ -30,7 +30,7 @@ export function HomePage({ data }: { data: HomeData }) {
         <h2 id="category-title">Danh mục nổi bật</h2>
         <div className={styles.categoryGrid}>
           {groups.map(category => (
-            <a key={category.id} href={`#nhom-${category.id}`} className={styles.category}>
+            <a key={category.id} href={`/products?category=${category.id}`} className={styles.category}>
               <img src={category.image} alt="" />
               {category.name}<span aria-hidden="true">↗</span>
             </a>
@@ -43,9 +43,20 @@ export function HomePage({ data }: { data: HomeData }) {
         <p className={styles.note}>Sản phẩm, hình ảnh và giá trên trang dùng để minh họa.</p>
         <div className={styles.products}>
           {data.featured.map(product => (
-            <Card key={product.id} className={styles.product}
-              media={<img src={product.image} alt="" loading="lazy" />}>
-              <h3>{product.name}</h3>
+            <Card
+              key={product.id}
+              className={styles.product}
+              media={
+                <a href={`/products/${product.id}`} tabIndex={-1} aria-hidden="true">
+                  <img src={product.image} alt="" loading="lazy" />
+                </a>
+              }
+            >
+              <h3>
+                <a href={`/products/${product.id}`} className={styles.productLink}>
+                  {product.name}
+                </a>
+              </h3>
               <p>{product.specification}</p>
               <strong>{currency.format(product.priceVnd)}</strong>
             </Card>
@@ -62,8 +73,18 @@ export function HomePage({ data }: { data: HomeData }) {
               {group.products.length === 0 && <p>Chưa có sản phẩm minh họa.</p>}
               {(expanded ? group.products : group.products.slice(0, 1)).map(product => (
                 <article key={product.id} className={styles.compact}>
-                  <img src={product.image} alt="" loading="lazy" />
-                  <div><h4>{product.name}</h4><p>{product.specification}</p><strong>{currency.format(product.priceVnd)}</strong></div>
+                  <a href={`/products/${product.id}`} tabIndex={-1} aria-hidden="true">
+                    <img src={product.image} alt="" loading="lazy" />
+                  </a>
+                  <div>
+                    <h4>
+                      <a href={`/products/${product.id}`} className={styles.productLink}>
+                        {product.name}
+                      </a>
+                    </h4>
+                    <p>{product.specification}</p>
+                    <strong>{currency.format(product.priceVnd)}</strong>
+                  </div>
                 </article>
               ))}
             </section>
