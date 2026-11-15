@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { matchRoutes } from 'react-router'
+import { createElement } from 'react'
+import { matchRoutes, MemoryRouter } from 'react-router'
 import { createServer } from 'vite'
 
 let server
@@ -19,8 +20,22 @@ before(async () => {
 after(async () => server?.close())
 
 function renderRoute(path) {
-  return renderToStaticMarkup(matchRoutes(routes, path)[0].route.element)
+  return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, matchRoutes(routes, path)[0].route.element))
 }
+
+test('public catalog route starts with loading state inside the customer shell', () => {
+  const html = renderRoute('/products')
+  assert.match(html, /Danh sách sản phẩm/)
+  assert.match(html, /Đang tải danh sách sản phẩm/)
+  assert.match(html, /action="\/products"/)
+  assert.match(html, /<footer/)
+})
+
+test('public product detail route starts with loading state inside the customer shell', () => {
+  const html = renderRoute('/products/nova-14')
+  assert.match(html, /Đang tải thông tin sản phẩm/)
+  assert.match(html, /<footer/)
+})
 
 test('customer home renders the catalog sections, local anchors and sample disclosure', () => {
   const html = renderRoute('/')
