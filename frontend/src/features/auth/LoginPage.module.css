@@ -1,0 +1,87 @@
+.loginWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 280px);
+  padding: var(--ts-space-24) var(--ts-space-16);
+  box-sizing: border-box;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 440px;
+  background: var(--ts-color-surface);
+  border: 1px solid var(--ts-color-border);
+  border-radius: var(--ts-radius-12);
+  padding: var(--ts-space-32);
+  box-shadow: var(--ts-shadow-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ts-space-24);
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ts-space-4);
+  text-align: center;
+}
+
+.title {
+  font: var(--ts-font-heading-h2);
+  color: var(--ts-color-text);
+  margin: 0;
+}
+
+.subtitle {
+  font: var(--ts-font-body-small);
+  color: var(--ts-color-muted);
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ts-space-16);
+}
+
+.alertError {
+  background: #fdf2f2;
+  border: 1px solid var(--ts-color-danger);
+  color: var(--ts-color-danger);
+  padding: var(--ts-space-12);
+  border-radius: var(--ts-radius-8);
+  font: var(--ts-font-body-small);
+}
+
+.submitBtn {
+  width: 100%;
+  margin-top: var(--ts-space-8);
+}
+
+.demoBox {
+  border-top: 1px dashed var(--ts-color-border);
+  padding-top: var(--ts-space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ts-space-8);
+}
+
+.demoTitle {
+  font: var(--ts-font-label-default);
+  color: var(--ts-color-muted);
+  margin: 0;
+}
+
+.demoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ts-space-8);
+}
+
+.demoBtn {
+  font: var(--ts-font-caption-default);
+  padding: var(--ts-space-8);
+  min-height: auto;
+}

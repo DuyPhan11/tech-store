@@ -1,6 +1,8 @@
 import { useEffect, useRef, type PropsWithChildren } from 'react'
+import { useNavigate } from 'react-router'
 import { Button } from '../ui/Button'
 import { LayoutIcon } from './LayoutIcon'
+import { useAuth } from '../../features/auth/AuthContext'
 import styles from './Layouts.module.css'
 
 function AdminNavigation() {
@@ -18,6 +20,8 @@ function AdminNavigation() {
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const menu = useRef<HTMLDialogElement>(null)
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 768px)')
@@ -25,6 +29,21 @@ export function AdminLayout({ children }: PropsWithChildren) {
     desktop.addEventListener('change', closeOnDesktop)
     return () => desktop.removeEventListener('change', closeOnDesktop)
   }, [])
+
+  const displayName = user?.fullName || 'Minh Anh'
+  const roleLabel = user?.roles.includes('ROLE_ADMIN')
+    ? 'Quản trị viên'
+    : user?.roles.includes('ROLE_STAFF')
+      ? 'Nhân viên'
+      : 'Quản trị viên'
+
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .map(w => w[0])
+    .slice(-2)
+    .join('')
+    .toUpperCase() || 'MA'
 
   return (
     <div className={styles.admin}>
@@ -35,8 +54,18 @@ export function AdminLayout({ children }: PropsWithChildren) {
             aria-controls="admin-menu" onClick={() => menu.current?.showModal()}>Menu</Button>
           <h1><span className={styles.desktopOnly}>Không gian quản trị</span>
             <span className={styles.mobileOnly}>Quản trị</span></h1>
-          <span aria-hidden="true" className={styles.avatar}>MA</span>
-          <div className={styles.identity}><strong>Minh Anh</strong><small>Quản trị viên</small></div>
+          <span aria-hidden="true" className={styles.avatar}>{initials}</span>
+          <div className={styles.identity}><strong>{displayName}</strong><small>{roleLabel}</small></div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              logout()
+              navigate('/login')
+            }}
+            style={{ marginLeft: 'auto' }}
+          >
+            Đăng xuất
+          </Button>
         </header>
         <main className={styles.content}>
           <nav aria-label="Đường dẫn" className={styles.crumb}>Quản trị <span aria-hidden="true">/</span> <span aria-current="page">Tổng quan</span></nav>

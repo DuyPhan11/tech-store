@@ -35,6 +35,14 @@
 .category span { margin-left: auto; color: var(--ts-color-primary); }
 .home .note { color: var(--ts-color-muted); font: var(--ts-font-body-small); margin-bottom: var(--ts-space-16); }
 .home .product { width: 100%; min-width: 0; }
+.productLink {
+  color: inherit;
+  text-decoration: none;
+}
+.productLink:hover {
+  color: var(--ts-color-primary);
+  text-decoration: underline;
+}
 .product img { width: 100%; aspect-ratio: 3/2; object-fit: cover; border-radius: var(--ts-radius-8); }
 .product p, .group p { color: var(--ts-color-muted); font: var(--ts-font-body-small); }
 .product strong, .compact strong { color: var(--ts-color-primary); font: var(--ts-font-label-default); }

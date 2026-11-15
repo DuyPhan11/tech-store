@@ -43,6 +43,38 @@
 .cart { justify-content: center; min-width: var(--ts-icon-target); min-height: var(--ts-icon-target); gap: var(--ts-space-8); padding-inline: var(--ts-space-4); }
 .categories, .account, .cart, .adminNav { font: var(--ts-font-label-default); }
 .categories { flex-wrap: wrap; gap: var(--ts-space-32); padding: var(--ts-space-12) var(--gutter); background: var(--ts-color-primary); color: var(--ts-color-on-primary); }
+.categories a {
+  color: var(--ts-color-on-primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.categories a:hover {
+  opacity: 0.85;
+  text-decoration: underline;
+}
+.footerLink {
+  color: inherit;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.footerLink:hover {
+  text-decoration: underline;
+}
+.cart {
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: var(--ts-font-label-default);
+}
+.cart:hover {
+  color: var(--ts-color-primary);
+}
 .footer { justify-content: space-between; padding: var(--ts-space-24) var(--gutter); background: var(--ts-color-text); color: var(--ts-color-on-primary); }
 .footer strong { font: var(--ts-font-heading-h3); }
 .footer nav { gap: var(--ts-space-16); }
@@ -54,6 +86,15 @@
 .adminNav { display: grid; gap: var(--ts-space-4); padding: var(--ts-space-8); color: var(--ts-color-muted); }
 .adminNav > * { display: flex; align-items: center; gap: var(--ts-space-12); padding: var(--ts-space-12); margin-inline: var(--ts-space-8); }
 .adminNav a { text-decoration: none; color: var(--ts-color-primary); background: var(--ts-color-background); border-radius: var(--ts-radius-8); }
+.adminNav span {
+  cursor: pointer;
+  border-radius: var(--ts-radius-8);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.adminNav span:hover {
+  background: var(--ts-color-background);
+  color: var(--ts-color-primary);
+}
 .adminNav .subItem { padding: var(--ts-space-8) var(--ts-space-16); margin: 0; }
 .adminHeader { gap: var(--ts-space-12); padding: var(--ts-space-16) var(--gutter); }
 .adminHeader h1, .drawer h2 { flex: 1; margin: 0; font: var(--ts-font-heading-h3); }

@@ -1,0 +1,29 @@
+.forbidden {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  padding: var(--ts-space-32);
+  text-align: center;
+  gap: var(--ts-space-16);
+}
+
+.forbiddenTitle {
+  font: var(--ts-font-heading-h2);
+  color: var(--ts-color-danger);
+  margin: 0;
+}
+
+.forbiddenDesc {
+  font: var(--ts-font-body-default);
+  color: var(--ts-color-muted);
+  max-width: 480px;
+  margin: 0;
+}
+
+.forbiddenActions {
+  display: flex;
+  gap: var(--ts-space-12);
+  margin-top: var(--ts-space-8);
+}
