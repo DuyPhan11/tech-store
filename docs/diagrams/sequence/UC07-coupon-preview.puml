@@ -1,0 +1,30 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Kiểm tra mã giảm giá (xem trước)
+actor "Khách hàng" as U
+boundary "Màn hình checkout" as UI
+control "CheckoutController" as C
+control "CouponService" as S
+database "Product / CartItem" as Items
+database "Coupon" as Coupons
+database "CouponUsage" as Usages
+U -> UI: Nhập mã giảm giá
+UI -> C: previewCoupon(code, selectedItems)
+C -> S: previewCoupon(user, request)
+S -> Items: calculateSubtotalOnServer()
+S -> Coupons: findByCode(code)
+S -> Usages: hasActiveUsage(user, coupon)
+S -> S: Check hạn, lượt, giá trị đơn
+alt Mã hợp lệ
+    S -> S: calculateDiscount(subtotal)
+    S --> UI: discount + finalAmount
+    UI --> U: Hiển thị số tiền được giảm
+else Không hợp lệ
+    S --> UI: invalidCoupon(reason)
+    UI --> U: Thông báo lỗi
+end
+note over S,Usages: Xem trước không tăng used_count
+@enduml

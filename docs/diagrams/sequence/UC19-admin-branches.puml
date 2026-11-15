@@ -1,0 +1,29 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Quản lý chi nhánh
+actor "Admin" as U
+boundary "Màn hình chi nhánh" as UI
+control "AdminBranchController" as C
+control "BranchService" as S
+database "Branch" as Branches
+database "Order" as Orders
+U -> UI: Thêm / sửa / đổi trạng thái
+UI -> C: saveBranch(action, data)
+C -> S: saveBranch(request)
+S -> Branches: findByIdForUpdate()
+S -> S: Kiểm tra ROLE_ADMIN và dữ liệu
+opt Ngừng hoạt động
+    S -> Orders: hasOpenOrders(branchId)
+end
+alt Hợp lệ và không có đơn đang xử lý
+    S -> Branches: saveBranch(ACTIVE / INACTIVE)
+    S --> UI: 200 / 201 OK
+    UI --> U: Cập nhật thành công
+else Không hợp lệ / còn đơn mở
+    S --> UI: 400 / 403 / 409
+    UI --> U: Hiển thị lỗi
+end
+@enduml

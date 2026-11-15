@@ -1,0 +1,34 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Quản lý giỏ hàng
+actor "Khách hàng" as U
+boundary "Màn hình giỏ hàng" as UI
+control "CartController" as C
+control "CartService" as S
+database "Cart / CartItem" as Cart
+database "Product / Inventory" as Stock
+U -> UI: Mở giỏ hàng
+UI -> C: getCart()
+C -> S: getCart(user)
+S -> Cart: findByUser(user)
+S --> UI: CartDto + giá hiện tại
+UI --> U: Hiển thị giỏ hàng
+U -> UI: Thêm / sửa / xóa sản phẩm
+UI -> C: updateCart(action, data)
+C -> S: updateCart(user, action, data)
+S -> Stock: checkProductAndStock()
+alt Thao tác hợp lệ
+    S -> Cart: saveUpdateOrDeleteItem()
+    S --> UI: CartDto
+    UI --> U: Cập nhật giỏ thành công
+else Không hợp lệ
+    S --> UI: 400 / 409
+    UI --> U: Hiển thị lỗi
+end
+U -> UI: Chọn một số dòng để đặt
+UI -> UI: checkout(CART, selectedItemIds)
+note right of UI: Chưa xóa giỏ; Mua ngay không sửa giỏ
+@enduml

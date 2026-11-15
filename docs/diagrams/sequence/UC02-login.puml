@@ -1,0 +1,27 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Đăng nhập theo vai trò
+actor "Người dùng" as U
+boundary "Màn hình đăng nhập" as UI
+control "AuthController" as C
+control "AuthService" as S
+database "User" as DB
+database "Role" as Roles
+U -> UI: Nhập email/SĐT và mật khẩu
+UI -> C: login(request)
+C -> S: login(request)
+S -> DB: findByEmailOrPhone()
+S -> S: Kiểm tra BCrypt và ACTIVE
+alt Thông tin hợp lệ
+    S -> Roles: findRoles(user)
+    S -> S: generateToken(user, roles)
+    S --> UI: 200 OK + token
+    UI --> U: Điều hướng Admin / Staff / Customer
+else Sai mật khẩu / tài khoản LOCKED
+    S --> UI: 401 / 403
+    UI --> U: Thông báo lỗi
+end
+@enduml

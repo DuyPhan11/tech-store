@@ -1,0 +1,37 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Xem và hủy đơn hàng
+actor "Khách hàng" as U
+boundary "Màn hình đơn hàng" as UI
+control "OrderController" as C
+control "OrderService" as S
+database "Order" as Orders
+database "Inventory" as Stock
+database "Payment / CouponUsage" as Other
+U -> UI: Mở đơn hàng của tôi
+UI -> C: getMyOrders()
+C -> S: getMyOrders(user)
+S -> Orders: findByUser(user)
+S --> UI: OrderList
+UI --> U: Hiển thị đơn hàng
+U -> UI: Hủy đơn, nhập lý do
+UI -> C: cancelOrder(orderId, reason)
+C -> S: cancelOrder(user, orderId)
+S -> Orders: findOwnedOrderForUpdate()
+alt PENDING hoặc CONFIRMED
+    group Transaction
+        S -> Stock: restoreStockOnce()
+        S -> Other: reverseCouponIfUsed()
+        S -> Other: cancelOrRefundPayment()
+        S -> Orders: setStatus(CANCELLED)
+    end
+    S --> UI: 200 OK
+    UI --> U: Hủy thành công
+else Không được hủy
+    S --> UI: 400 / 409
+    UI --> U: Hiển thị lý do
+end
+@enduml

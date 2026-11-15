@@ -1,0 +1,36 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Quản lý trạng thái đơn hàng
+actor "Nhân viên / Admin" as U
+boundary "Màn hình đơn hàng" as UI
+control "AdminOrderController" as C
+control "OrderService" as S
+database "Order" as Orders
+database "Inventory" as Stock
+database "Payment / CouponUsage" as Other
+U -> UI: Chọn trạng thái mới
+UI -> C: updateStatus(orderId, status)
+C -> S: updateStatus(orderId, status)
+S -> Orders: findByIdForUpdate(orderId)
+S -> S: checkTransition(PENDING / CONFIRMED / SHIPPING)
+alt Chuyển trạng thái hợp lệ
+    group Transaction
+        opt status = CANCELLED
+            S -> Stock: restoreStockOnce()
+            S -> Other: reverseCouponAndPayment()
+        end
+        opt status = COMPLETED và COD
+            S -> Other: markPayment(PAID)
+        end
+        S -> Orders: saveStatus(status)
+    end
+    S --> UI: 200 OK
+    UI --> U: Đã cập nhật đơn
+else Không hợp lệ
+    S --> UI: 400 / 409
+    UI --> U: Thông báo lỗi
+end
+@enduml

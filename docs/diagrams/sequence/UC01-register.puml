@@ -1,0 +1,36 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Đăng ký tài khoản bằng OTP
+actor "Khách" as U
+boundary "Màn hình đăng ký" as UI
+control "AuthController" as C
+control "AuthService" as S
+database "EmailVerification" as OTP
+participant "EmailService" as Mail
+database "User / Role / Cart" as DB
+U -> UI: Yêu cầu mã OTP
+UI -> C: sendOtp(email)
+C -> S: sendOtp(email)
+S -> DB: checkEmail(email)
+S -> OTP: saveOtp(6 số, 5 phút)
+S -> Mail: sendOtp(email)
+Mail --> U: Email chứa OTP
+U -> UI: Nhập thông tin và OTP
+UI -> C: register(request)
+C -> S: register(request)
+S -> OTP: verifyOtp(email, otp)
+S -> DB: checkEmailAndPhone()
+alt Hợp lệ
+    S -> DB: saveUser(BCrypt, CUSTOMER)
+    S -> DB: createCart(user)
+    S -> OTP: markUsed()
+    S --> UI: 201 Created + token
+    UI --> U: Đăng ký thành công
+else Không hợp lệ
+    S --> UI: 400 / 409
+    UI --> U: Thông báo lỗi
+end
+@enduml

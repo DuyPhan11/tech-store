@@ -1,0 +1,32 @@
+@startuml
+title Tech Store - Khách hàng
+left to right direction
+skinparam monochrome true
+skinparam shadowing false
+actor "Khách chưa đăng nhập" as Guest
+actor "Khách hàng" as Customer
+rectangle "Tech Store" {
+  usecase "UC01\nĐăng ký OTP email" as UC01
+  usecase "UC02\nĐăng nhập" as UC02
+  usecase "UC03\nKhôi phục mật khẩu OTP" as UC03
+  usecase "UC04\nTìm kiếm / lọc sản phẩm" as UC04
+  usecase "UC05\nChi tiết sản phẩm / Mua ngay" as UC05
+  usecase "UC06\nQuản lý giỏ hàng" as UC06
+  usecase "UC07\nĐặt hàng và thanh toán" as UC07
+  usecase "UC08\nLịch sử / Hủy đơn" as UC08
+  usecase "UC09\nĐánh giá sản phẩm" as UC09
+  usecase "UC10\nHồ sơ và địa chỉ" as UC10
+}
+Guest --> UC01
+Guest --> UC02
+Guest --> UC03
+Guest --> UC04
+Guest --> UC05
+Customer --> UC04
+Customer --> UC05
+Customer --> UC06
+Customer --> UC07
+Customer --> UC08
+Customer --> UC09
+Customer --> UC10
+@enduml

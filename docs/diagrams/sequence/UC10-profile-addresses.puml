@@ -1,0 +1,35 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Hồ sơ cá nhân và địa chỉ (UC10)
+actor "Khách hàng" as U
+boundary "Màn hình hồ sơ" as UI
+control "ProfileController" as C
+control "ProfileService" as S
+participant "Cloudinary" as Cloud
+database "User / Address" as DB
+U -> UI: Cập nhật hồ sơ / ảnh đại diện
+UI -> C: updateProfile(data, avatarFile)
+C -> S: updateProfile(user, data)
+S -> S: Kiểm tra dữ liệu, số điện thoại
+opt Có ảnh đại diện mới
+    S -> Cloud: uploadAvatar(file)
+    Cloud --> S: secure_url, public_id
+end
+S -> DB: saveProfile(user)
+S --> UI: ProfileDto
+UI --> U: Hiển thị hồ sơ mới
+U -> UI: Thao tác địa chỉ hoặc đổi mật khẩu
+UI -> C: updateAccount(action, request)
+C -> S: updateAccount(user, action)
+alt Quản lý địa chỉ
+    S -> DB: saveAddressOrSetDefault()
+else Đổi mật khẩu
+    S -> S: verifyOldPassword()
+    S -> DB: saveBCryptPassword()
+end
+S --> UI: 200 OK / lỗi
+UI --> U: Hiển thị kết quả
+@enduml

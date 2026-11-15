@@ -1,0 +1,29 @@
+@startuml
+title sd Xem dashboard thống kê
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+actor "Nhân viên / Admin" as Staff
+boundary "Màn hình dashboard" as Screen
+control "AdminDashboardController" as Controller
+control "DashboardService" as Service
+database "Order" as Orders
+database "OrderItem" as OrderItems
+database "User" as Users
+Staff -> Screen: loadDashboard(days)
+Screen -> Controller: getDashboardSummary(days)
+Controller -> Service: getDashboardSummary(days)
+Service -> Orders: summarizeOrdersAndRevenue(days)
+Service -> Users: countCustomers(days)
+Service -> OrderItems: summarizeTopProducts(days)
+Orders --> Service: orderMetrics
+Users --> Service: customerMetrics
+OrderItems --> Service: productMetrics
+Service --> Controller: DashboardSummary
+Controller --> Screen: DashboardSummary
+Screen --> Staff: displayDashboard()
+@enduml
+
+
+

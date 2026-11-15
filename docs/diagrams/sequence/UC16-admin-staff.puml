@@ -1,0 +1,32 @@
+@startuml
+title sd Quản lý nhân viên
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+actor "Admin" as Admin
+boundary "Màn hình nhân viên" as Screen
+control "AdminStaffController" as Controller
+control "UserService" as Service
+database "User" as Users
+database "Role" as Roles
+Admin -> Screen: saveStaff(request)
+Screen -> Controller: saveStaff(request)
+Controller -> Service: createOrUpdateStaff(request)
+Service -> Users: findByEmailOrPhone(email, phone)
+Service -> Roles: findStaffRole()
+alt isValid = true
+    Service -> Users: saveStaffAccount(request, role)
+    Users --> Service: staffUser
+    Service --> Controller: UserResponse
+    Controller --> Screen: 200 OK
+    Screen --> Admin: displayStaffResult()
+else isValid = false
+    Service --> Controller: StaffValidationException
+    Controller --> Screen: 400/409 Error
+    Screen --> Admin: showStaffError()
+end
+@enduml
+
+
+

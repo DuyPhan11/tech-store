@@ -1,0 +1,43 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Đặt hàng thanh toán giả lập
+actor "Khách hàng" as U
+boundary "Màn hình checkout" as UI
+control "CheckoutController" as C
+control "CheckoutService" as S
+database "Cart / Product" as Cart
+database "Branch / Inventory" as Stock
+database "Order / Payment / Coupon" as DB
+U -> UI: Xác nhận thanh toán ONLINE_MOCK
+UI -> C: checkout(request)
+C -> S: checkout(user, request)
+S -> Cart: resolveItems(CART / BUY_NOW)
+S -> Stock: checkActiveBranchAndLockStock()
+S -> S: Kiểm tra coupon, tính tổng tiền
+alt Dữ liệu hợp lệ
+    S -> S: processMockPayment()
+    alt Thanh toán thành công
+        group Transaction
+            S -> DB: createOrder(PENDING)
+            S -> DB: createPayment(PAID)
+            S -> Stock: decreaseStock()
+            opt Có coupon
+                S -> DB: saveUsage(ACTIVE)
+            end
+            opt source = CART
+                S -> Cart: removeSelectedItems()
+            end
+        end
+        S --> UI: 201 Created
+        UI --> U: Đặt hàng thành công
+    else Thanh toán thất bại
+        S --> UI: PaymentFailed
+    end
+else Sản phẩm / tồn kho không hợp lệ
+    S --> UI: 400 / 409
+end
+note right of UI: Thất bại: không tạo đơn, không xóa giỏ
+@enduml

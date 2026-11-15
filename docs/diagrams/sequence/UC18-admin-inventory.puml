@@ -1,0 +1,33 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Điều chỉnh và chuyển kho
+actor "Nhân viên / Admin" as U
+boundary "Màn hình tồn kho" as UI
+control "InventoryController" as C
+control "InventoryService" as S
+database "Branch" as Branches
+database "Inventory" as Stock
+U -> UI: Điều chỉnh / chuyển hàng
+UI -> C: updateStock(action, request)
+C -> S: updateStock(request)
+S -> Branches: checkActiveBranches()
+S -> Stock: lockStockRows()
+alt Điều chỉnh INBOUND / OUTBOUND / SET
+    S -> S: calculateNewQuantity()
+else Chuyển kho (TRANSFER)
+    S -> S: checkSourceAndDestination()
+end
+alt Hợp lệ, không có tồn âm
+    group Transaction
+        S -> Stock: saveStockChanges()
+    end
+    S --> UI: 200 OK
+    UI --> U: Hiển thị tồn kho mới
+else Không hợp lệ / thiếu hàng
+    S --> UI: 400 / 409
+    UI --> U: Giữ nguyên tồn kho
+end
+@enduml

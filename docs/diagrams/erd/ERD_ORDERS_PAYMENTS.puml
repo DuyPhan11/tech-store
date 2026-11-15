@@ -1,0 +1,118 @@
+@startuml
+title Tech Store - ERD ERD_ORDERS_PAYMENTS (derived from 21-table SQL DRAFT)
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype ortho
+hide circle
+left to right direction
+
+entity "users" as users {
+  * id : BIGINT <<PK>>
+    email : VARCHAR(100)  (required)
+    phone : VARCHAR(20)  (required)
+    password : VARCHAR(255)  (required)
+    full_name : VARCHAR(100)  (required)
+    avatar_url : VARCHAR(1024)
+    avatar_public_id : VARCHAR(255)
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "carts" as carts {
+  * id : BIGINT <<PK>>
+    user_id : BIGINT <<FK>> (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "cart_items" as cart_items {
+  * id : BIGINT <<PK>>
+    cart_id : BIGINT <<FK>> (required)
+    product_id : BIGINT <<FK>> (required)
+    quantity : INT  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "products" as products {
+  * id : BIGINT <<PK>>
+    category_id : BIGINT <<FK>> (required)
+    brand_id : BIGINT <<FK>> (required)
+    name : VARCHAR(200)  (required)
+    slug : VARCHAR(255)  (required)
+    sku : VARCHAR(50)  (required)
+    price : DECIMAL(15,2)  (required)
+    cost_price : DECIMAL(15,2)  (required)
+    description : LONGTEXT
+    specifications : TEXT
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "branches" as branches {
+  * id : BIGINT <<PK>>
+    name : VARCHAR(150)  (required)
+    phone : VARCHAR(20)
+    address : VARCHAR(255)  (required)
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "orders" as orders {
+  * id : BIGINT <<PK>>
+    order_code : VARCHAR(50)  (required)
+    user_id : BIGINT <<FK>> (required)
+    branch_id : BIGINT <<FK>> (required)
+    recipient_name : VARCHAR(100)  (required)
+    recipient_phone : VARCHAR(20)  (required)
+    shipping_address : VARCHAR(255)  (required)
+    total_items_amount : DECIMAL(15,2)  (required)
+    discount_amount : DECIMAL(15,2)  (required)
+    final_amount : DECIMAL(15,2)  (required)
+    status : VARCHAR(30)  (required)
+    payment_method : VARCHAR(20)  (required)
+    payment_status : VARCHAR(20)  (required)
+    coupon_id : BIGINT <<FK>>
+    notes : TEXT
+    cancel_reason : TEXT
+    cancelled_at : DATETIME
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "order_items" as order_items {
+  * id : BIGINT <<PK>>
+    order_id : BIGINT <<FK>> (required)
+    product_id : BIGINT <<FK>> (required)
+    product_name : VARCHAR(200)  (required)
+    product_sku : VARCHAR(50)  (required)
+    product_image : VARCHAR(1024)
+    unit_price : DECIMAL(15,2)  (required)
+    quantity : INT  (required)
+    subtotal_amount : DECIMAL(15,2)  (required)
+}
+
+entity "payments" as payments {
+  * id : BIGINT <<PK>>
+    order_id : BIGINT <<FK>> (required)
+    payment_method : VARCHAR(20)  (required)
+    transaction_code : VARCHAR(100)
+    amount : DECIMAL(15,2)  (required)
+    status : VARCHAR(20)  (required)
+    paid_at : DATETIME
+    refunded_at : DATETIME
+    created_at : DATETIME  (required)
+}
+
+users ||--o{ carts : "user_id"
+carts ||--o{ cart_items : "cart_id"
+products ||--o{ cart_items : "product_id"
+users ||--o{ orders : "user_id"
+branches ||--o{ orders : "branch_id"
+orders ||--o{ order_items : "order_id"
+products ||--o{ order_items : "product_id"
+orders ||--o{ payments : "order_id"
+@enduml

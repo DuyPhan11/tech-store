@@ -1,0 +1,29 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Kiểm duyệt đánh giá (UC20)
+actor "Admin" as U
+boundary "Màn hình đánh giá" as UI
+control "ReviewController" as C
+control "ReviewService" as S
+database "Review" as Reviews
+database "AuditLog" as Audit
+U -> UI: Chọn đánh giá vi phạm
+UI -> C: hideReview(reviewId, reason)
+C -> S: hideReview(admin, reviewId)
+S -> S: Kiểm tra ROLE_ADMIN, lý do
+S -> Reviews: findByIdForUpdate()
+alt Đánh giá đang VISIBLE
+    group Transaction
+        S -> Reviews: setStatus(HIDDEN_BY_ADMIN)
+        S -> Audit: logModeration(reason)
+    end
+    S --> UI: 200 OK
+    UI --> U: Ẩn đánh giá thành công
+else Không đủ quyền / đã ẩn
+    S --> UI: 403 / 404 / 409
+    UI --> U: Hiển thị lỗi
+end
+@enduml

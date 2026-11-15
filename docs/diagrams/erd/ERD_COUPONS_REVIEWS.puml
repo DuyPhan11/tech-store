@@ -1,0 +1,119 @@
+@startuml
+title Tech Store - ERD ERD_COUPONS_REVIEWS (derived from 21-table SQL DRAFT)
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype ortho
+hide circle
+left to right direction
+
+entity "users" as users {
+  * id : BIGINT <<PK>>
+    email : VARCHAR(100)  (required)
+    phone : VARCHAR(20)  (required)
+    password : VARCHAR(255)  (required)
+    full_name : VARCHAR(100)  (required)
+    avatar_url : VARCHAR(1024)
+    avatar_public_id : VARCHAR(255)
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "products" as products {
+  * id : BIGINT <<PK>>
+    category_id : BIGINT <<FK>> (required)
+    brand_id : BIGINT <<FK>> (required)
+    name : VARCHAR(200)  (required)
+    slug : VARCHAR(255)  (required)
+    sku : VARCHAR(50)  (required)
+    price : DECIMAL(15,2)  (required)
+    cost_price : DECIMAL(15,2)  (required)
+    description : LONGTEXT
+    specifications : TEXT
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "coupons" as coupons {
+  * id : BIGINT <<PK>>
+    code : VARCHAR(50)  (required)
+    discount_type : VARCHAR(20)  (required)
+    discount_value : DECIMAL(15,2)  (required)
+    min_order_amount : DECIMAL(15,2)  (required)
+    max_discount_amount : DECIMAL(15,2)
+    usage_limit : INT  (required)
+    used_count : INT  (required)
+    start_date : DATETIME  (required)
+    end_date : DATETIME  (required)
+    is_active : BOOLEAN  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "orders" as orders {
+  * id : BIGINT <<PK>>
+    order_code : VARCHAR(50)  (required)
+    user_id : BIGINT <<FK>> (required)
+    branch_id : BIGINT <<FK>> (required)
+    recipient_name : VARCHAR(100)  (required)
+    recipient_phone : VARCHAR(20)  (required)
+    shipping_address : VARCHAR(255)  (required)
+    total_items_amount : DECIMAL(15,2)  (required)
+    discount_amount : DECIMAL(15,2)  (required)
+    final_amount : DECIMAL(15,2)  (required)
+    status : VARCHAR(30)  (required)
+    payment_method : VARCHAR(20)  (required)
+    payment_status : VARCHAR(20)  (required)
+    coupon_id : BIGINT <<FK>>
+    notes : TEXT
+    cancel_reason : TEXT
+    cancelled_at : DATETIME
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "coupon_usages" as coupon_usages {
+  * id : BIGINT <<PK>>
+    coupon_id : BIGINT <<FK>> (required)
+    user_id : BIGINT <<FK>> (required)
+    order_id : BIGINT <<FK>> (required)
+    status : VARCHAR(20)  (required)
+    used_at : DATETIME  (required)
+    reversed_at : DATETIME
+}
+
+entity "reviews" as reviews {
+  * id : BIGINT <<PK>>
+    user_id : BIGINT <<FK>> (required)
+    product_id : BIGINT <<FK>> (required)
+    order_id : BIGINT <<FK>> (required)
+    rating : INT  (required)
+    comment : TEXT  (required)
+    status : VARCHAR(30)  (required)
+    hidden_at : DATETIME
+    hidden_reason : VARCHAR(255)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "audit_logs" as audit_logs {
+  * id : BIGINT <<PK>>
+    user_id : BIGINT
+    action : VARCHAR(100)  (required)
+    entity_name : VARCHAR(50)  (required)
+    entity_id : BIGINT
+    details : TEXT
+    ip_address : VARCHAR(50)
+    created_at : DATETIME  (required)
+}
+
+users ||--o{ orders : "user_id"
+coupons |o--o{ orders : "coupon_id"
+coupons ||--o{ coupon_usages : "coupon_id"
+users ||--o{ coupon_usages : "user_id"
+orders ||--o{ coupon_usages : "order_id"
+users ||--o{ reviews : "user_id"
+products ||--o{ reviews : "product_id"
+orders ||--o{ reviews : "order_id"
+@enduml

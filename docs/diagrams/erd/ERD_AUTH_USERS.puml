@@ -1,0 +1,78 @@
+@startuml
+title Tech Store - ERD ERD_AUTH_USERS (derived from 21-table SQL DRAFT)
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype ortho
+hide circle
+left to right direction
+
+entity "roles" as roles {
+  * id : BIGINT <<PK>>
+    name : VARCHAR(30)  (required)
+}
+
+entity "users" as users {
+  * id : BIGINT <<PK>>
+    email : VARCHAR(100)  (required)
+    phone : VARCHAR(20)  (required)
+    password : VARCHAR(255)  (required)
+    full_name : VARCHAR(100)  (required)
+    avatar_url : VARCHAR(1024)
+    avatar_public_id : VARCHAR(255)
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "user_roles" as user_roles {
+  * user_id : BIGINT <<PK,FK>>
+  * role_id : BIGINT <<PK,FK>>
+}
+
+entity "addresses" as addresses {
+  * id : BIGINT <<PK>>
+    user_id : BIGINT <<FK>> (required)
+    recipient_name : VARCHAR(100)  (required)
+    phone : VARCHAR(20)  (required)
+    street_address : VARCHAR(255)  (required)
+    ward : VARCHAR(100)
+    district : VARCHAR(100)
+    city : VARCHAR(100)  (required)
+    is_default : BOOLEAN  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "password_reset_tokens" as password_reset_tokens {
+  * id : BIGINT <<PK>>
+    user_id : BIGINT <<FK>> (required)
+    otp_hash : VARCHAR(255)  (required)
+    expiry_date : DATETIME  (required)
+    is_used : BOOLEAN  (required)
+    failed_attempts : INT  (required)
+    created_at : DATETIME  (required)
+}
+
+entity "email_verifications" as email_verifications {
+  * id : BIGINT <<PK>>
+    email : VARCHAR(100)  (required)
+    otp_hash : VARCHAR(255)  (required)
+    expiry_date : DATETIME  (required)
+    is_used : BOOLEAN  (required)
+    failed_attempts : INT  (required)
+    created_at : DATETIME  (required)
+}
+
+entity "carts" as carts {
+  * id : BIGINT <<PK>>
+    user_id : BIGINT <<FK>> (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+users ||--o{ user_roles : "user_id"
+roles ||--o{ user_roles : "role_id"
+users ||--o{ addresses : "user_id"
+users ||--o{ password_reset_tokens : "user_id"
+users ||--o{ carts : "user_id"
+@enduml

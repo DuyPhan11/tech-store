@@ -1,0 +1,82 @@
+@startuml
+title Tech Store - ERD ERD_CATALOG_INVENTORY (derived from 21-table SQL DRAFT)
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype ortho
+hide circle
+left to right direction
+
+entity "categories" as categories {
+  * id : BIGINT <<PK>>
+    name : VARCHAR(100)  (required)
+    slug : VARCHAR(100)  (required)
+    description : TEXT
+    image_url : VARCHAR(1024)
+    image_public_id : VARCHAR(255)
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "brands" as brands {
+  * id : BIGINT <<PK>>
+    name : VARCHAR(100)  (required)
+    slug : VARCHAR(100)  (required)
+    logo_url : VARCHAR(1024)
+    logo_public_id : VARCHAR(255)
+    description : TEXT
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "branches" as branches {
+  * id : BIGINT <<PK>>
+    name : VARCHAR(150)  (required)
+    phone : VARCHAR(20)
+    address : VARCHAR(255)  (required)
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "products" as products {
+  * id : BIGINT <<PK>>
+    category_id : BIGINT <<FK>> (required)
+    brand_id : BIGINT <<FK>> (required)
+    name : VARCHAR(200)  (required)
+    slug : VARCHAR(255)  (required)
+    sku : VARCHAR(50)  (required)
+    price : DECIMAL(15,2)  (required)
+    cost_price : DECIMAL(15,2)  (required)
+    description : LONGTEXT
+    specifications : TEXT
+    status : VARCHAR(20)  (required)
+    created_at : DATETIME  (required)
+    updated_at : DATETIME  (required)
+}
+
+entity "product_images" as product_images {
+  * id : BIGINT <<PK>>
+    product_id : BIGINT <<FK>> (required)
+    image_url : VARCHAR(1024)  (required)
+    cloudinary_public_id : VARCHAR(255)  (required)
+    is_primary : BOOLEAN  (required)
+    display_order : INT  (required)
+}
+
+entity "inventories" as inventories {
+  * id : BIGINT <<PK>>
+    product_id : BIGINT <<FK>> (required)
+    branch_id : BIGINT <<FK>> (required)
+    quantity : INT  (required)
+    min_stock_alert : INT  (required)
+    updated_at : DATETIME  (required)
+}
+
+categories ||--o{ products : "category_id"
+brands ||--o{ products : "brand_id"
+products ||--o{ product_images : "product_id"
+products ||--o{ inventories : "product_id"
+branches ||--o{ inventories : "branch_id"
+@enduml

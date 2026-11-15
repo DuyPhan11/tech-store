@@ -1,0 +1,35 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Quản lý sản phẩm với Cloudinary
+actor "Nhân viên / Admin" as U
+boundary "Màn hình sản phẩm" as UI
+control "ProductController" as C
+control "ProductService" as S
+participant "Cloudinary" as Cloud
+database "Product / Category / Brand" as Products
+database "ProductImage" as Images
+U -> UI: Thêm / sửa sản phẩm, chọn ảnh
+UI -> C: saveProduct(data, files)
+C -> S: saveProduct(request)
+S -> Products: checkSkuSlugAndCatalog()
+S -> S: Kiểm tra ảnh và dữ liệu
+alt Dữ liệu hợp lệ
+    opt Có ảnh mới
+        S -> Cloud: uploadImages(files)
+        Cloud --> S: secure_url, public_id
+    end
+    group Transaction MySQL
+        S -> Products: saveProduct()
+        S -> Images: saveImagesAndPrimary()
+    end
+    S --> UI: 200 / 201 OK
+    UI --> U: Lưu thành công
+else Dữ liệu hoặc upload lỗi
+    S --> UI: 400 / 409 / 502
+    UI --> U: Thông báo lỗi
+end
+note over S,Cloud: Lỗi lưu DB: dọn ảnh mới đã upload
+@enduml

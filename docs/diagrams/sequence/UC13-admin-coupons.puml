@@ -1,0 +1,28 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Quản lý mã giảm giá
+actor "Nhân viên / Admin" as U
+boundary "Màn hình coupon" as UI
+control "CouponController" as C
+control "CouponService" as S
+database "Coupon" as Coupons
+database "CouponUsage" as Usages
+U -> UI: Tạo / sửa / vô hiệu hóa mã
+UI -> C: saveCoupon(action, data)
+C -> S: manageCoupon(request)
+S -> Coupons: findByCodeOrId()
+S -> Usages: existsUsage(couponId)
+S -> S: Kiểm tra quy tắc và used_count
+alt Hợp lệ
+    S -> Coupons: saveOrDeactivate()
+    S --> UI: 200 / 201 OK
+    UI --> U: Cập nhật danh sách
+else Không hợp lệ
+    S --> UI: 400 / 409
+    UI --> U: Hiển thị lỗi
+end
+note over S,Coupons: Không xóa vật lý mã đã sử dụng
+@enduml

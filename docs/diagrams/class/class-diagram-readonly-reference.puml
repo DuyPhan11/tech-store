@@ -1,0 +1,280 @@
+@startuml
+title Tech Store - Class Model (from editable draw.io overview)
+skinparam monochrome true
+skinparam shadowing false
+hide empty members
+left to right direction
+
+class Role {
+  - id: Long
+  - name: RoleName
+}
+
+class Address {
+  - id: Long
+  - recipientName: String
+  - phone: String
+  - streetAddress: String
+  - city: String
+  - isDefault: Boolean
+  + setDefault(): void
+}
+
+class PasswordResetToken {
+  - id: Long
+  - userId: Long
+  - otpHash: String
+  - expiryDate: LocalDateTime
+  - isUsed: Boolean
+  - failedAttempts: Integer
+  + isValid(): Boolean
+}
+
+class EmailVerification {
+  - id: Long
+  - email: String
+  - otpHash: String
+  - expiryDate: LocalDateTime
+  - isUsed: Boolean
+  + isValid(): Boolean
+}
+
+class User {
+  - id: Long
+  - email: String
+  - phone: String
+  - password: String
+  - fullName: String
+  - status: UserStatus
+  - avatarUrl: String
+  - avatarPublicId: String
+  + updateProfile(): void
+  + changePassword(): void
+}
+
+class Coupon {
+  - id: Long
+  - code: String
+  - discountType: DiscountType
+  - discountValue: BigDecimal
+  - minOrderAmount: BigDecimal
+  - usageLimit: Integer
+  - usedCount: Integer
+  - isActive: Boolean
+  + isValid(): Boolean
+  + calculateDiscount(): BigDecimal
+}
+
+class CouponUsage {
+  - id: Long
+  - couponId: Long
+  - userId: Long
+  - orderId: Long
+  - status: CouponUsageStatus
+  - usedAt: LocalDateTime
+  - reversedAt: LocalDateTime
+  + reverse(): void
+}
+
+class Cart {
+  - id: Long
+  - userId: Long
+  + addItem(): void
+  + updateQuantity(): void
+  + removeItem(): void
+}
+
+class Order {
+  - id: Long
+  - orderCode: String
+  - userId: Long
+  - branchId: Long
+  - status: OrderStatus
+  - paymentMethod: PaymentMethod
+  - paymentStatus: PaymentStatus
+  - finalAmount: BigDecimal
+  - cancelReason: String
+  - cancelledAt: LocalDateTime
+  + placeOrder(): void
+  + cancelOrder(): void
+}
+
+class CartItem {
+  - id: Long
+  - cartId: Long
+  - productId: Long
+  - quantity: Integer
+  + getSubtotal(): BigDecimal
+}
+
+class Review {
+  - id: Long
+  - userId: Long
+  - productId: Long
+  - orderId: Long
+  - rating: Integer
+  - status: ReviewStatus
+  - hiddenAt: LocalDateTime
+  - hiddenReason: String
+  + hide(): void
+}
+
+class OrderItem {
+  - id: Long
+  - productName: String
+  - productSku: String
+  - productImage: String
+  - unitPrice: BigDecimal
+  - quantity: Integer
+  + getSubtotal(): BigDecimal
+}
+
+class Payment {
+  - id: Long
+  - orderId: Long
+  - amount: BigDecimal
+  - status: PaymentStatus
+  - paymentMethod: PaymentMethod
+  - refundedAt: LocalDateTime
+  + refund(): void
+}
+
+class Product {
+  - id: Long
+  - name: String
+  - sku: String
+  - price: BigDecimal
+  - costPrice: BigDecimal
+  - description: String
+  - specifications: String
+  - status: ActiveStatus
+  + getTotalStock(): int
+  + getAverageRating(): double
+}
+
+class Inventory {
+  - id: Long
+  - productId: Long
+  - branchId: Long
+  - quantity: Integer
+  - minStockAlert: Integer
+  + adjustStock(): void
+  + isLowStock(): Boolean
+}
+
+class Branch {
+  - id: Long
+  - name: String
+  - phone: String
+  - address: String
+  - status: ActiveStatus
+  + deactivate(): void
+}
+
+class Category {
+  - id: Long
+  - name: String
+  - slug: String
+  - imageUrl: String
+  - imagePublicId: String
+  - status: ActiveStatus
+  + deactivate(): void
+}
+
+class Brand {
+  - id: Long
+  - name: String
+  - slug: String
+  - logoUrl: String
+  - logoPublicId: String
+  - status: ActiveStatus
+  + deactivate(): void
+}
+
+class ProductImage {
+  - id: Long
+  - productId: Long
+  - imageUrl: String
+  - cloudinaryPublicId: String
+  - isPrimary: Boolean
+  - displayOrder: Integer
+  + setPrimary(): void
+}
+
+enum RoleName {
+  ROLE_CUSTOMER
+  ROLE_STAFF
+  ROLE_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+}
+
+enum ActiveStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  COD
+  ONLINE_MOCK
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  CANCELLED
+  REFUNDED
+  FAILED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum CouponUsageStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum ReviewStatus {
+  VISIBLE
+  HIDDEN_BY_OWNER
+  HIDDEN_BY_ADMIN
+}
+
+Role -- User
+Address -- User
+PasswordResetToken -- User
+User -- Cart
+Cart -- CartItem
+CartItem -- Product
+User -- Review
+User -- Order
+User -- CouponUsage
+Coupon -- Order
+Coupon -- CouponUsage
+Order -- CouponUsage
+Order -- OrderItem
+Order -- Payment
+Order -- Branch
+Review -- Order
+Review -- Product
+OrderItem -- Product
+Product -- Category
+Product -- Brand
+Product -- ProductImage
+Product -- Inventory
+Inventory -- Branch
+@enduml

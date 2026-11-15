@@ -1,0 +1,33 @@
+@startuml
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+title sd Quản lý đánh giá sản phẩm
+actor "Khách hàng" as U
+boundary "Màn hình sản phẩm" as UI
+control "ReviewController" as C
+control "ReviewService" as S
+database "Order" as Orders
+database "Review" as Reviews
+U -> UI: Xem đánh giá
+UI -> C: getProductReviews(productId)
+C -> S: getVisibleReviews(productId)
+S -> Reviews: findVisibleByProduct()
+S --> UI: reviews + averageRating
+UI --> U: Hiển thị đánh giá
+U -> UI: Tạo / sửa / ẩn đánh giá
+UI -> C: saveReview(action, data)
+C -> S: saveReview(user, action, data)
+S -> Orders: verifyCompletedPurchase()
+S -> Reviews: verifyOwnershipAndUniqueness()
+alt Hợp lệ
+    S -> Reviews: createOrUpdateOrHide()
+    S --> UI: 200 / 201 OK
+    UI --> U: Hiển thị kết quả
+else Không hợp lệ
+    S --> UI: 400 / 403 / 409
+    UI --> U: Thông báo lỗi
+end
+note over S,Reviews: Chỉ VISIBLE được tính điểm trung bình
+@enduml

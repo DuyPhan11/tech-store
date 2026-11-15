@@ -1,0 +1,47 @@
+@startuml
+title sd Tìm kiếm và xem sản phẩm
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "Khách hàng" as Customer
+boundary "Màn hình sản phẩm" as Screen
+control "ProductController" as Controller
+control "ProductService" as Service
+database "Product" as Products
+database "Category" as Categories
+database "Brand" as Brands
+database "ProductImage" as Images
+database "Review" as Reviews
+
+Customer -> Screen: searchProducts(filters)
+Screen -> Controller: getProducts(filters)
+Controller -> Service: getProducts(filters)
+Service -> Products: findByFilters(filters)
+Products --> Service: products
+Service --> Controller: productPage
+Controller --> Screen: productPage
+Screen --> Customer: displayProducts()
+
+Customer -> Screen: selectProduct(productId)
+Screen -> Controller: getProductDetail(productId)
+Controller -> Service: getProductDetail(productId)
+Service -> Products: findById(productId)
+Service -> Categories: findByProduct(productId)
+Service -> Brands: findByProduct(productId)
+Service -> Images: findByProduct(productId)
+Service -> Reviews: findSummaryByProduct(productId)
+alt Sản phẩm tồn tại
+    Service --> Controller: ProductDetailDto
+    Controller --> Screen: ProductDetailDto
+    Screen --> Customer: displayProductDetail()
+else Không tìm thấy sản phẩm
+    Service --> Controller: ProductNotFoundException
+    Controller --> Screen: 404 Not Found
+    Screen --> Customer: showProductNotFound()
+end
+@enduml
+
+
+
