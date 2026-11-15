@@ -13,11 +13,6 @@ import java.util.Map;
 @RequestMapping("/api")
 public class DemoSecuredController {
 
-    @GetMapping("/products")
-    public ResponseEntity<Map<String, String>> publicProducts() {
-        return ResponseEntity.ok(Map.of("message", "Public catalog endpoint"));
-    }
-
     @GetMapping("/admin/demo")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> adminEndpoint(Authentication authentication) {
