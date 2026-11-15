@@ -5,6 +5,7 @@ import { Input } from '../../../components/ui/Input'
 import { ProductCard } from '../ProductCard'
 import { Pagination } from './Pagination'
 import { pageSize, readQuery, type CatalogOption, type CatalogPage, type CatalogQuery, type CatalogSource } from './catalogTypes'
+import { apiCatalogSource } from './apiCatalogSource'
 import styles from './ProductListPage.module.css'
 type Options = { categories: readonly CatalogOption[]; brands: readonly CatalogOption[] }
 type Update = (changes: Record<string, string>) => void
@@ -86,14 +87,14 @@ function Results({ query, source, brands, changePage, reset }: {
       <ProductCard
         key={product.id}
         product={product}
-        brandName={brands.find(brand => brand.id === product.brandId)?.name}
+        brandName={brands.find(brand => brand.id === product.brandId)?.name || product.brandName}
       />
     ))}</div>
     <Pagination page={page} pages={Math.ceil(total / pageSize)} onChange={changePage} />
   </>
 }
 
-export function ProductListPage({ source, categories, brands }: Options & { source: CatalogSource }) {
+export function ProductListPage({ source = apiCatalogSource, categories, brands }: Options & { source?: CatalogSource }) {
   const [params, setParams] = useSearchParams()
   const query = useMemo(() => readQuery(params), [params])
   const [resetCount, setResetCount] = useState(0)

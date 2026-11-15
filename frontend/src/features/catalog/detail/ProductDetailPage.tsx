@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { Button } from '../../../components/ui/Button'
+import { ApiError } from '../../../lib/api/apiClient'
 import { ProductCard } from '../ProductCard'
 import { ProductGallery } from './ProductGallery'
-import { mockProductDetailSource } from './mockProductDetailSource'
+import { apiProductDetailSource } from './apiProductDetailSource'
 import { categories as defaultCategories, brands as defaultBrands, catalogProducts } from '../catalogData'
 import type { CatalogOption, ProductDetail, ProductDetailSource } from '../list/catalogTypes'
 import styles from './ProductDetailPage.module.css'
@@ -20,11 +21,11 @@ export interface ProductDetailPageProps {
 
 type DetailState =
   | { status: 'loading' }
-  | { status: 'error' }
+  | { status: 'error'; isNotFound?: boolean; message?: string }
   | { status: 'ready'; data: ProductDetail }
 
 export function ProductDetailPage({
-  source = mockProductDetailSource,
+  source = apiProductDetailSource,
   categories = defaultCategories,
   brands = defaultBrands,
   onAddToCart,
@@ -34,13 +35,14 @@ export function ProductDetailPage({
   const navigate = useNavigate()
   const [state, setState] = useState<DetailState>({ status: 'loading' })
   const [quantity, setQuantity] = useState(1)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
 
     if (!slug) {
       Promise.resolve().then(() => {
-        if (!controller.signal.aborted) setState({ status: 'error' })
+        if (!controller.signal.aborted) setState({ status: 'error', isNotFound: true })
       })
       return () => controller.abort()
     }
@@ -52,34 +54,59 @@ export function ProductDetailPage({
           setQuantity(1)
         }
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (!controller.signal.aborted) {
-          setState({ status: 'error' })
+          const isNotFound = (err instanceof ApiError && err.status === 404)
+            || (err instanceof Error && err.name === 'ProductNotFoundError')
+          setState({
+            status: 'error',
+            isNotFound,
+            message: err instanceof Error ? err.message : undefined,
+          })
         }
       })
 
     return () => controller.abort()
-  }, [slug, source])
+  }, [slug, source, attempt])
 
   if (state.status === 'loading') {
     return <p role="status" className={styles.message}>Đang tải thông tin sản phẩm…</p>
   }
 
   if (state.status === 'error') {
+    if (state.isNotFound !== false) {
+      return (
+        <div className={styles.message} role="alert">
+          <h2>Không tìm thấy sản phẩm</h2>
+          <p>Sản phẩm không tồn tại hoặc đã ngừng kinh doanh.</p>
+          <Button variant="primary" onClick={() => navigate('/products')}>
+            Quay lại danh sách sản phẩm
+          </Button>
+        </div>
+      )
+    }
+
     return (
       <div className={styles.message} role="alert">
-        <h2>Không tìm thấy sản phẩm</h2>
-        <p>Sản phẩm không tồn tại hoặc đã ngừng kinh doanh.</p>
-        <Button variant="primary" onClick={() => navigate('/products')}>
-          Quay lại danh sách sản phẩm
-        </Button>
+        <h2>Không thể tải thông tin sản phẩm</h2>
+        <p>{state.message || 'Đã có lỗi xảy ra khi kết nối máy chủ. Vui lòng thử lại.'}</p>
+        <div style={{ display: 'flex', gap: 'var(--ts-space-12)', justifyContent: 'center', marginTop: 'var(--ts-space-16)' }}>
+          <Button variant="primary" onClick={() => setAttempt(a => a + 1)}>
+            Thử lại
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/products')}>
+            Quay lại danh sách sản phẩm
+          </Button>
+        </div>
       </div>
     )
   }
 
   const product = state.data
   const brand = brands.find(b => b.id === product.brandId)
+  const brandName = brand?.name || product.brandName
   const category = categories.find(c => c.id === product.categoryId)
+  const categoryName = category?.name || product.categoryName
 
   // Sản phẩm liên quan cùng danh mục (tối đa 4 sản phẩm, không gồm sản phẩm hiện tại)
   const relatedProducts = catalogProducts
@@ -110,10 +137,10 @@ export function ProductDetailPage({
         <a href="/">Trang chủ</a>
         <span className={styles.breadcrumbSeparator} aria-hidden="true">/</span>
         <a href="/products">Sản phẩm</a>
-        {category && (
+        {categoryName && (
           <>
             <span className={styles.breadcrumbSeparator} aria-hidden="true">/</span>
-            <a href={`/products?category=${category.id}`}>{category.name}</a>
+            <a href={`/products?category=${product.categoryId}`}>{categoryName}</a>
           </>
         )}
         <span className={styles.breadcrumbSeparator} aria-hidden="true">/</span>
@@ -126,7 +153,7 @@ export function ProductDetailPage({
 
         <div className={styles.productInfo}>
           <div className={styles.headerMeta}>
-            {brand && <span className={styles.brand}>{brand.name}</span>}
+            {brandName && <span className={styles.brand}>{brandName}</span>}
             <span className={styles.sku}>SKU: {product.sku}</span>
           </div>
 

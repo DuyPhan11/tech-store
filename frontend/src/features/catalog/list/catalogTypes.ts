@@ -8,7 +8,9 @@ export interface CatalogProduct {
   name: string
   slug?: string
   categoryId: string
+  categoryName?: string
   brandId: string
+  brandName?: string
   priceVnd: number
   image: string
   specification: string
@@ -81,7 +83,9 @@ export interface ProductDetail {
   sku: string
   name: string
   categoryId: string
+  categoryName?: string
   brandId: string
+  brandName?: string
   priceVnd: number
   status: 'ACTIVE' | 'INACTIVE'
   image: string
