@@ -24,19 +24,19 @@ Service --> Controller: productPage
 Controller --> Screen: productPage
 Screen --> Customer: displayProducts()
 
-Customer -> Screen: selectProduct(productId)
-Screen -> Controller: getProductDetail(productId)
-Controller -> Service: getProductDetail(productId)
-Service -> Products: findById(productId)
-Service -> Categories: findByProduct(productId)
-Service -> Brands: findByProduct(productId)
-Service -> Images: findByProduct(productId)
-Service -> Reviews: findSummaryByProduct(productId)
-alt Sản phẩm tồn tại
+Customer -> Screen: selectProduct(slug)
+Screen -> Controller: getProductDetail(slug)
+Controller -> Service: getProductDetail(slug)
+Service -> Products: findBySlug(slug)
+alt Sản phẩm tồn tại và ACTIVE
+    Service -> Categories: findByProduct(product.id)
+    Service -> Brands: findByProduct(product.id)
+    Service -> Images: findByProduct(product.id)
+    Service -> Reviews: findSummaryByProduct(product.id)
     Service --> Controller: ProductDetailDto
     Controller --> Screen: ProductDetailDto
     Screen --> Customer: displayProductDetail()
-else Không tìm thấy sản phẩm
+else Không tìm thấy sản phẩm hoặc INACTIVE
     Service --> Controller: ProductNotFoundException
     Controller --> Screen: 404 Not Found
     Screen --> Customer: showProductNotFound()

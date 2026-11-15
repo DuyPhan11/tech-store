@@ -31,6 +31,17 @@
 | Admin inventory | POST | `/api/admin/inventories/transfer` | Staff/Admin |
 | Admin branches | PATCH | `/api/admin/branches/{id}/status` | Admin |
 
+## Catalog DTO tham chiếu (UC04, UC05)
+
+- `GET /api/products?q={text}&category={cat}&brand={brand}&min={min}&max={max}&sort={sort}&page={page}`:
+  - Chỉ trả về sản phẩm `status = 'ACTIVE'`.
+  - Phân trang `pageSize = 8`.
+  - Phản hồi: `{ "products": CatalogProduct[], "total": number, "page": number }`.
+- `GET /api/products/{slug}`:
+  - Tra cứu bằng `slug`. Chỉ trả về khi `status = 'ACTIVE'`.
+  - Trả về 404 Not Found nếu slug không tồn tại hoặc sản phẩm `INACTIVE`.
+  - Phản hồi: `{ id, slug, sku, name, categoryId, brandId, priceVnd, image, images, specification, specifications, description, stock, inStock }`.
+
 ## Checkout DTO tham chiếu
 
 ```json

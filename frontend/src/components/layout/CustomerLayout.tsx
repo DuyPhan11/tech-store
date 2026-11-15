@@ -1,17 +1,29 @@
 import type { PropsWithChildren } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { Input } from '../ui/Input'
 import { LayoutIcon } from './LayoutIcon'
 import styles from './Layouts.module.css'
 
 export function CustomerLayout({ children }: PropsWithChildren) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const currentSearch = new URLSearchParams(location.search).get('q') ?? ''
   return (
     <div className={styles.customer}>
       <header className={styles.customerHeader}>
         <a href="/" className={styles.brand}>Tech Store</a>
-        <div role="search" className={styles.search}>
+        <form key={location.key} role="search" action="/products" className={styles.search} onSubmit={event => {
+          event.preventDefault()
+          const text = String(new FormData(event.currentTarget).get('q') ?? '').trim()
+          const params = new URLSearchParams(location.pathname === '/products' ? location.search : '')
+          params.delete('page')
+          if (text) params.set('q', text)
+          else params.delete('q')
+          navigate({ pathname: '/products', search: params.toString() })
+        }}>
           <LayoutIcon name="search" />
-          <Input type="search" label="Tìm kiếm" placeholder="Tìm sản phẩm" />
-        </div>
+          <Input type="search" name="q" defaultValue={currentSearch} label="Tìm kiếm" placeholder="Tìm sản phẩm" />
+        </form>
         <span className={styles.account}>Tài khoản</span>
         <span className={styles.cart} aria-label="Giỏ hàng" role="img">
           <LayoutIcon name="cart" /><span>Giỏ hàng</span>

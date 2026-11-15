@@ -23,4 +23,11 @@
 | UC19 | Quản lý chi nhánh | admin/branches | Admin |
 | UC20 | Kiểm duyệt đánh giá | admin/reviews | Admin |
 
+### UC04 — tiêu chí đã duyệt cho bản frontend dùng dữ liệu mẫu
+
+- Trang công khai `/products` tìm theo tên sản phẩm, bỏ khoảng trắng đầu/cuối, không phân biệt hoa thường và dấu tiếng Việt.
+- Kết hợp một danh mục, một thương hiệu và khoảng giá VND. Hai đầu mút đều được tính, mỗi đầu có thể bỏ trống. Giá từ lớn hơn giá đến thì báo lỗi trên form.
+- Thứ tự mặc định theo dữ liệu mẫu. Khi sắp xếp giá tăng hoặc giảm, các sản phẩm cùng giá giữ thứ tự ban đầu.
+- Lọc và sắp xếp trước khi phân trang, 8 sản phẩm mỗi trang trên cả desktop và mobile. Thay đổi truy vấn đưa kết quả về trang đầu.
+
 **Ownership:** Theo từng Issue/PR, không cố định một người quản lý toàn bộ backend hay frontend. `docs/team/TASK_BOARD.md` là bảng phân công thao tác hằng ngày.
