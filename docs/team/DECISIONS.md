@@ -12,11 +12,21 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-006 | Figma approved frames/tokens là chuẩn UI | Needs Figma URL | Frontend components |
 | ADR-007 | Frontend dùng React + TypeScript, Vite, React Router, CSS Modules + CSS Variables và npm | Frontend đã chốt. Phiên bản Java, chiến lược xác thực và migration còn mở. | Scaffold |
 | ADR-008 | Request idempotency cho checkout (mechanism) | Open | Checkout/API/schema |
+| ADR-009 | Tạm triển khai Home Page theo quy trình Code-first | Đang áp dụng | Home Page và việc sử dụng Figma MCP |
+
+### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
+
+Ngày quyết định: 15/11/2026.
+
+- Tài khoản Figma Starter đã hết hạn mức MCP. Nhóm tạm triển khai Home Page bằng code, sử dụng Design System và các layout React đã duyệt.
+- Mọi thay đổi giao diện vẫn phải tuân thủ [DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md).
+- Trong tất cả nhiệm vụ tiếp theo, nhóm không gọi Figma MCP cho đến khi người phụ trách dự án thông báo đã có quyền truy cập trở lại.
+- Khi Figma Education được kích hoạt và người phụ trách xác nhận quyền truy cập, nhóm sẽ đồng bộ giao diện Home Page từ code vào Figma, sau đó cập nhật liên kết frame trong [SCREEN_MAP.md](../design/SCREEN_MAP.md).
 
 ## Mẫu một quyết định
 
 ```
-### ADR-009 — [Tên]
+### ADR-XXX — [Tên]
 - Date:
 - Context / vấn đề:
 - Options:

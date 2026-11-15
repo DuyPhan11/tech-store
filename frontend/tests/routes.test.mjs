@@ -22,11 +22,18 @@ function renderRoute(path) {
   return renderToStaticMarkup(matchRoutes(routes, path)[0].route.element)
 }
 
-test('customer shell renders search, categories, content and footer', () => {
+test('customer home renders the catalog sections, local anchors and sample disclosure', () => {
   const html = renderRoute('/')
   assert.match(html, /type="search"/)
   assert.match(html, /aria-label="Danh mục sản phẩm"/)
-  assert.match(html, /Vùng nội dung/)
+  assert.match(html, /Sản phẩm nổi bật/)
+  assert.match(html, /Khám phá thêm sản phẩm/)
+  assert.match(html, /giá trên trang dùng để minh họa/)
+  assert.match(html, /Xem thêm sản phẩm/)
+  assert.doesNotMatch(html, /Nova Lite|Vùng nội dung/)
+  for (const [, target] of html.matchAll(/href="#([^"]+)"/g)) {
+    assert.ok(html.includes(`id="${target}"`))
+  }
   assert.match(html, /<footer/)
   assert.doesNotMatch(html, /href="\/(login|cart)"/)
 })
