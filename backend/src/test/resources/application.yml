@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: tech-store-backend-test
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL;NON_KEYWORDS=USER
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+    show-sql: false
+
+app:
+  jwt:
+    secret: 586e3272357538782f413f4428472b4b6250645367566b597033733676397924
+    expiration-ms: 86400000
+  demo:
+    enabled: true
+    admin-password: Admin@123
+    staff-password: Staff@123
+    customer-password: Customer@123
