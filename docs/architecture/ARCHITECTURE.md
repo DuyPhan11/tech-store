@@ -1,7 +1,7 @@
 # Kiến trúc và ranh giới module
 
 ## Stack đã dự kiến
-- Frontend: React + TypeScript; chọn Vite hoặc framework và ghi quyết định một lần trước khi scaffold.
+- Frontend dùng React + TypeScript, Vite, React Router, CSS Modules + CSS Variables và npm (ADR-007).
 - Backend: Spring Boot REST + Spring Security + Validation + JPA/Hibernate (đề xuất, cần chốt trước triển khai).
 - Database: MySQL 8/InnoDB; migrations có phiên bản (Flyway được đề xuất, không bắt buộc).
 - Assets: Cloudinary upload từ backend.

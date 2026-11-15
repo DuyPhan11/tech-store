@@ -1,0 +1,97 @@
+@font-face {
+  font-family: Inter;
+  src: url('./fonts/Inter.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --ts-cobalt-700: #244bc4;
+  --ts-color-primary: var(--ts-cobalt-700);
+  --ts-cobalt-800: #193aa1;
+  --ts-color-primary-hover: var(--ts-cobalt-800);
+  --ts-slate-50: #f4f6fa;
+  --ts-color-background: var(--ts-slate-50);
+  --ts-neutral-white: #ffffff;
+  --ts-color-surface: var(--ts-neutral-white);
+  --ts-slate-950: #16243a;
+  --ts-color-text: var(--ts-slate-950);
+  --ts-slate-650: #516077;
+  --ts-color-muted: var(--ts-slate-650);
+  --ts-slate-250: #cdd5e1;
+  --ts-color-border: var(--ts-slate-250);
+  --ts-slate-500: #77859a;
+  --ts-color-border-control: var(--ts-slate-500);
+  --ts-green-700: #14704c;
+  --ts-color-success: var(--ts-green-700);
+  --ts-amber-800: #865000;
+  --ts-color-warning: var(--ts-amber-800);
+  --ts-red-700: #b22e42;
+  --ts-color-danger: var(--ts-red-700);
+  --ts-color-focus: var(--ts-cobalt-700);
+  --ts-color-on-primary: var(--ts-neutral-white);
+  --ts-slate-150: #e4e9f0;
+  --ts-color-disabled-surface: var(--ts-slate-150);
+  --ts-color-disabled-text: var(--ts-slate-650);
+  --ts-space-0: 0px;
+  --ts-space-4: 4px;
+  --ts-space-8: 8px;
+  --ts-space-12: 12px;
+  --ts-space-16: 16px;
+  --ts-space-24: 24px;
+  --ts-space-32: 32px;
+  --ts-space-48: 48px;
+  --ts-space-64: 64px;
+  --ts-radius-0: 0px;
+  --ts-radius-4: 4px;
+  --ts-radius-8: 8px;
+  --ts-radius-12: 12px;
+  --ts-radius-16: 16px;
+  --ts-breakpoint-mobile: 0px;
+  --ts-breakpoint-tablet: 768px;
+  --ts-breakpoint-desktop: 1200px;
+  --ts-icon-small: 16px;
+  --ts-icon-default: 20px;
+  --ts-icon-large: 24px;
+  --ts-icon-stroke: 2px;
+  --ts-icon-target: 44px;
+  --ts-focus-width: 2px;
+  --ts-focus-offset: 2px;
+
+  --ts-font-family: Inter, system-ui, sans-serif;
+  --ts-heading-h1-size: 40px;
+  --ts-heading-h1-line-height: 48px;
+  --ts-heading-h1-weight: 700;
+  --ts-font-heading-h1: var(--ts-heading-h1-weight) var(--ts-heading-h1-size)/var(--ts-heading-h1-line-height) var(--ts-font-family);
+  --ts-heading-h2-size: 28px;
+  --ts-heading-h2-line-height: 36px;
+  --ts-heading-h2-weight: 600;
+  --ts-font-heading-h2: var(--ts-heading-h2-weight) var(--ts-heading-h2-size)/var(--ts-heading-h2-line-height) var(--ts-font-family);
+  --ts-heading-h3-size: 20px;
+  --ts-heading-h3-line-height: 28px;
+  --ts-heading-h3-weight: 600;
+  --ts-font-heading-h3: var(--ts-heading-h3-weight) var(--ts-heading-h3-size)/var(--ts-heading-h3-line-height) var(--ts-font-family);
+  --ts-body-default-size: 16px;
+  --ts-body-default-line-height: 24px;
+  --ts-body-default-weight: 400;
+  --ts-font-body-default: var(--ts-body-default-weight) var(--ts-body-default-size)/var(--ts-body-default-line-height) var(--ts-font-family);
+  --ts-body-small-size: 14px;
+  --ts-body-small-line-height: 20px;
+  --ts-body-small-weight: 400;
+  --ts-font-body-small: var(--ts-body-small-weight) var(--ts-body-small-size)/var(--ts-body-small-line-height) var(--ts-font-family);
+  --ts-label-default-size: 14px;
+  --ts-label-default-line-height: 20px;
+  --ts-label-default-weight: 600;
+  --ts-font-label-default: var(--ts-label-default-weight) var(--ts-label-default-size)/var(--ts-label-default-line-height) var(--ts-font-family);
+  --ts-caption-default-size: 12px;
+  --ts-caption-default-line-height: 16px;
+  --ts-caption-default-weight: 400;
+  --ts-font-caption-default: var(--ts-caption-default-weight) var(--ts-caption-default-size)/var(--ts-caption-default-line-height) var(--ts-font-family);
+  --ts-shadow-raised: 0 4px 12px 0 rgb(8% 14% 23% / 12%);
+}
+
+body {
+  margin: 0;
+  background-color: var(--ts-color-background);
+}
