@@ -93,99 +93,155 @@ export function LoginPage() {
   }
 
   return (
-    <div className={styles.loginWrapper}>
-      <div className={styles.loginCard}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Đăng nhập</h1>
-          <p className={styles.subtitle}>Sử dụng tài khoản Tech Store của bạn để tiếp tục</p>
+    <div className={styles.loginPageContainer}>
+      {/* Breadcrumb */}
+      <nav aria-label="Đường dẫn trang" className={styles.breadcrumb}>
+        <a href="/">Trang chủ</a>
+        <span className={styles.breadcrumbSeparator} aria-hidden="true">›</span>
+        <span className={styles.breadcrumbCurrent}>Đăng nhập tài khoản</span>
+      </nav>
+
+      {/* Main Page Title */}
+      <h1 className={styles.pageTitle}>Đăng nhập</h1>
+
+      <div className={styles.loginLayout}>
+        {/* Panel 1: Registered Customers (Solid #F5F7FF, borderless matching Figma) */}
+        <div className={styles.panelRegistered}>
+          <div className={styles.panelHeader}>
+            <h2 className={styles.panelTitle}>Khách hàng đã đăng ký</h2>
+            <p className={styles.panelSubtitle}>
+              Nếu bạn đã có tài khoản, vui lòng đăng nhập bằng địa chỉ email.
+            </p>
+          </div>
+
+          {generalError && (
+            <div className={styles.alertError} role="alert">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{generalError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className={styles.form} noValidate>
+            <Input
+              id="login-identifier"
+              label="Email hoặc số điện thoại *"
+              type="text"
+              name="identifier"
+              autoComplete="username"
+              value={identifier}
+              onChange={e => {
+                setIdentifier(e.target.value)
+                if (fieldErrors.identifier) {
+                  setFieldErrors(prev => ({ ...prev, identifier: '' }))
+                }
+              }}
+              error={fieldErrors.identifier}
+              placeholder="ví dụ: customer@techstore.vn hoặc 0903456789"
+              disabled={isSubmitting}
+            />
+
+            <Input
+              id="login-password"
+              label="Mật khẩu *"
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={e => {
+                setPassword(e.target.value)
+                if (fieldErrors.password) {
+                  setFieldErrors(prev => ({ ...prev, password: '' }))
+                }
+              }}
+              error={fieldErrors.password}
+              placeholder="Nhập mật khẩu của bạn"
+              disabled={isSubmitting}
+            />
+
+            <div className={styles.actionsRow}>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={styles.submitBtnPill}
+              >
+                {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              </button>
+
+              <a
+                href="#forgot-password"
+                className={styles.forgotPasswordLink}
+                onClick={e => {
+                  e.preventDefault()
+                  navigate('/forgot-password')
+                }}
+              >
+                Quên mật khẩu?
+              </a>
+            </div>
+          </form>
+
+          {/* Demo Accounts */}
+          <div className={styles.demoBox}>
+            <p className={styles.demoTitle}>Tài khoản Demo thử nghiệm:</p>
+            <div className={styles.demoGrid}>
+              <Button
+                variant="outline"
+                className={styles.demoBtn}
+                onClick={() => fillDemoAccount('customer@techstore.vn', 'Customer@123')}
+              >
+                Khách hàng
+              </Button>
+              <Button
+                variant="outline"
+                className={styles.demoBtn}
+                onClick={() => fillDemoAccount('staff@techstore.vn', 'Staff@123')}
+              >
+                Nhân viên
+              </Button>
+              <Button
+                variant="outline"
+                className={styles.demoBtn}
+                onClick={() => fillDemoAccount('admin@techstore.vn', 'Admin@123')}
+              >
+                Quản trị viên
+              </Button>
+              <Button
+                variant="outline"
+                className={styles.demoBtn}
+                onClick={() => fillDemoAccount('locked@techstore.vn', 'Customer@123')}
+              >
+                Bị khóa (403)
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {generalError && (
-          <div className={styles.alertError} role="alert">
-            {generalError}
+        {/* Panel 2: New Customers (Solid #F5F7FF, borderless matching Figma) */}
+        <div className={styles.panelNew}>
+          <div className={styles.panelHeader}>
+            <h2 className={styles.panelTitle}>Khách hàng mới?</h2>
+            <p className={styles.panelSubtitle}>
+              Tạo tài khoản mang lại cho bạn nhiều tiện ích tuyệt vời:
+            </p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className={styles.form} noValidate>
-          <Input
-            id="login-identifier"
-            label="Email hoặc số điện thoại"
-            type="text"
-            name="identifier"
-            autoComplete="username"
-            value={identifier}
-            onChange={e => {
-              setIdentifier(e.target.value)
-              if (fieldErrors.identifier) {
-                setFieldErrors(prev => ({ ...prev, identifier: '' }))
-              }
-            }}
-            error={fieldErrors.identifier}
-            placeholder="ví dụ: customer@techstore.vn hoặc 0903456789"
-            disabled={isSubmitting}
-          />
+          <ul className={styles.benefitsList}>
+            <li>Thanh toán đơn hàng nhanh chóng hơn</li>
+            <li>Lưu trữ nhiều địa chỉ giao hàng khác nhau</li>
+            <li>Theo dõi tiến độ đơn hàng và nhiều hơn nữa</li>
+          </ul>
 
-          <Input
-            id="login-password"
-            label="Mật khẩu"
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={e => {
-              setPassword(e.target.value)
-              if (fieldErrors.password) {
-                setFieldErrors(prev => ({ ...prev, password: '' }))
-              }
-            }}
-            error={fieldErrors.password}
-            placeholder="Nhập mật khẩu của bạn"
-            disabled={isSubmitting}
-          />
-
-          <Button
-            type="submit"
-            variant="primary"
-            loading={isSubmitting}
-            loadingLabel="Đang đăng nhập..."
-            className={styles.submitBtn}
+          <button
+            type="button"
+            className={styles.createAccountBtnPill}
+            onClick={() => navigate('/register')}
           >
-            Đăng nhập
-          </Button>
-        </form>
-
-        <div className={styles.demoBox}>
-          <p className={styles.demoTitle}>Tài khoản Demo thử nghiệm:</p>
-          <div className={styles.demoGrid}>
-            <Button
-              variant="outline"
-              className={styles.demoBtn}
-              onClick={() => fillDemoAccount('customer@techstore.vn', 'Customer@123')}
-            >
-              Khách hàng
-            </Button>
-            <Button
-              variant="outline"
-              className={styles.demoBtn}
-              onClick={() => fillDemoAccount('staff@techstore.vn', 'Staff@123')}
-            >
-              Nhân viên
-            </Button>
-            <Button
-              variant="outline"
-              className={styles.demoBtn}
-              onClick={() => fillDemoAccount('admin@techstore.vn', 'Admin@123')}
-            >
-              Quản trị viên
-            </Button>
-            <Button
-              variant="outline"
-              className={styles.demoBtn}
-              onClick={() => fillDemoAccount('locked@techstore.vn', 'Customer@123')}
-            >
-              Bị khóa (403)
-            </Button>
-          </div>
+            Tạo tài khoản mới
+          </button>
         </div>
       </div>
     </div>

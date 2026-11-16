@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&display=swap');
+
 @font-face {
   font-family: Inter;
   src: url('./fonts/Inter.ttf') format('truetype');
@@ -7,33 +9,43 @@
 }
 
 :root {
-  --ts-cobalt-700: #244bc4;
-  --ts-color-primary: var(--ts-cobalt-700);
-  --ts-cobalt-800: #193aa1;
-  --ts-color-primary-hover: var(--ts-cobalt-800);
-  --ts-slate-50: #f4f6fa;
-  --ts-color-background: var(--ts-slate-50);
-  --ts-neutral-white: #ffffff;
-  --ts-color-surface: var(--ts-neutral-white);
-  --ts-slate-950: #16243a;
-  --ts-color-text: var(--ts-slate-950);
-  --ts-slate-650: #516077;
-  --ts-color-muted: var(--ts-slate-650);
-  --ts-slate-250: #cdd5e1;
-  --ts-color-border: var(--ts-slate-250);
-  --ts-slate-500: #77859a;
-  --ts-color-border-control: var(--ts-slate-500);
-  --ts-green-700: #14704c;
-  --ts-color-success: var(--ts-green-700);
-  --ts-amber-800: #865000;
-  --ts-color-warning: var(--ts-amber-800);
-  --ts-red-700: #b22e42;
-  --ts-color-danger: var(--ts-red-700);
-  --ts-color-focus: var(--ts-cobalt-700);
-  --ts-color-on-primary: var(--ts-neutral-white);
-  --ts-slate-150: #e4e9f0;
-  --ts-color-disabled-surface: var(--ts-slate-150);
-  --ts-color-disabled-text: var(--ts-slate-650);
+  --ts-cobalt-500: #0156ff;
+  --ts-cobalt-600: #0048d9;
+  --ts-cobalt-50: #f5f7ff;
+  --ts-cobalt-100: #d6e2ff;
+
+  --ts-color-primary: var(--ts-cobalt-500);
+  --ts-color-primary-hover: var(--ts-cobalt-600);
+  --ts-color-primary-light: var(--ts-cobalt-50);
+  --ts-color-secondary: var(--ts-cobalt-500);
+  --ts-color-secondary-hover: var(--ts-cobalt-600);
+  --ts-color-secondary-dark: #020202;
+  --ts-color-secondary-light: #f5f7ff;
+
+  --ts-gray-00: #ffffff;
+  --ts-gray-50: #f5f7ff;
+  --ts-gray-100: #cacdd8;
+  --ts-gray-300: #a2a6b0;
+  --ts-gray-500: #666666;
+  --ts-gray-700: #272560;
+  --ts-gray-900: #000000;
+
+  --ts-color-background: var(--ts-gray-00);
+  --ts-color-surface: var(--ts-gray-00);
+  --ts-color-panel: var(--ts-gray-50);
+  --ts-color-text: var(--ts-gray-900);
+  --ts-color-muted: var(--ts-gray-300);
+  --ts-color-subtext: var(--ts-gray-500);
+  --ts-color-border: var(--ts-gray-100);
+  --ts-color-border-control: var(--ts-gray-100);
+
+  --ts-color-success: #78a962;
+  --ts-color-warning: #e9a426;
+  --ts-color-danger: #c94d3f;
+  --ts-color-focus: var(--ts-cobalt-500);
+  --ts-color-on-primary: var(--ts-gray-00);
+  --ts-color-disabled-surface: #e5e7eb;
+  --ts-color-disabled-text: var(--ts-gray-300);
   --ts-space-0: 0px;
   --ts-space-4: 4px;
   --ts-space-8: 8px;
@@ -44,6 +56,13 @@
   --ts-space-48: 48px;
   --ts-space-64: 64px;
   --ts-radius-0: 0px;
+  --ts-radius-2: 2px;
+  --ts-radius-4: 4px;
+  --ts-radius-8: 8px;
+  --ts-radius-12: 12px;
+  --ts-radius-16: 16px;
+  --ts-radius-pill: 50px;
+  --ts-radius-full: 9999px;
   --ts-radius-4: 4px;
   --ts-radius-8: 8px;
   --ts-radius-12: 12px;
@@ -59,7 +78,7 @@
   --ts-focus-width: 2px;
   --ts-focus-offset: 2px;
 
-  --ts-font-family: Inter, system-ui, sans-serif;
+  --ts-font-family: 'Poppins', Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --ts-heading-h1-size: 40px;
   --ts-heading-h1-line-height: 48px;
   --ts-heading-h1-weight: 700;

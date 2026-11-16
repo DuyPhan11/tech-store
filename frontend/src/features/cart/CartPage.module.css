@@ -1,0 +1,606 @@
+.cartPage {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 0 3.5rem;
+  box-sizing: border-box;
+  font-family: var(--ts-font-family);
+  color: var(--ts-color-text-main);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--ts-color-text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumb a {
+  color: var(--ts-color-text-muted);
+  text-decoration: none;
+  transition: color var(--ts-transition-fast);
+}
+
+.breadcrumb a:hover {
+  color: var(--ts-color-primary);
+}
+
+.breadcrumbSeparator {
+  color: var(--ts-color-border);
+}
+
+.breadcrumbCurrent {
+  color: var(--ts-color-text-main);
+  font-weight: 500;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 2rem;
+  color: #000000;
+  letter-spacing: -0.02em;
+}
+
+/* Empty State */
+.emptyCartCard {
+  background: var(--ts-color-surface);
+  border: 1px solid var(--ts-color-border);
+  border-radius: var(--ts-radius-md);
+  padding: 4rem 2rem;
+  text-align: center;
+  max-width: 600px;
+  margin: 2rem auto;
+}
+
+.emptyIcon {
+  color: var(--ts-color-text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.emptyCartCard h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.emptyCartCard p {
+  color: var(--ts-color-text-muted);
+  margin: 0 0 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.pillPrimaryBtn {
+  background: var(--ts-color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--ts-radius-pill);
+  padding: 0.75rem 2rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--ts-transition-fast);
+}
+
+.pillPrimaryBtn:hover {
+  opacity: 0.9;
+}
+
+/* Layout: Left Table + Right Summary */
+.cartLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 32px;
+  align-items: start;
+}
+
+/* Left Table: NO CARD BORDER matching Figma */
+.itemsSection {
+  background: transparent;
+  border: none;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.itemsTable th {
+  padding: 0 16px 14px 16px;
+  border-bottom: 1px solid #cacdd8;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+  text-transform: capitalize;
+}
+
+.thItem { width: 50%; padding-left: 0 !important; }
+.thPrice { width: 16%; }
+.thQty { width: 14%; }
+.thSub { width: 14%; }
+.thAction { width: 6%; text-align: center; }
+
+.itemRow {
+  border-bottom: 1px solid #cacdd8;
+}
+
+.itemRow:last-child {
+  border-bottom: 1px solid #cacdd8;
+}
+
+.tdItem {
+  padding: 24px 16px 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.itemMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.itemName {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #000000;
+  max-width: 320px;
+}
+
+.tdPrice, .tdSub {
+  padding: 24px 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.tdQty {
+  padding: 24px 16px;
+}
+
+/* Qty Box: Light rectangle with 1 and stacked arrows matching Figma */
+.qtyBox {
+  width: 65px;
+  height: 44px;
+  background: #f5f7ff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 0 12px;
+  box-sizing: border-box;
+}
+
+.qtyValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.qtyArrows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qtyArrows button {
+  background: none;
+  border: none;
+  font-size: 8px;
+  color: #000000;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.qtyArrows button:hover:not(:disabled) {
+  color: var(--ts-color-primary);
+}
+
+.qtyArrows button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.tdAction {
+  padding: 24px 8px;
+  text-align: center;
+}
+
+.itemActionIcons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.circleIconBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid #cacdd8;
+  background: #ffffff;
+  color: #a2a6b0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.circleIconBtn:hover {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+}
+
+/* Table Footer Actions matching Figma */
+.tableFooterActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footerLeftActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.continueShoppingBtn {
+  background: transparent;
+  border: 2px solid #a2a6b0;
+  border-radius: 50px;
+  color: #a2a6b0;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 28px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.continueShoppingBtn:hover {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+}
+
+.clearCartBtn {
+  background: #000000;
+  border: 2px solid #000000;
+  border-radius: 50px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 28px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.clearCartBtn:hover {
+  background: #333333;
+  border-color: #333333;
+}
+
+.updateCartBtn {
+  background: #000000;
+  border: 2px solid #000000;
+  border-radius: 50px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 28px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.updateCartBtn:hover {
+  background: #333333;
+  border-color: #333333;
+}
+
+/* Right Column: Summary Panel matching Figma */
+.summarySection {
+  background: #f5f7ff;
+  border: none;
+  border-radius: 0;
+  padding: 28px 32px 32px 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.summaryTitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+}
+
+.accordionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.accordionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 8px 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000;
+  width: 100%;
+  text-align: left;
+}
+
+.chevronIcon {
+  font-size: 12px;
+  color: #000000;
+  font-weight: 700;
+}
+
+.accordionBody {
+  padding-bottom: 4px;
+}
+
+.estimateSubtext {
+  font-size: 12px;
+  color: #666666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.couponForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.couponInputGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.couponInputGroup input {
+  flex: 1;
+  height: 38px;
+  border: 1px solid #cacdd8;
+  border-radius: 2px;
+  padding: 0 12px;
+  font-size: 13px;
+  background: #ffffff;
+  color: #000000;
+  outline: none;
+}
+
+.couponInputGroup input:focus {
+  border-color: var(--ts-color-primary);
+}
+
+.couponBtn {
+  background: transparent;
+  border: 2px solid var(--ts-color-primary);
+  color: var(--ts-color-primary);
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 0 18px;
+  height: 38px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.couponBtn:hover {
+  background: var(--ts-color-primary);
+  color: #ffffff;
+}
+
+.couponNotice {
+  font-size: 12px;
+  color: var(--ts-color-primary);
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+.summaryDivider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
+.summaryRows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.discountRow {
+  color: var(--ts-color-primary);
+}
+
+.summaryRowCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shippingNotice {
+  font-size: 10px;
+  color: #a2a6b0;
+  line-height: 1.3;
+}
+
+.totalRow {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000;
+  margin-top: 4px;
+}
+
+.totalPrice {
+  font-size: 18px;
+  font-weight: 700;
+  color: #000000;
+}
+
+/* 3 Call-To-Action Pill Buttons matching Figma */
+.ctaButtonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.proceedCheckoutBtn {
+  background: var(--ts-color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 14px 20px;
+  width: 100%;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease;
+}
+
+.proceedCheckoutBtn:hover {
+  background: #0048d9;
+}
+
+.paypalBtn {
+  background: #ffb800;
+  color: #000000;
+  border: none;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 20px;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.15s ease;
+}
+
+.paypalBtn:hover {
+  opacity: 0.9;
+}
+
+.paypalText {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.paypalText em {
+  font-style: italic;
+  color: #003087;
+  font-weight: 900;
+  margin-right: 2px;
+}
+
+.paypalText strong {
+  color: #0079c1;
+  font-weight: 900;
+}
+
+.multipleAddressesBtn {
+  background: transparent;
+  border: 2px solid #a2a6b0;
+  color: #a2a6b0;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 12px 20px;
+  width: 100%;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.multipleAddressesBtn:hover {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+}
+
+/* Zip Financing Teaser matching Figma */
+.zipBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #000000;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  flex-wrap: wrap;
+}
+
+.zipTag {
+  font-weight: 900;
+  font-size: 13px;
+  font-style: italic;
+  background: #aa70ff;
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.zipBanner a {
+  color: #000000;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+@media (max-width: 992px) {
+  .cartLayout {
+    grid-template-columns: 1fr;
+  }
+}

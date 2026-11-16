@@ -1,0 +1,120 @@
+.successPage {
+  max-width: 800px;
+  margin: 2rem auto 4rem;
+  padding: 0 1rem;
+  font-family: var(--ts-font-family);
+  color: var(--ts-color-text-main);
+}
+
+.successCard {
+  background: var(--ts-color-surface);
+  border: 1px solid var(--ts-color-border);
+  border-radius: var(--ts-radius-md);
+  padding: 3rem 2.5rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.iconCircle {
+  width: 72px;
+  height: 72px;
+  background: #edf7ed;
+  color: #78a962;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.subtitle {
+  color: var(--ts-color-text-muted);
+  font-size: 0.9375rem;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.orderCodeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f5f7ff;
+  border: 1px dashed var(--ts-color-primary);
+  border-radius: var(--ts-radius-pill);
+  padding: 0.5rem 1.25rem;
+  margin-bottom: 2rem;
+  font-size: 0.9375rem;
+}
+
+.orderCodeBadge strong {
+  color: var(--ts-color-primary);
+  font-size: 1.125rem;
+}
+
+.infoBox {
+  background: #f8fafc;
+  border: 1px solid var(--ts-color-border);
+  border-radius: var(--ts-radius-sm);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.75rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  gap: 1rem;
+}
+
+.infoRow span {
+  color: var(--ts-color-text-muted);
+}
+
+.totalPrice {
+  color: var(--ts-color-primary);
+  font-size: 1.0625rem;
+}
+
+.statusNotice {
+  font-size: 0.8125rem;
+  color: var(--ts-color-text-muted);
+  line-height: 1.5;
+  margin: 0 0 2rem;
+}
+
+.actionButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pillPrimaryBtn {
+  border-radius: var(--ts-radius-pill) !important;
+  padding: 0.75rem 2rem !important;
+  font-weight: 600 !important;
+  background: var(--ts-color-primary) !important;
+  color: #ffffff !important;
+}
+
+.pillOutlineBtn {
+  border-radius: var(--ts-radius-pill) !important;
+  padding: 0.75rem 2rem !important;
+  font-weight: 500 !important;
+  border: 1px solid var(--ts-color-border) !important;
+}
+
+.pillOutlineBtn:hover {
+  border-color: var(--ts-color-primary) !important;
+  color: var(--ts-color-primary) !important;
+}
