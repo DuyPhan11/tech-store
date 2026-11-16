@@ -1,25 +1,742 @@
-.catalog { display: grid; gap: var(--ts-space-24); }
-.catalog h1, .catalog h2, .catalog p { margin: 0; }
-.catalog h1 { font: var(--ts-font-heading-h1); }
-.catalog h2 { font: var(--ts-font-heading-h3); }
-.catalog p { color: var(--ts-color-muted); }
-.catalog header p { margin-top: var(--ts-space-8); }
-.layout { display: grid; grid-template-columns: 256px minmax(0,1fr); gap: var(--ts-space-24); align-items: start; }
-.panel, .message { padding: var(--ts-space-16); background: var(--ts-color-surface); border: 1px solid var(--ts-color-border); border-radius: var(--ts-radius-12); }
-.panel, .filters, .results, .message { display: grid; gap: var(--ts-space-16); }
-.panel .toggle { display: none; }
-.filters label, .sort { display: grid; gap: var(--ts-space-4); font: var(--ts-font-label-default); }
-.catalog select {
-  padding: var(--ts-space-12); border: 1px solid var(--ts-color-border-control); border-radius: var(--ts-radius-8);
-  color: var(--ts-color-text); background: var(--ts-color-surface); font: var(--ts-font-body-small);
+.catalogPage {
+  width: 100%;
+  max-width: 1398px;
+  margin: 0 auto;
+  font-family: var(--ts-font-family);
+  color: var(--ts-color-text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 3.5rem;
 }
-.catalog select:focus-visible { outline: var(--ts-focus-width) solid var(--ts-color-focus); outline-offset: var(--ts-focus-offset); }
-.sort { justify-self: end; display: flex; align-items: center; gap: var(--ts-space-12); }
-.grid { display: grid; gap: var(--ts-space-16); grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
-.message { justify-items: start; }
-.pagination { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: var(--ts-space-12); }
-@media (width < 768px) {
-  .layout, .grid { grid-template-columns: minmax(0,1fr); }
-  .panel .toggle { display: inline-flex; }
-  .panel h2, .filters[data-expanded="false"] { display: none; }
+
+/* 1. ASUS TUF GAMING Top Banner (Matching Figma Image 1) */
+.topPromoBanner {
+  background: radial-gradient(circle at 60% 50%, #201804 0%, #0d0d0d 60%, #000000 100%);
+  border-radius: 4px;
+  padding: 1rem 2.5rem;
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #222222;
+  overflow: hidden;
+}
+
+.promoContent {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.asusLogo {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: #ffffff;
+}
+
+.promoTextWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.promoTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.promoDesc {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fbbf24;
+  margin: 2px 0 0;
+  letter-spacing: 0.05em;
+}
+
+.promoLaptopImg {
+  height: 76px;
+  object-fit: contain;
+}
+
+.promoShopBtn {
+  background: #000000;
+  color: #ffffff;
+  border: 1.5px solid #fbbf24;
+  padding: 6px 18px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.promoShopBtn:hover {
+  background: #fbbf24;
+  color: #000000;
+}
+
+.tufLogo {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+}
+
+/* 2. Breadcrumbs */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #a2a6b0;
+}
+
+.breadcrumb a {
+  color: #a2a6b0;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb a:hover {
+  color: var(--ts-color-primary);
+}
+
+.breadcrumbSeparator {
+  color: #cacdd8;
+}
+
+.breadcrumbCurrent {
+  color: #000000;
+  font-weight: 500;
+}
+
+/* 3. Page Title */
+.titleSection {
+  margin-top: -0.25rem;
+}
+
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+  color: #000000;
+  letter-spacing: -0.02em;
+}
+
+/* 4. Controls & Toolbar Bar matching Figma original */
+.toolbarContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.toolbarRowTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.itemsRange {
+  font-size: 13px;
+  color: #a2a6b0;
+  font-weight: 400;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Single bordered box for select with label inside matching Figma */
+.selectBox {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--ts-color-border);
+  border-radius: 2px;
+  height: 38px;
+  padding: 0 28px 0 14px;
+  position: relative;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.selectBox:hover, .selectBox:focus-within {
+  border-color: var(--ts-color-primary);
+}
+
+.selectPrefix {
+  font-size: 13px;
+  color: #a2a6b0;
+  font-weight: 400;
+  margin-right: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.inlineSelect {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  padding: 0;
+  margin: 0;
+}
+
+.selectChevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #000000;
+  pointer-events: none;
+}
+
+/* View Mode Toggles (Clean icon buttons without box borders matching Figma) */
+.viewToggles {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 2px;
+}
+
+.viewBtn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #a2a6b0;
+  transition: color 0.15s ease;
+}
+
+.viewBtn:hover {
+  color: var(--ts-color-primary);
+}
+
+.activeView {
+  color: #000000;
+}
+
+/* Row 2: Active Filter Chips */
+.activeFilterPills {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filterPillTag {
+  background: #ffffff;
+  border: 1px solid var(--ts-color-border);
+  border-radius: 2px;
+  height: 38px;
+  padding: 0 12px 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.pillText {
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+  text-transform: uppercase;
+}
+
+.pillCount {
+  font-size: 13px;
+  font-weight: 400;
+  color: #a2a6b0;
+}
+
+.chipRemoveBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chipCloseCircle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #c94d3f;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.chipRemoveBtn:hover .chipCloseCircle {
+  transform: scale(1.1);
+  background: #b91c1c;
+}
+
+.clearAllBtn {
+  background: #ffffff;
+  border: 1px solid var(--ts-color-border);
+  border-radius: 2px;
+  height: 38px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.clearAllBtn:hover {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+}
+
+/* 5. Main 2-Column Catalog Layout */
+.catalogMainLayout {
+  display: grid;
+  grid-template-columns: 234px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Sidebar */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Unified Filter Card (Seamless #F5F7FF background matching target image) */
+.filterUnifiedCard {
+  background: #f5f7ff;
+  border-radius: 4px;
+  padding: 20px 16px 24px;
+}
+
+.filterTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 14px;
+  color: #000000;
+  text-align: center;
+  font-family: inherit;
+}
+
+.clearFilterPillBtn {
+  width: 100%;
+  height: 38px;
+  background: transparent;
+  border: 2px solid #a2a6b0;
+  border-radius: var(--ts-radius-pill);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #a2a6b0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin-bottom: 24px;
+}
+
+.clearFilterPillBtn:hover {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+  background: #ffffff;
+}
+
+.filterSection {
+  margin-bottom: 20px;
+}
+.filterSection:last-child {
+  margin-bottom: 0;
+}
+
+.accordionHeader {
+  width: 100%;
+  background: none;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #000000;
+  cursor: pointer;
+}
+
+.chevronIcon {
+  font-size: 11px;
+  color: #000000;
+  font-weight: 700;
+}
+
+.filterList {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filterItemBtn {
+  width: 100%;
+  background: none;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  color: #000000;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s ease;
+}
+
+.filterItemBtn:hover {
+  color: var(--ts-color-primary);
+}
+
+.activeFilterItem {
+  color: var(--ts-color-primary);
+  font-weight: 700;
+}
+
+.itemCount {
+  font-size: 13px;
+  font-weight: 400;
+  color: #000000;
+}
+
+.priceContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customPriceForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.priceInputRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.priceInput {
+  flex: 1;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--ts-color-border);
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-family: inherit;
+}
+
+.priceErrorText {
+  font-size: 0.6875rem;
+  color: #c94d3f;
+  margin: 0;
+}
+
+.applyPriceBtn {
+  background: #020202;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--ts-radius-pill);
+  padding: 4px 10px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.colorSwatches {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+}
+
+.swatchBlack { background: #020202; }
+.swatchRed { background: #e11d48; }
+.swatchBlue { background: #0156ff; }
+.swatchSilver { background: #e2e8f0; }
+
+.infoCardBlock {
+  background: #f5f7ff;
+  border: 1px solid var(--ts-color-border);
+  border-radius: 4px;
+  padding: 14px;
+  text-align: center;
+}
+
+.infoCardBlock h3 {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #000000;
+}
+
+.infoCardBlock p {
+  font-size: 0.6875rem;
+  color: #a2a6b0;
+  margin: 0;
+}
+
+.nobleBanner {
+  border-radius: 4px;
+  min-height: 350px;
+  background-size: cover;
+  background-position: center;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+}
+
+.nobleBrand {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #e2e8f0;
+}
+
+.nobleBanner h4 {
+  font-size: 1.125rem;
+  font-weight: 800;
+  margin: 4px 0;
+  letter-spacing: 0.02em;
+}
+
+.nobleTagline {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Results Area: 5 Columns Grid! */
+.resultsArea {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fiveColGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+/* Loading, Error, Empty */
+.loadingBox, .errorBox, .emptyBox {
+  background: #ffffff;
+  border: 1px solid var(--ts-color-border);
+  border-radius: 4px;
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f1f5f9;
+  border-top-color: var(--ts-color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.retryBtn, .resetBtnPill {
+  background: var(--ts-color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--ts-radius-pill);
+  padding: 6px 18px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Pagination: Circular Buttons Matching Figma */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1.5rem;
+}
+
+.pageCircleBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--ts-color-border);
+  background: #ffffff;
+  color: #000000;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.pageCircleBtn:hover:not(:disabled) {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+}
+
+.pageCircleBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.activePage {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+  background: #f5f7ff;
+}
+
+.pageEllipsis {
+  font-size: 0.8125rem;
+  color: #a2a6b0;
+  padding: 0 4px;
+}
+
+/* 6. SEO Article Section (Matching Figma Image 2) */
+.seoArticleSection {
+  max-width: 960px;
+  margin: 2rem auto 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seoArticleText {
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: #a2a6b0;
+  margin: 0;
+}
+
+.moreBtnCenter {
+  margin-top: 10px;
+}
+
+.morePillBtn {
+  background: #ffffff;
+  border: 1px solid var(--ts-color-border);
+  border-radius: var(--ts-radius-pill);
+  padding: 6px 28px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #000000;
+  transition: all 0.15s ease;
+}
+
+.morePillBtn:hover {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+}
+
+/* Responsiveness */
+@media (max-width: 1200px) {
+  .fiveColGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .catalogMainLayout {
+    grid-template-columns: 1fr;
+  }
+  .fiveColGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .nobleBanner {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .fiveColGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .topPromoBanner {
+    display: none;
+  }
 }

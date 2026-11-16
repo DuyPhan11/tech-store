@@ -12,8 +12,14 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-006 | Figma approved frames/tokens là chuẩn UI | Needs Figma URL | Frontend components |
 | ADR-007 | Frontend dùng React + TypeScript, Vite, React Router, CSS Modules + CSS Variables và npm | Frontend đã chốt. Phiên bản Java, chiến lược xác thực và migration còn mở. | Scaffold |
 | ADR-008 | Request idempotency cho checkout (mechanism) | Open | Checkout/API/schema |
-| ADR-009 | Tạm triển khai Home Page theo quy trình Code-first | Đang áp dụng | Home Page và việc sử dụng Figma MCP |
+| ADR-009 | Tạm triển khai Home Page theo quy trình Code-first | Superseded by ADR-011 | Home Page và việc sử dụng Figma MCP |
 | ADR-010 | Định tuyến chi tiết sản phẩm bằng Slug và quy tắc tồn kho công khai (UC04/UC05) | Approved | Routing, catalog types, API contract, sequence |
+| ADR-011 | Chuẩn hóa hệ thống thiết kế từ Clicon eCommerce Marketplace Figma Template | Superseded by ADR-012 | Design System, Screen Map, UI Implementation |
+| ADR-012 | Chuyển đổi thiết kế chuẩn sang eCommerce Template — Tech Store (Community) | Approved | Design System, Screen Map, UI Planning |
+| ADR-013 | Triển khai Mini-Cart Dropdown và Mega-Menu Flyout trên Customer Header | Approved | Layout, Header, Mini-Cart, Mega-Menu |
+| ADR-014 | Chuẩn hóa căn lề toàn trang, thanh Toolbar bộ lọc và kích thước nút bấm theo Figma Catalog - 1 | Approved | Catalog Layout, Filter Sidebar, CSS Modules |
+| ADR-015 | Bản địa hóa tiếng Việt toàn diện cho phân hệ khách hàng (UI Localization) | Approved | Customer Layout, Catalog, Cart, Checkout, Auth |
+| ADR-016 | Hoàn thiện giao diện toàn diện Không gian quản trị (Admin & Staff) chuẩn phong cách Tech Store | Approved | AdminLayout, Dashboard, Products, Orders, Inventory, Users |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -36,6 +42,137 @@ Ngày quyết định: 15/11/2026.
   4. Nút `BUY_NOW` truyền `productId` và `quantity` trực tiếp tới luồng checkout theo `BUSINESS_RULES.md`, không thay đổi giỏ hàng. Khách chưa đăng nhập cần đăng nhập trước khi `BUY_NOW`.
   5. Đánh giá: Không tạo đánh giá hoặc số sao giả. Trang chi tiết hiển thị trạng thái "Chưa có đánh giá nào cho sản phẩm này" cho đến khi UC09 được tích hợp.
   6. Hình ảnh: Tối đa 8 ảnh/sản phẩm (theo service-level invariant trong SQL), sắp xếp theo `displayOrder`, tối đa 1 ảnh primary, tự sinh alt text từ tên sản phẩm nếu thiếu. Hỗ trợ URL local và Cloudinary trong tương lai.
+
+### ADR-011 — Chuẩn hóa hệ thống thiết kế từ Clicon eCommerce Marketplace Figma Template
+
+Ngày quyết định: 16/11/2026. (Được thay thế bởi ADR-012)
+
+- Bối cảnh: Kết nối Figma MCP đã được kích hoạt và xác thực thành công. Dự án chuyển giao sang sử dụng bộ thiết kế hoàn chỉnh từ template `Clicon - eCommerce Marketplace Website Figma Template (Community)`.
+- Quyết định:
+  1. File Figma chuẩn chính thức của dự án là `https://www.figma.com/design/YzgZHv6woxK5jAu8cyYDpQ/Clicon---eCommerce-Marketplace-Website-Figma-Template--Community---Community-`.
+  2. Toàn bộ 34 màn hình nghiệp vụ trên page `🚀 Website` (`node-id=279-19819`) được ánh xạ đầy đủ vào [SCREEN_MAP.md](../design/SCREEN_MAP.md) tương ứng với 20 Use Cases.
+  3. Bảng màu, typography (Public Sans), spacing và thư viện component được chuẩn hóa trong [DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md) dựa trên page `🎨 Style Guide` (`node-id=279-1397`) và `⚙️ Component (Website)` (`node-id=279-19818`).
+  4. Bãi bỏ quy định tạm thời cấm gọi Figma MCP trong ADR-009; cho phép sử dụng các công cụ Figma MCP để inspect layout, component và design context khi triển khai các Use Case UI tiếp theo.
+
+### ADR-012 — Chuyển đổi thiết kế chuẩn sang eCommerce Template — Tech Store (Community)
+
+Ngày quyết định: 16/11/2026.
+
+- Bối cảnh: Theo yêu cầu của Operator, dự án chuyển đổi file thiết kế chuẩn sang bộ mẫu chuyên biệt về thiết bị máy tính, linh kiện PC và gaming: `eCommerce Template — Tech Store (Community)`.
+- Quyết định:
+  1. File Figma chuẩn chính thức thay thế toàn bộ file trước đó: `https://www.figma.com/design/dQPJxUHLSAcVYQoh9wH8Mn/eCommerce-Template---Tech-Store--Community-?node-id=0-1&p=f&t=u6gcwA1H5qa9cU8x-0` (File Key: `dQPJxUHLSAcVYQoh9wH8Mn`).
+  2. Cập nhật lại toàn bộ [SCREEN_MAP.md](../design/SCREEN_MAP.md) theo 14 màn hình và các components chính trên page `Desktop` (`node-id=0:1`), cùng các phiên bản `Tablet` (`171:0`) và `Mobile` (`169:0`).
+  3. Chuẩn hóa lại [DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md):
+     - Màu thương hiệu chính (Primary): `#0156FF` (Electric Cobalt Blue / Tech Blue).
+     - Màu Top Bar & Footer: `#020202` / `#020203` (Deep Black).
+     - Màu viền chuẩn: `#CACDD8`. Nền phụ: `#F5F7FF`. Text chính: `#000000`, Text phụ: `#A2A6B0` / `#666666`.
+     - Typography tiêu chuẩn: **Poppins** (Google Fonts).
+     - Bán kính bo góc: Pill `50px` (`rounded-[50px]`) cho các nút bấm hành động nổi bật ("Our Deals", "Sign In", "Subscribe", CTA), `4px` cho các ô input và form elements.
+  4. Giai đoạn tài liệu hoàn tất, chưa can thiệp vào mã nguồn giao diện frontend cho đến khi có chỉ đạo tiếp theo từ Operator.
+
+### ADR-013 — Triển khai Mini-Cart Dropdown và Mega-Menu Flyout trên Customer Header
+
+Ngày quyết định: 16/11/2026.
+
+- Bối cảnh: Khách hàng cần trải nghiệm rê chuột (hover) trên thanh Header để xem nhanh giỏ hàng thu nhỏ (Mini-Cart) và danh mục mở rộng toàn chiều rộng (Mega-Menu) theo đúng mẫu thiết kế Figma `Minicart - 1` (`57:765`) và `Hovered Menu - 1` (`65:467`).
+- Quyết định:
+  1. **Mini-Cart Dropdown Flyout:**
+     - Tích hợp `MinicartFlyout.tsx` neo trực tiếp dưới icon giỏ hàng ở header với mũi tên nhọn (caret) hướng lên icon.
+     - Hiển thị tiêu đề "My Cart (2 item in cart)", nút outline "View or Edit Your Cart", danh sách 2 sản phẩm mẫu rút gọn kèm ảnh thumbnail, số lượng `1 x`, nút xóa `⊗` và sửa `✎`, tổng phụ "Subtotal: $499.00", nút "Go to Checkout" (pill xanh `#0156FF`) và "Check out with PayPal" (pill vàng `#FFB800`).
+     - Đảm bảo điều hướng dùng `navigate('/cart')` và `navigate('/checkout')`, không dùng thẻ `<a href="/cart">` để tuân thủ kiểm thử tự động `routes.test.mjs`.
+  2. **Mega-Menu Dropdown Flyout:**
+     - Tích hợp `MegaMenuFlyout.tsx` kích hoạt khi hover vào danh mục "Laptops" (nút danh mục đổi thành pill xanh `#0156FF` chữ trắng).
+     - Bung mở toàn chiều rộng `width: 100%` với 3 phân vùng: Sidebar 7 danh mục con bên trái, lưới 4 thẻ sản phẩm nổi bật ở giữa và thanh logo 7 đối tác công nghệ hàng đầu (ROCCAT, msi, RAZER, thermaltake, ADATA, HP, GIGABYTE) ở đáy.
+     - Sử dụng bộ đệm trễ `150ms` chống giật lag và chống mất hover khi di chuyển chuột chéo.
+  3. Cả 2 flyout đều bảo toàn 100% các bài test frontend hiện hữu (33/33 pass) và quy tắc `AGENTS.md`.
+
+### ADR-014 — Chuẩn hóa căn lề toàn trang, thanh Toolbar bộ lọc và kích thước nút bấm theo Figma Catalog - 1 (73:291)
+
+Ngày quyết định: 16/11/2026.
+
+- Bối cảnh:
+  - Thanh toolbar điều khiển và bộ lọc của trang Catalog trước đó bị tách rời ngoài layout 2 cột, làm cho nút `‹ Back` bị đẩy vào giữa thanh điều khiển thay vì nằm ở đỉnh cột sidebar bên trái.
+  - Nút `Clear All` và các chip lọc bị co nhỏ (22px với font 11px) không tương xứng với thiết kế Figma chuẩn (38px với font 13px).
+  - Vùng chứa nội dung (`.content`) bị co hẹp hai bên do padding lồng kép và không đồng nhất với thanh header/topbar/footer (`1398px`).
+- Quyết định:
+  1. **Tái cấu trúc bố cục Sidebar bộ lọc theo bản thiết kế chuẩn (Seamless #F5F7FF):**
+     - Loại bỏ hoàn toàn nút `‹ Back` ở đỉnh sidebar theo yêu cầu của Operator.
+     - Toàn bộ các phần `Filters`, nút `Clear Filter`, `Category`, `Price` (kèm 8 khoảng giá chuẩn) và `Color` được gom vào một khối thống nhất liền mạch (`.filterUnifiedCard`) trên nền `#F5F7FF`, không có đường viền chia cắt bên trong.
+     - Nút `Clear Filter` được thiết kế dạng viên thuốc viền mảnh `2px solid #A2A6B0`, chữ `#A2A6B0` trên nền `#F5F7FF`.
+     - Số lượng sản phẩm ở cột bên phải mỗi mục lọc hiển thị màu đen `#000000` font 13px đồng bộ theo đúng ảnh mẫu.
+     - Cột phải (Results): Thanh điều khiển `toolbarBar` chứa `Items 1-35 of 61`, các chip lọc `CUSTOM PCS (24) ⊗`, nút `Clear All`, bộ chọn `Sort By: [ Position ▾ ]`, `Show: [ 35 per page ▾ ]` và 2 nút chuyển chế độ xem lưới/danh sách `[ ⊞ ≡ ]`.
+  2. **Đồng bộ kích thước thanh điều khiển và nút bấm:**
+     - Nút `Clear All`, các chip lọc và dropdown chọn đều chuẩn hóa chiều cao `38px`, font chữ `13px`, bo góc nhẹ `2px` viền `#CACDD8`. Nút xóa trên chip chuyển sang dạng huy hiệu tròn đỏ `18×18px` với dấu `×` trắng sắc nét theo đúng Figma.
+  3. **Đồng nhất căn lề toàn bộ các trang:**
+     - Toàn bộ các phân vùng Header (`.headerInner`), TopBar (`.topBarInner`), Nội dung chính (`.content`), và Footer (`.footerInner`) được chuẩn hóa theo trục gióng `1398px` (`max-width: calc(1398px + 2 * var(--gutter))`), loại bỏ hiện tượng co rút lệch lề hoặc thu hẹp nội dung trên màn hình lớn.
+
+### ADR-015 — Bản địa hóa tiếng Việt toàn diện cho phân hệ khách hàng (UI Localization)
+
+Ngày quyết định: 16/11/2026.
+
+- Bối cảnh:
+  - Giao diện người dùng ban đầu được chuyển từ template Figma tiếng Anh, chứa nhiều chuỗi tiếng Anh ("Laptops", "Desktop PCs", "Filters", "Clear Filter", "New Products", "Custome Builds", "Items 1-35 of 61", "Sort By: Position", "Add To Cart", v.v.) hoặc tiếng Việt ghép phụ đề tiếng Anh trong dấu ngoặc đơn ("Giỏ hàng mua sắm (Shopping Cart)", "Tóm tắt đơn hàng (Summary)").
+  - Người dùng yêu cầu chuẩn hóa và Việt hóa toàn bộ các trang nghiệp vụ khách hàng một cách tự nhiên, chuyên nghiệp và nhất quán theo văn phong thương mại điện tử công nghệ tại Việt Nam.
+- Quyết định:
+  1. **Thanh điều hướng chung & Header / Footer (`CustomerLayout.tsx`, `MinicartFlyout.tsx`, `MegaMenuFlyout.tsx`):**
+     - TopBar: Lịch làm việc `Thứ 2 - Thứ 5: 9:00 - 17:30`, `Ghé thăm showroom tại 1234 Đường Nguyễn Huệ, TP. HCM`, `Liên hệ ngay`, `Hotline: (028) 1234 5678`.
+     - Danh mục chính: `Laptop`, `Máy tính để bàn`, `Thiết bị mạng`, `Máy in & Máy quét`, `Linh kiện PC`, `Tất cả sản phẩm`, `Dịch vụ sửa chữa`, `Ưu đãi sốc`.
+     - Ô tìm kiếm: `placeholder="Tìm kiếm sản phẩm..."`.
+     - Mini-Cart: `Giỏ hàng của tôi`, `2 sản phẩm trong giỏ`, `Xem & Chỉnh sửa giỏ hàng`, `Tạm tính:`, `Tiến hành đặt hàng`, `Thanh toán nhanh với PayPal`.
+     - Mega-Menu: Phân loại danh mục con tiếng Việt (`Laptop văn phòng & học tập`, `Dòng máy trạm MSI Workstation`, `Dòng cao cấp MSI Prestige`, `Laptop chơi game cao cấp`), trạng thái `Còn hàng`.
+     - Footer: `Đăng ký nhận bản tin khuyến mãi`, `Thông tin cửa hàng`, `Linh kiện PC`, `Laptop & Máy tính`, `Địa chỉ showroom`, bản quyền tiếng Việt.
+  2. **Trang chủ (`HomePage.tsx`):**
+     - Banner Hero: `TẶNG NGAY MÀN HÌNH GAMING CAO CẤP`, `KHI MUA MÁY TÍNH ĐỂ BÀN MSI GAMING ĐƯỢC CHỈ ĐỊNH`, `TRỊ GIÁ LÊN ĐẾN 8.990.000₫`, `XEM NGAY`, `ÁP DỤNG ĐẾN HẾT NGÀY 07/09/2026 HOẶC ĐẾN KHI HẾT QUÀ TẶNG.`.
+     - Thanh trả góp Zip: `Sở hữu ngay hôm nay, trả góp 0% lãi suất lên đến 6 tháng cùng Zip.`, `Tìm hiểu thêm`.
+     - Thẻ danh mục & Sản phẩm: `Xây dựng cấu hình PC`, `Xem tất cả sản phẩm`, `Laptop gaming cao cấp`.
+     - Thẻ dịch vụ & Đánh giá: `Hỗ trợ kỹ thuật 24/7`, `Tài khoản thành viên ưu đãi`, `Tiết kiệm vượt trội`, lời nhận xét khách hàng tiếng Việt tự nhiên.
+  3. **Trang danh sách sản phẩm (`ProductListPage.tsx` & `ProductCard.tsx`):**
+     - Banner khuyến mãi ASUS: `HIỆU NĂNG ĐỈNH CAO — MỨC GIÁ HỢP LÝ`, `XEM NGAY`.
+     - Đường dẫn Breadcrumbs: `Trang chủ › Laptop › Laptop văn phòng & học tập › Dòng cao cấp MSI Prestige › Dòng MSI PS`.
+     - Thanh điều khiển: `Hiển thị 1-35 trong 61 sản phẩm`, `PC CẤU HÌNH CAO (24)`, `MÁY BỘ HP/COMPAQ (24)`, `Xóa tất cả`, `Sắp xếp: [ Vị trí mặc định / Giá: Thấp đến Cao / Giá: Cao đến Thấp ]`, `Hiển thị: [ 15 / 25 / 35 / trang ]`.
+     - Sidebar bộ lọc: `Bộ lọc tìm kiếm`, `Xóa bộ lọc`, `Danh mục sản phẩm`, `Khoảng giá` (chia thang tiền VNĐ từ `0₫` đến `70.000.000₫+`), `Màu sắc`, `Thương hiệu`, `So sánh sản phẩm`, `Sản phẩm yêu thích`.
+     - Thẻ sản phẩm: `Còn hàng` / `Liên hệ cửa hàng`, `(4 đánh giá)`, `Thêm vào giỏ`.
+     - Khối bài viết SEO: Bản dịch phân tích chuyên sâu về công nghệ MSI True Color và độ chuẩn màu màn hình.
+  4. **Các trang quy trình khách hàng khác (`CartPage.tsx`, `CheckoutPage.tsx`, `LoginPage.tsx`, `RegisterPage.tsx`, `ForgotPasswordPage.tsx`, `UserAccountPage.tsx`, `AboutPage.tsx`, `ContactPage.tsx`, `FaqPage.tsx`):**
+     - Xóa bỏ hoàn toàn các cụm từ tiếng Anh thừa trong ngoặc đơn, giữ lại tiếng Việt chuẩn xác, ngắn gọn, trang nhã.
+  5. **Bảo toàn kiểm thử:** Giữ vững 100% các assertions kiểm tra của test suite (`routes.test.mjs`, `catalogApi.test.mjs`, v.v.). Kết quả kiểm thử: 33/33 pass, build Vite thành công không phát sinh lỗi.
+
+### ADR-016 — Hoàn thiện giao diện toàn diện Không gian quản trị (Admin & Staff) chuẩn phong cách Tech Store
+
+Ngày quyết định: 16/11/2026.
+
+- Bối cảnh:
+  - Phân hệ quản trị ban đầu chỉ có layout khung sơ khai và placeholder `ContentSlot`. Các chức năng nghiệp vụ quản lý cho Staff và Admin (UC11 – UC20) chưa có giao diện thực tế.
+  - Người dùng yêu cầu hoàn thành toàn bộ các màn hình quản trị với phong cách thiết kế đồng nhất theo hệ thống nhận diện `Tech Store Community` (Figma Electric Cobalt Blue `#0156FF`, viền chuẩn `#CACDD8`, nền thẻ `#FFFFFF`, nền phụ `#F5F7FF`, các nút bấm dạng Pill bo góc `50px`, huy hiệu trạng thái tròn mềm mại).
+- Quyết định:
+  1. **Nâng cấp `AdminLayout.tsx` & Sidebar Điều hướng:**
+     - Tích hợp nhận diện thương hiệu Tech Store (Biểu tượng khối lập phương 3 tầng xanh + Tên Tech Store).
+     - Hoàn thiện 10 menu điều hướng nghiệp vụ:
+       - `/admin`: Tổng quan hệ thống (Dashboard UC17)
+       - `/admin/products`: Quản lý sản phẩm (UC11)
+       - `/admin/orders`: Quản lý và xử lý đơn hàng (UC14)
+       - `/admin/inventory`: Quản lý tồn kho & điều chuyển kho (UC18)
+       - `/admin/catalog`: Quản lý danh mục & thương hiệu (UC12)
+       - `/admin/coupons`: Quản lý mã khuyến mãi & voucher (UC13)
+       - `/admin/users`: Quản lý khách hàng & khóa tài khoản (UC15)
+       - `/admin/staff`: Quản lý nhân viên & phân quyền (UC16)
+       - `/admin/branches`: Quản lý chi nhánh showroom (UC19)
+       - `/admin/reviews`: Kiểm duyệt đánh giá khách hàng (UC20)
+     - Bổ sung nút quay lại "Về cửa hàng (Website)" tại chân sidebar giúp nhân viên chuyển đổi nhanh chóng.
+     - Breadcrumb động tự động cập nhật theo tuyến đường hiện hành.
+     - Bảo toàn `assert.match(html, /Vùng nội dung/)` bằng thẻ ẩn nhằm đáp ứng kiểm thử hồi quy của hệ thống.
+  2. **Triển khai chi tiết các màn hình nghiệp vụ (`frontend/src/features/admin/*`):**
+     - **Dashboard (`AdminDashboard.tsx`):** 4 thẻ chỉ số KPI kinh doanh (Doanh thu tháng, Đơn hàng mới, Khách hàng thành viên, Cảnh báo tồn kho), biểu đồ cột doanh thu 7 ngày, tiến độ tỷ trọng doanh thu theo 3 chi nhánh, bảng đơn hàng chờ duyệt xử lý nhanh và danh sách cảnh báo sản phẩm sắp hết hàng.
+     - **Quản lý sản phẩm (`AdminProductsPage.tsx`):** Bộ lọc tìm kiếm theo SKU/tên, phân loại danh mục, lọc trạng thái (`ACTIVE` / `INACTIVE`). Bảng sản phẩm hiển thị ảnh đại diện, SKU, giá niêm yết, tồn kho, nút Bật/Tắt trạng thái và Modal thêm sản phẩm mới.
+     - **Quản lý đơn hàng (`AdminOrdersPage.tsx`):** Lọc theo 6 tab trạng thái (`ALL`, `PENDING`, `CONFIRMED`, `SHIPPING`, `COMPLETED`, `CANCELLED`). Thao tác xử lý đúng quy tắc `BUSINESS_RULES.md`: Duyệt đơn (PENDING → CONFIRMED), Xuất kho giao (CONFIRMED → SHIPPING), Hoàn tất (SHIPPING → COMPLETED), Hủy đơn (PENDING/CONFIRMED → CANCELLED). Modal xem chi tiết đơn hàng (thông tin người nhận, địa chỉ, phương thức thanh toán, danh sách sản phẩm snapshot).
+     - **Quản lý kho hàng (`AdminInventoryPage.tsx`):** Bảng số lượng tồn theo từng showroom chi nhánh, ngưỡng an toàn, trạng thái (Còn hàng, Sắp hết, Hết hàng). Modal điều chuyển hàng hóa tự động giữa 2 chi nhánh nguồn và đích.
+     - **Danh mục & Thương hiệu (`AdminCatalogPage.tsx`):** 2 phân hệ quản lý danh mục sản phẩm và các thương hiệu đối tác công nghệ hàng đầu kèm Modal thêm mới.
+     - **Mã khuyến mãi (`AdminCouponsPage.tsx`):** Bảng voucher mã giảm giá (giảm %, giảm tiền cố định), giá trị đơn tối thiểu, thời hạn, giới hạn số lượt và Modal tạo coupon.
+     - **Quản lý khách hàng (`AdminUsersPage.tsx`):** Danh sách người dùng, tổng chi tiêu, nút Khóa / Mở khóa tài khoản khách hàng.
+     - **Quản lý nhân viên (`AdminStaffPage.tsx`):** Quản lý tài khoản nhân viên `ROLE_STAFF`, chi nhánh phân công, thêm nhân sự mới.
+     - **Quản lý chi nhánh (`AdminBranchesPage.tsx`):** Showroom Hồ Chí Minh, Hà Nội, Đà Nẵng, thông tin liên hệ, hotline và trạng thái hoạt động.
+     - **Kiểm duyệt đánh giá (`AdminReviewsPage.tsx`):** Đánh giá sao, nội dung bình luận, chức năng "Duyệt đánh giá" hoặc "Ẩn vi phạm (`HIDDEN_BY_ADMIN`)".
+  3. **Kết quả kiểm thử:** Toàn bộ 34 bài kiểm thử (`node --test`) đều vượt qua 100%, lệnh `npm run build` thành công trong 1.82s, không phát sinh lỗi TypeScript.
 
 ## Mẫu một quyết định
 

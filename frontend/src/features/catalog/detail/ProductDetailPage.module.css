@@ -48,8 +48,9 @@
   align-items: start;
   background: var(--ts-color-surface);
   border: 1px solid var(--ts-color-border);
-  border-radius: var(--ts-radius-16);
+  border-radius: var(--ts-radius-4);
   padding: var(--ts-space-32);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 /* Gallery */
@@ -60,26 +61,28 @@
 
 .mainImageWrapper {
   width: 100%;
-  aspect-ratio: 4/3;
-  background: var(--ts-color-background);
+  aspect-ratio: 1 / 1;
+  background: #ffffff;
   border: 1px solid var(--ts-color-border);
-  border-radius: var(--ts-radius-12);
+  border-radius: var(--ts-radius-4);
   overflow: hidden;
   display: grid;
   place-items: center;
+  padding: var(--ts-space-16);
+  box-sizing: border-box;
 }
 
 .mainImage {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
 .imageFallback {
   display: grid;
   place-items: center;
-  color: var(--ts-color-muted);
+  color: var(--ts-gray-500);
   font: var(--ts-font-body-small);
 }
 
@@ -91,16 +94,17 @@
 }
 
 .thumbnailButton {
-  flex: 0 0 64px;
-  width: 64px;
-  height: 64px;
-  padding: 0;
+  flex: 0 0 68px;
+  width: 68px;
+  height: 68px;
+  padding: var(--ts-space-4);
   border: 2px solid var(--ts-color-border);
-  border-radius: var(--ts-radius-8);
-  background: var(--ts-color-background);
+  border-radius: var(--ts-radius-4);
+  background: #ffffff;
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.15s ease;
+  box-sizing: border-box;
 }
 
 .thumbnailButton[data-selected="true"] {
@@ -115,7 +119,7 @@
 .thumbnailImage {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -134,21 +138,23 @@
 
 .brand {
   font: var(--ts-font-caption-default);
-  color: var(--ts-color-muted);
+  color: var(--ts-color-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  font-weight: 600;
 }
 
 .sku {
   font: var(--ts-font-caption-default);
-  color: var(--ts-color-muted);
+  color: var(--ts-gray-500);
 }
 
 .productTitle {
   margin: 0;
   font: var(--ts-font-heading-h1);
+  font-size: 26px;
+  line-height: 32px;
   color: var(--ts-color-text);
-  line-height: 1.2;
 }
 
 .priceWrapper {
@@ -158,8 +164,10 @@
 }
 
 .price {
-  font: var(--ts-font-heading-h2);
-  color: var(--ts-color-primary);
+  font: var(--ts-font-heading-h1);
+  font-size: 28px;
+  font-weight: 700;
+  color: #000000;
 }
 
 /* Stock Status */
@@ -174,27 +182,27 @@
   display: inline-flex;
   align-items: center;
   gap: var(--ts-space-4);
-  padding: var(--ts-space-4) var(--ts-space-8);
-  border-radius: var(--ts-radius-4);
-  font: var(--ts-font-caption-default);
+  padding: 4px 12px;
+  border-radius: var(--ts-radius-pill);
+  font-size: 12px;
   font-weight: 600;
 }
 
 .stockIn {
-  background: var(--ts-color-background);
-  color: var(--ts-color-success);
-  border: 1px solid var(--ts-color-success);
+  background: #edf6e8;
+  color: #78a962;
+  border: 1px solid rgba(120, 169, 98, 0.4);
 }
 
 .stockOut {
-  background: var(--ts-color-background);
-  color: var(--ts-color-danger);
-  border: 1px solid var(--ts-color-danger);
+  background: #fdf0ee;
+  color: #c94d3f;
+  border: 1px solid rgba(201, 77, 63, 0.4);
 }
 
 .stockNote {
-  font: var(--ts-font-caption-default);
-  color: var(--ts-color-muted);
+  font-size: 12px;
+  color: var(--ts-gray-500);
 }
 
 /* Purchase section */
@@ -212,34 +220,40 @@
 }
 
 .quantityLabel {
-  font: var(--ts-font-label-default);
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ts-color-text);
 }
 
 .quantityControls {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--ts-color-border-control);
-  border-radius: var(--ts-radius-8);
-  background: var(--ts-color-surface);
+  border: 1px solid var(--ts-color-border);
+  border-radius: var(--ts-radius-4);
+  background: #f5f7ff;
   overflow: hidden;
 }
 
 .quantityBtn {
-  width: var(--ts-icon-target);
-  height: var(--ts-icon-target);
+  width: 40px;
+  height: 40px;
   border: 0;
   background: transparent;
   color: var(--ts-color-text);
-  font: var(--ts-font-label-default);
   font-size: 18px;
+  font-weight: 600;
   display: grid;
   place-items: center;
   cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.quantityBtn:hover:not(:disabled) {
+  background: #e4e7ee;
 }
 
 .quantityBtn:disabled {
-  color: var(--ts-color-disabled-text);
+  color: var(--ts-gray-300);
   cursor: not-allowed;
 }
 
@@ -250,12 +264,13 @@
 
 .quantityInput {
   width: 48px;
-  height: var(--ts-icon-target);
+  height: 40px;
   border: 0;
   border-left: 1px solid var(--ts-color-border);
   border-right: 1px solid var(--ts-color-border);
   text-align: center;
-  font: var(--ts-font-label-default);
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ts-color-text);
   background: transparent;
   -moz-appearance: textfield;
@@ -280,7 +295,10 @@
 
 .actionButtons button {
   flex: 1 1 180px;
-  min-height: var(--ts-icon-target);
+  min-height: 48px;
+  border-radius: var(--ts-radius-pill);
+  font-weight: 600;
+  font-size: 14px;
 }
 
 /* Secondary sections (Description & Specifications) */
@@ -289,13 +307,15 @@
   gap: var(--ts-space-24);
   background: var(--ts-color-surface);
   border: 1px solid var(--ts-color-border);
-  border-radius: var(--ts-radius-16);
+  border-radius: var(--ts-radius-4);
   padding: var(--ts-space-32);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .sectionTitle {
   margin: 0;
   font: var(--ts-font-heading-h2);
+  font-size: 20px;
   color: var(--ts-color-text);
   border-bottom: 1px solid var(--ts-color-border);
   padding-bottom: var(--ts-space-12);
@@ -305,7 +325,7 @@
   margin: 0;
   font: var(--ts-font-body-default);
   color: var(--ts-color-text);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* Specification table */
@@ -326,7 +346,7 @@
 .specLabel {
   width: 35%;
   padding: var(--ts-space-12) var(--ts-space-16);
-  color: var(--ts-color-muted);
+  color: var(--ts-gray-600);
   font-weight: 500;
   background: var(--ts-color-background);
 }

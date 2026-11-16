@@ -1,0 +1,444 @@
+.accountPage {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 0 3.5rem;
+  box-sizing: border-box;
+  font-family: var(--ts-font-family);
+  color: var(--ts-color-text-main);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #666666;
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumb a {
+  color: #666666;
+  text-decoration: none;
+  transition: color var(--ts-transition-fast);
+}
+
+.breadcrumb a:hover {
+  color: var(--ts-color-primary);
+}
+
+.breadcrumbSeparator {
+  color: #cacdd8;
+}
+
+.breadcrumbCurrent {
+  color: #000000;
+  font-weight: 500;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 2rem;
+  color: #000000;
+  letter-spacing: -0.02em;
+}
+
+.toastSuccess {
+  background: #edf7ed;
+  color: #1e4620;
+  border: 1px solid #c8e6c9;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--ts-radius-sm);
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* 2-Column Layout matching Figma */
+.accountLayout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Left Sidebar (No outer border) */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Sidebar Nav Panel: Seamless #F5F7FF background, borderless matching Figma */
+.navPanel {
+  background: #f5f7ff;
+  border: none;
+  border-radius: 0;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 20px;
+  border: none;
+  border-left: 3px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: #000000;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+}
+
+.navItem:hover {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--ts-color-primary);
+}
+
+.activeNav {
+  font-weight: 600;
+  border-left-color: var(--ts-color-primary);
+  color: #000000;
+}
+
+.navDivider {
+  height: 1px;
+  background: #cacdd8;
+  margin: 10px 0;
+  border: none;
+}
+
+.orderCountBadge {
+  background: var(--ts-color-primary);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  line-height: 1;
+}
+
+.logoutNavBtn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 20px;
+  border: none;
+  border-left: 3px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: #c94d3f;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.logoutNavBtn:hover {
+  background: #fff5f5;
+  color: #b91c1c;
+}
+
+/* Sidebar Widgets: Compare Products & Wishlist matching Figma */
+.sideWidget {
+  background: #f5f7ff;
+  border: none;
+  border-radius: 0;
+  padding: 20px 16px;
+  text-align: center;
+  margin-top: 16px;
+  box-sizing: border-box;
+}
+
+.sideWidgetTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0 0 8px;
+}
+
+.sideWidgetText {
+  font-size: 13px;
+  color: #666666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Right Main Content: CLEAN & BORDERLESS matching Figma */
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.tabPane {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Section Block with Horizontal Underline Rule */
+.sectionBlock {
+  margin-bottom: 40px;
+  width: 100%;
+}
+
+.sectionBlock:last-child {
+  margin-bottom: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #cacdd8;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+}
+
+.headerLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--ts-color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.headerLink:hover {
+  opacity: 0.8;
+}
+
+/* 2-Column Info Grid: Zero borders, zero box backgrounds matching Figma */
+.twoColGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.infoCol {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.subTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0 0 12px;
+}
+
+.infoText {
+  font-size: 13px;
+  color: #000000;
+  margin: 0 0 4px;
+  line-height: 1.6;
+}
+
+.infoMuted {
+  font-size: 13px;
+  color: #666666;
+  margin: 0 0 4px;
+  line-height: 1.6;
+}
+
+.actionLinks {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.actionLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--ts-color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.actionLink:hover {
+  opacity: 0.8;
+}
+
+/* Open Orders Table: Clean borderless table with horizontal row dividers */
+.orderTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orderTable th {
+  padding: 0 16px 14px 0;
+  border-bottom: 1px solid #cacdd8;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+  text-align: left;
+}
+
+.orderTable td {
+  padding: 18px 16px 18px 0;
+  border-bottom: 1px solid #cacdd8;
+  font-size: 13px;
+  color: #000000;
+  vertical-align: middle;
+}
+
+/* Order Badges */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--ts-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.badgePending { background: #fef3c7; color: #92400e; }
+.badgeConfirmed { background: #dbeafe; color: #1e40af; }
+.badgeShipping { background: #e0e7ff; color: #3730a3; }
+.badgeCompleted { background: #dcfce7; color: #166534; }
+.badgeCancelled { background: #fee2e2; color: #991b1b; }
+
+/* Action Buttons */
+.cancelOrderBtn {
+  border: 1px solid #a2a6b0 !important;
+  color: #666666 !important;
+  border-radius: 50px !important;
+  font-size: 12px !important;
+  padding: 6px 16px !important;
+  background: transparent !important;
+  cursor: pointer;
+}
+
+.cancelOrderBtn:hover {
+  border-color: #c94d3f !important;
+  color: #c94d3f !important;
+}
+
+.reorderBtn {
+  background: var(--ts-color-primary) !important;
+  color: #ffffff !important;
+  border-radius: 50px !important;
+  font-size: 12px !important;
+  padding: 6px 18px !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+/* Form Styles */
+.infoForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 500px;
+  margin-top: 8px;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formRow label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.formRow input {
+  padding: 10px 14px;
+  border: 1px solid #cacdd8;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.formRow input:focus {
+  border-color: var(--ts-color-primary);
+}
+
+.saveBtnPill {
+  background: var(--ts-color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.15s ease;
+}
+
+.saveBtnPill:hover {
+  opacity: 0.9;
+}
+
+/* Checkbox */
+.checkboxLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #000000;
+  cursor: pointer;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.checkboxLabel input {
+  margin-top: 3px;
+}
+
+@media (max-width: 900px) {
+  .accountLayout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .twoColGrid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}

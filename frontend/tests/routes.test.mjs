@@ -63,6 +63,25 @@ test('admin shell renders sidebar, breadcrumb and a closed mobile menu', () => {
   assert.doesNotMatch(html, /<dialog[^>]* open/)
 })
 
+test('admin management sub-routes render with consistent navigation and table structure', () => {
+  // Test Products sub-route
+  const productsHtml = renderRoute('/admin/products')
+  assert.match(productsHtml, /Quản lý sản phẩm/)
+  assert.match(productsHtml, /Thêm sản phẩm mới/)
+  assert.match(productsHtml, /MSI-PRO-16/)
+
+  // Test Orders sub-route
+  const ordersHtml = renderRoute('/admin/orders')
+  assert.match(ordersHtml, /Quản lý đơn hàng/)
+  assert.match(ordersHtml, /TS-100245/)
+  assert.match(ordersHtml, /Chờ xác nhận/)
+
+  // Test Inventory sub-route
+  const invHtml = renderRoute('/admin/inventory')
+  assert.match(invHtml, /Quản lý kho hàng &amp; Tồn kho/)
+  assert.match(invHtml, /Điều chuyển kho/)
+})
+
 test('an unknown route does not match a placeholder', () => {
   assert.equal(matchRoutes(routes, '/unknown'), null)
 })

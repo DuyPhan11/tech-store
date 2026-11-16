@@ -1,87 +1,248 @@
-.loginWrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: calc(100vh - 280px);
-  padding: var(--ts-space-24) var(--ts-space-16);
-  box-sizing: border-box;
-}
-
-.loginCard {
+.loginPageContainer {
+  max-width: 1400px;
   width: 100%;
-  max-width: 440px;
-  background: var(--ts-color-surface);
-  border: 1px solid var(--ts-color-border);
-  border-radius: var(--ts-radius-12);
-  padding: var(--ts-space-32);
-  box-shadow: var(--ts-shadow-raised);
+  margin-inline: auto;
+  padding: 1.5rem 0 3.5rem;
+  box-sizing: border-box;
+  font-family: var(--ts-font-family);
+  color: var(--ts-color-text-main);
+}
+
+/* Breadcrumb */
+.breadcrumb {
   display: flex;
-  flex-direction: column;
-  gap: var(--ts-space-24);
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #666666;
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumb a {
+  color: #666666;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb a:hover {
+  color: var(--ts-color-primary);
+}
+
+.breadcrumbSeparator {
+  user-select: none;
+  color: #cacdd8;
+}
+
+.breadcrumbCurrent {
+  color: #000000;
+  font-weight: 500;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #000000;
+  margin: 0 0 2rem;
+  letter-spacing: -0.02em;
+}
+
+/* 2-Column Layout matching Figma */
+.loginLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* Both Panels: Seamless #F5F7FF background, borderless matching Figma */
+.panelRegistered, .panelNew {
+  background: #f5f7ff;
+  border: none;
+  border-radius: 0;
+  padding: 40px 48px 48px;
   box-sizing: border-box;
 }
 
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ts-space-4);
-  text-align: center;
+.panelHeader {
+  margin-bottom: 24px;
 }
 
-.title {
-  font: var(--ts-font-heading-h2);
-  color: var(--ts-color-text);
-  margin: 0;
+.panelTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0 0 8px;
 }
 
-.subtitle {
-  font: var(--ts-font-body-small);
-  color: var(--ts-color-muted);
+.panelSubtitle {
+  font-size: 14px;
+  color: #000000;
+  line-height: 1.5;
   margin: 0;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--ts-space-16);
+  gap: 20px;
+}
+
+/* Input Fields inside form */
+.form input {
+  background: #ffffff !important;
+  border: 1px solid #cacdd8 !important;
+  border-radius: 4px !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  color: #000000 !important;
+  box-sizing: border-box;
+}
+
+.form input:focus {
+  border-color: var(--ts-color-primary) !important;
+  outline: none;
 }
 
 .alertError {
-  background: #fdf2f2;
-  border: 1px solid var(--ts-color-danger);
-  color: var(--ts-color-danger);
-  padding: var(--ts-space-12);
-  border-radius: var(--ts-radius-8);
-  font: var(--ts-font-body-small);
-}
-
-.submitBtn {
-  width: 100%;
-  margin-top: var(--ts-space-8);
-}
-
-.demoBox {
-  border-top: 1px dashed var(--ts-color-border);
-  padding-top: var(--ts-space-16);
+  background: #fee2e2;
+  border: 1px solid #f87171;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 13px;
   display: flex;
-  flex-direction: column;
-  gap: var(--ts-space-8);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.submitBtnPill {
+  background: var(--ts-color-primary);
+  border: 0;
+  border-radius: 50px;
+  color: #ffffff;
+  padding: 12px 42px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.submitBtnPill:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.submitBtnPill:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.forgotPasswordLink {
+  color: var(--ts-color-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: opacity 0.15s ease;
+}
+
+.forgotPasswordLink:hover {
+  text-decoration: underline;
+}
+
+/* Demo box */
+.demoBox {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px dashed #cacdd8;
 }
 
 .demoTitle {
-  font: var(--ts-font-label-default);
-  color: var(--ts-color-muted);
-  margin: 0;
+  font-size: 13px;
+  color: #666666;
+  margin: 0 0 8px;
+  font-weight: 500;
 }
 
 .demoGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--ts-space-8);
+  gap: 8px;
 }
 
 .demoBtn {
-  font: var(--ts-font-caption-default);
-  padding: var(--ts-space-8);
+  font-size: 12px;
+  padding: 8px 12px;
   min-height: auto;
+  border-radius: 50px;
+  background: #ffffff;
+  border: 1px solid #cacdd8;
+  color: #000000;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.demoBtn:hover {
+  border-color: var(--ts-color-primary);
+  color: var(--ts-color-primary);
+}
+
+/* New Customers Benefits matching Figma */
+.benefitsList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.benefitsList li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #000000;
+  line-height: 1.6;
+}
+
+.benefitsList li::before {
+  content: '•';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  color: #000000;
+  font-size: 18px;
+}
+
+.createAccountBtnPill {
+  background: var(--ts-color-primary);
+  border: 0;
+  border-radius: 50px;
+  color: #ffffff;
+  padding: 12px 36px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.createAccountBtnPill:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 800px) {
+  .loginLayout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .panelRegistered, .panelNew {
+    padding: 24px;
+  }
 }
