@@ -20,9 +20,14 @@ function FiltersSidebar({
   const [priceOpen, setPriceOpen] = useState(true)
   const [colorOpen, setColorOpen] = useState(true)
   const [brandOpen, setBrandOpen] = useState(true)
-  const [minVal, setMinVal] = useState(query.minPrice ? String(query.minPrice) : '')
-  const [maxVal, setMaxVal] = useState(query.maxPrice ? String(query.maxPrice) : '')
+  const [minVal, setMinVal] = useState(query.minPrice !== undefined ? String(query.minPrice) : '')
+  const [maxVal, setMaxVal] = useState(query.maxPrice !== undefined ? String(query.maxPrice) : '')
   const [priceError, setPriceError] = useState('')
+
+  useEffect(() => {
+    setMinVal(query.minPrice !== undefined ? String(query.minPrice) : '')
+    setMaxVal(query.maxPrice !== undefined ? String(query.maxPrice) : '')
+  }, [query.minPrice, query.maxPrice])
 
   const handlePriceApply = (e: FormEvent) => {
     e.preventDefault()
@@ -34,9 +39,22 @@ function FiltersSidebar({
     update({ min: minVal, max: maxVal })
   }
 
+  const rootCategories = categories.filter(c => !c.parentId)
+
+  const priceRanges = [
+    { label: '0₫ - 10.000.000₫', min: '0', max: '10000000' },
+    { label: '10.000.000₫ - 20.000.000₫', min: '10000000', max: '20000000' },
+    { label: '20.000.000₫ - 30.000.000₫', min: '20000000', max: '30000000' },
+    { label: '30.000.000₫ - 40.000.000₫', min: '30000000', max: '40000000' },
+    { label: '40.000.000₫ - 50.000.000₫', min: '40000000', max: '50000000' },
+    { label: '50.000.000₫ - 60.000.000₫', min: '50000000', max: '60000000' },
+    { label: '60.000.000₫ - 70.000.000₫', min: '60000000', max: '70000000' },
+    { label: 'Từ 70.000.000₫ trở lên', min: '70000000', max: '' },
+  ]
+
   return (
     <aside className={styles.sidebar}>
-      {/* Unified Filter Card (Seamless #F5F7FF background matching target image) */}
+      {/* Unified Filter Card */}
       <div className={styles.filterUnifiedCard}>
         <h2 className={styles.filterTitle}>Bộ lọc tìm kiếm</h2>
         <button type="button" className={styles.clearFilterPillBtn} onClick={reset}>
@@ -55,8 +73,10 @@ function FiltersSidebar({
           </button>
           {catOpen && (
             <ul className={styles.filterList}>
-              {categories.map((cat, idx) => {
+              {rootCategories.map(cat => {
                 const isSelected = query.category === cat.id
+                const subcats = categories.filter(c => c.parentId === cat.id)
+
                 return (
                   <li key={cat.id}>
                     <button
@@ -65,8 +85,25 @@ function FiltersSidebar({
                       onClick={() => update({ category: isSelected ? '' : cat.id })}
                     >
                       <span>{cat.name}</span>
-                      <span className={styles.itemCount}>{15 + idx * 10}</span>
                     </button>
+                    {subcats.length > 0 && (
+                      <ul className={styles.filterList} style={{ paddingLeft: '12px', marginTop: '4px' }}>
+                        {subcats.map(sub => {
+                          const isSubSelected = query.category === sub.id
+                          return (
+                            <li key={sub.id}>
+                              <button
+                                type="button"
+                                className={`${styles.filterItemBtn} ${isSubSelected ? styles.activeFilterItem : ''}`}
+                                onClick={() => update({ category: isSubSelected ? '' : sub.id })}
+                              >
+                                <span>• {sub.name}</span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
                   </li>
                 )
               })}
@@ -87,27 +124,29 @@ function FiltersSidebar({
           {priceOpen && (
             <div className={styles.priceContent}>
               <ul className={styles.filterList}>
-                {[
-                  { label: '0₫ - 10.000.000₫', min: '0', max: '10000000', count: 19 },
-                  { label: '10.000.000₫ - 20.000.000₫', min: '10000000', max: '20000000', count: 21 },
-                  { label: '20.000.000₫ - 30.000.000₫', min: '20000000', max: '30000000', count: 9 },
-                  { label: '30.000.000₫ - 40.000.000₫', min: '30000000', max: '40000000', count: 6 },
-                  { label: '40.000.000₫ - 50.000.000₫', min: '40000000', max: '50000000', count: 3 },
-                  { label: '50.000.000₫ - 60.000.000₫', min: '50000000', max: '60000000', count: 1 },
-                  { label: '60.000.000₫ - 70.000.000₫', min: '60000000', max: '70000000', count: 1 },
-                  { label: 'Từ 70.000.000₫ trở lên', min: '70000000', max: '', count: 1 },
-                ].map((range, idx) => (
-                  <li key={idx}>
-                    <button
-                      type="button"
-                      className={styles.filterItemBtn}
-                      onClick={() => update({ min: range.min, max: range.max })}
-                    >
-                      <span>{range.label}</span>
-                      <span className={styles.itemCount}>{range.count}</span>
-                    </button>
-                  </li>
-                ))}
+                {priceRanges.map((range, idx) => {
+                  const isSelected =
+                    query.minPrice === Number(range.min) &&
+                    (range.max ? query.maxPrice === Number(range.max) : query.maxPrice === undefined)
+
+                  return (
+                    <li key={idx}>
+                      <button
+                        type="button"
+                        className={`${styles.filterItemBtn} ${isSelected ? styles.activeFilterItem : ''}`}
+                        onClick={() => {
+                          if (isSelected) {
+                            update({ min: '', max: '' })
+                          } else {
+                            update({ min: range.min, max: range.max })
+                          }
+                        }}
+                      >
+                        <span>{range.label}</span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
 
               {/* Custom Range Input */}
@@ -180,7 +219,6 @@ function FiltersSidebar({
                       onClick={() => update({ brand: isSelected ? '' : b.id })}
                     >
                       <span>{b.name}</span>
-                      <span className={styles.itemCount}>8</span>
                     </button>
                   </li>
                 )
@@ -202,7 +240,7 @@ function FiltersSidebar({
         <p>Chưa có sản phẩm nào trong danh sách yêu thích.</p>
       </div>
 
-      {/* 7. Noblechairs Vertical Banner (Matching Figma Image 2) */}
+      {/* 7. Noblechairs Vertical Banner */}
       <div
         className={styles.nobleBanner}
         style={{
@@ -221,33 +259,18 @@ function FiltersSidebar({
 type ResultState = { status: 'loading' } | { status: 'error' } | { status: 'ready'; data: CatalogPage }
 
 function CatalogResults({
-  query,
-  source,
+  state,
   brands,
   changePage,
   reset,
+  retry,
 }: {
-  query: CatalogQuery
-  source: CatalogSource
+  state: ResultState
   brands: readonly CatalogOption[]
   changePage: (page: number) => void
   reset: () => void
+  retry: () => void
 }) {
-  const [state, setState] = useState<ResultState>({ status: 'loading' })
-  const [attempt, setAttempt] = useState(0)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    source(query, controller.signal)
-      .then(data => {
-        if (!controller.signal.aborted) setState({ status: 'ready', data })
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setState({ status: 'error' })
-      })
-    return () => controller.abort()
-  }, [query, source, attempt])
-
   if (state.status === 'loading') {
     return (
       <div className={styles.loadingBox}>
@@ -261,14 +284,7 @@ function CatalogResults({
     return (
       <div className={styles.errorBox}>
         <p role="alert">Không thể tải danh sách sản phẩm.</p>
-        <button
-          type="button"
-          className={styles.retryBtn}
-          onClick={() => {
-            setState({ status: 'loading' })
-            setAttempt(attempt + 1)
-          }}
-        >
+        <button type="button" className={styles.retryBtn} onClick={retry}>
           Thử lại
         </button>
       </div>
@@ -315,6 +331,21 @@ export function ProductListPage({
   const [params, setParams] = useSearchParams()
   const query = useMemo(() => readQuery(params), [params])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [state, setState] = useState<ResultState>({ status: 'loading' })
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setState({ status: 'loading' })
+    source(query, controller.signal)
+      .then(data => {
+        if (!controller.signal.aborted) setState({ status: 'ready', data })
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setState({ status: 'error' })
+      })
+    return () => controller.abort()
+  }, [query, source, attempt])
 
   const update = (changes: Record<string, string>) => {
     const next = new URLSearchParams(params)
@@ -330,14 +361,92 @@ export function ProductListPage({
     setParams({})
   }
 
-  // Active filter labels
-  const activeCategoryName = categories.find(c => c.id === query.category)?.name
-  const activeBrandName = brands.find(b => b.id === query.brand)?.name
-  const hasActiveFilters = Boolean(query.category || query.brand || query.minPrice || query.maxPrice)
+  // Active filter items lookup
+  const activeCategory = categories.find(c => c.id === query.category)
+  const activeBrand = brands.find(b => b.id === query.brand)
+  const hasActiveFilters = Boolean(
+    query.category ||
+    query.brand ||
+    query.minPrice !== undefined ||
+    query.maxPrice !== undefined ||
+    query.keyword
+  )
+
+  // Dynamic Breadcrumb construction
+  const breadcrumbItems: { label: string; url?: string }[] = [
+    { label: 'Trang chủ', url: '/' },
+    { label: 'Sản phẩm', url: '/products' },
+  ]
+
+  if (activeCategory) {
+    if (activeCategory.parentId) {
+      const parent = categories.find(c => c.id === activeCategory.parentId)
+      if (parent) {
+        breadcrumbItems.push({ label: parent.name, url: `/products?category=${parent.id}` })
+      }
+    }
+    breadcrumbItems.push({
+      label: activeCategory.name,
+      url: `/products?category=${activeCategory.id}`,
+    })
+  } else if (query.category) {
+    breadcrumbItems.push({
+      label: query.category,
+      url: `/products?category=${query.category}`,
+    })
+  }
+
+  if (activeBrand) {
+    breadcrumbItems.push({
+      label: activeBrand.name,
+      url: `/products?brand=${activeBrand.id}`,
+    })
+  } else if (query.brand) {
+    breadcrumbItems.push({
+      label: query.brand,
+      url: `/products?brand=${query.brand}`,
+    })
+  }
+
+  if (query.keyword) {
+    breadcrumbItems.push({
+      label: `Tìm kiếm: "${query.keyword}"`,
+    })
+  }
+
+  // Dynamic Page Title
+  const getPageTitle = () => {
+    if (activeCategory && activeBrand) {
+      return `Danh sách sản phẩm — ${activeCategory.name} (${activeBrand.name})`
+    }
+    if (activeCategory) {
+      return `Danh sách sản phẩm — ${activeCategory.name}`
+    }
+    if (activeBrand) {
+      return `Danh sách sản phẩm — ${activeBrand.name}`
+    }
+    if (query.keyword) {
+      return `Danh sách sản phẩm — Tìm kiếm "${query.keyword}"`
+    }
+    return 'Danh sách sản phẩm'
+  }
+
+  const formatPriceTag = (min?: number, max?: number) => {
+    const fmt = (v: number) => v.toLocaleString('vi-VN') + '₫'
+    if (min !== undefined && max !== undefined) {
+      return `${fmt(min)} - ${fmt(max)}`
+    }
+    if (min !== undefined) return `TỪ ${fmt(min)}`
+    if (max !== undefined) return `ĐẾN ${fmt(max)}`
+    return 'KHOẢNG GIÁ'
+  }
+
+  const totalCount = state.status === 'ready' ? state.data.total : undefined
+  const currentPage = state.status === 'ready' ? state.data.page : 1
 
   return (
     <div className={styles.catalogPage}>
-      {/* 1. ASUS TUF GAMING Top Banner (Matching Figma Image 1) */}
+      {/* 1. ASUS TUF GAMING Top Banner */}
       <section className={styles.topPromoBanner} aria-label="Ưu đãi Asus TUF Gaming">
         <div className={styles.promoContent}>
           <div className={styles.asusLogo}>ASUS</div>
@@ -359,25 +468,33 @@ export function ProductListPage({
 
       {/* 2. Breadcrumbs */}
       <nav aria-label="Đường dẫn trang" className={styles.breadcrumb}>
-        <a href="/">Trang chủ</a>
-        <span className={styles.breadcrumbSeparator} aria-hidden="true">›</span>
-        <a href="/products">Laptop</a>
-        <span className={styles.breadcrumbSeparator} aria-hidden="true">›</span>
-        <span>Laptop văn phòng &amp; học tập</span>
-        <span className={styles.breadcrumbSeparator} aria-hidden="true">›</span>
-        <span>Dòng cao cấp MSI Prestige</span>
-        <span className={styles.breadcrumbSeparator} aria-hidden="true">›</span>
-        <span className={styles.breadcrumbCurrent}>Dòng MSI PS</span>
+        {breadcrumbItems.map((item, idx) => {
+          const isLast = idx === breadcrumbItems.length - 1
+          return (
+            <span key={idx} style={{ display: 'inline-flex', alignItems: 'center' }}>
+              {idx > 0 && (
+                <span className={styles.breadcrumbSeparator} aria-hidden="true" style={{ margin: '0 6px' }}>
+                  ›
+                </span>
+              )}
+              {isLast || !item.url ? (
+                <span className={styles.breadcrumbCurrent}>{item.label}</span>
+              ) : (
+                <a href={item.url}>{item.label}</a>
+              )}
+            </span>
+          )
+        })}
       </nav>
 
       {/* 3. Page Title with Count */}
       <div className={styles.titleSection}>
         <h1 className={styles.pageTitle}>
-          Danh sách sản phẩm — MSI PS Series (20)
+          {getPageTitle()} {totalCount !== undefined ? `(${totalCount})` : ''}
         </h1>
       </div>
 
-      {/* 4. Main 2-Column Catalog Layout (Sidebar Left, Results Right matching Figma 73:291) */}
+      {/* 4. Main 2-Column Catalog Layout */}
       <div className={styles.catalogMainLayout}>
         <FiltersSidebar
           categories={categories}
@@ -388,11 +505,17 @@ export function ProductListPage({
         />
 
         <div className={styles.resultsArea} aria-label="Kết quả tìm kiếm">
-          {/* Controls & Toolbar Container matching Figma (2 distinct rows) */}
+          {/* Controls & Toolbar Container */}
           <div className={styles.toolbarContainer}>
-            {/* Row 1: Items Range on Left, Controls (Sort, Show, Views) on Right */}
+            {/* Row 1: Items Range on Left, Controls on Right */}
             <div className={styles.toolbarRowTop}>
-              <span className={styles.itemsRange}>Hiển thị 1-35 trong 61 sản phẩm</span>
+              <span className={styles.itemsRange}>
+                {state.status === 'ready'
+                  ? state.data.total > 0
+                    ? `Hiển thị ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, state.data.total)} trong ${state.data.total} sản phẩm`
+                    : 'Không tìm thấy sản phẩm nào'
+                  : 'Đang tải danh sách sản phẩm…'}
+              </span>
 
               <div className={styles.toolbarRight}>
                 {/* Sort By Select Box */}
@@ -414,15 +537,13 @@ export function ProductListPage({
                 {/* Show per page Select Box */}
                 <label className={styles.selectBox}>
                   <span className={styles.selectPrefix}>Hiển thị:</span>
-                  <select defaultValue="35" className={styles.inlineSelect} aria-label="Số sản phẩm trên trang">
-                    <option value="15">15 / trang</option>
-                    <option value="25">25 / trang</option>
-                    <option value="35">35 / trang</option>
+                  <select defaultValue="8" className={styles.inlineSelect} aria-label="Số sản phẩm trên trang" disabled>
+                    <option value="8">8 / trang</option>
                   </select>
                   <span className={styles.selectChevron} aria-hidden="true">▾</span>
                 </label>
 
-                {/* View Toggles (Clean icon buttons matching Figma) */}
+                {/* View Toggles */}
                 <div className={styles.viewToggles}>
                   <button
                     type="button"
@@ -459,92 +580,96 @@ export function ProductListPage({
             </div>
 
             {/* Row 2: Active Filter Chips Row on Left */}
-            <div className={styles.activeFilterPills}>
-              {activeCategoryName ? (
-                <span className={styles.filterPillTag}>
-                  <span className={styles.pillText}>{activeCategoryName}</span>
-                  <span className={styles.pillCount}>(24)</span>
-                  <button
-                    type="button"
-                    className={styles.chipRemoveBtn}
-                    onClick={() => update({ category: '' })}
-                    aria-label="Bỏ chọn danh mục"
-                  >
-                    <span className={styles.chipCloseCircle}>×</span>
-                  </button>
-                </span>
-              ) : (
-                <span className={styles.filterPillTag}>
-                  <span className={styles.pillText}>PC CẤU HÌNH CAO</span>
-                  <span className={styles.pillCount}>(24)</span>
-                  <button
-                    type="button"
-                    className={styles.chipRemoveBtn}
-                    onClick={() => update({ category: '' })}
-                    aria-label="Bỏ chọn"
-                  >
-                    <span className={styles.chipCloseCircle}>×</span>
-                  </button>
-                </span>
-              )}
+            {hasActiveFilters && (
+              <div className={styles.activeFilterPills}>
+                {query.category && (
+                  <span className={styles.filterPillTag}>
+                    <span className={styles.pillText}>{activeCategory?.name || query.category}</span>
+                    <button
+                      type="button"
+                      className={styles.chipRemoveBtn}
+                      onClick={() => update({ category: '' })}
+                      aria-label="Bỏ chọn danh mục"
+                    >
+                      <span className={styles.chipCloseCircle}>×</span>
+                    </button>
+                  </span>
+                )}
 
-              {activeBrandName ? (
-                <span className={styles.filterPillTag}>
-                  <span className={styles.pillText}>{activeBrandName}</span>
-                  <span className={styles.pillCount}>(18)</span>
-                  <button
-                    type="button"
-                    className={styles.chipRemoveBtn}
-                    onClick={() => update({ brand: '' })}
-                    aria-label="Bỏ chọn thương hiệu"
-                  >
-                    <span className={styles.chipCloseCircle}>×</span>
-                  </button>
-                </span>
-              ) : (
-                <span className={styles.filterPillTag}>
-                  <span className={styles.pillText}>MÁY BỘ HP/COMPAQ</span>
-                  <span className={styles.pillCount}>(24)</span>
-                  <button
-                    type="button"
-                    className={styles.chipRemoveBtn}
-                    onClick={() => update({ brand: '' })}
-                    aria-label="Bỏ chọn"
-                  >
-                    <span className={styles.chipCloseCircle}>×</span>
-                  </button>
-                </span>
-              )}
+                {query.brand && (
+                  <span className={styles.filterPillTag}>
+                    <span className={styles.pillText}>{activeBrand?.name || query.brand}</span>
+                    <button
+                      type="button"
+                      className={styles.chipRemoveBtn}
+                      onClick={() => update({ brand: '' })}
+                      aria-label="Bỏ chọn thương hiệu"
+                    >
+                      <span className={styles.chipCloseCircle}>×</span>
+                    </button>
+                  </span>
+                )}
 
-              {/* Clear All Button - exact same height 38px, matching Figma */}
-              <button
-                type="button"
-                className={styles.clearAllBtn}
-                onClick={reset}
-              >
-                Xóa tất cả
-              </button>
-            </div>
+                {(query.minPrice !== undefined || query.maxPrice !== undefined) && (
+                  <span className={styles.filterPillTag}>
+                    <span className={styles.pillText}>{formatPriceTag(query.minPrice, query.maxPrice)}</span>
+                    <button
+                      type="button"
+                      className={styles.chipRemoveBtn}
+                      onClick={() => update({ min: '', max: '' })}
+                      aria-label="Bỏ chọn khoảng giá"
+                    >
+                      <span className={styles.chipCloseCircle}>×</span>
+                    </button>
+                  </span>
+                )}
+
+                {query.keyword && (
+                  <span className={styles.filterPillTag}>
+                    <span className={styles.pillText}>TỪ KHÓA: "{query.keyword}"</span>
+                    <button
+                      type="button"
+                      className={styles.chipRemoveBtn}
+                      onClick={() => update({ q: '' })}
+                      aria-label="Bỏ từ khóa tìm kiếm"
+                    >
+                      <span className={styles.chipCloseCircle}>×</span>
+                    </button>
+                  </span>
+                )}
+
+                {/* Clear All Button */}
+                <button
+                  type="button"
+                  className={styles.clearAllBtn}
+                  onClick={reset}
+                >
+                  Xóa tất cả
+                </button>
+              </div>
+            )}
           </div>
 
           <CatalogResults
-            key={params.toString()}
-            query={query}
-            source={source}
+            state={state}
             brands={brands}
             changePage={page => update({ page: String(page) })}
             reset={reset}
+            retry={() => {
+              setState({ status: 'loading' })
+              setAttempt(a => a + 1)
+            }}
           />
         </div>
       </div>
 
-      {/* 6. SEO Article Block & More Button (Matching Figma Image 2) */}
+      {/* 6. SEO Article Block */}
       <section className={styles.seoArticleSection}>
         <p className={styles.seoArticleText}>
-          MSI đã chính thức giới thiệu dòng máy tính xách tay Prestige Series phục vụ công việc chuyên nghiệp và chơi game. Được hiệu chỉnh độ chính xác màu sắc vượt trội, Prestige Series tích hợp công nghệ True Color độc quyền, cho phép người dùng tùy chỉnh cấu hình hiển thị tối ưu nhất cho từng nhu cầu xử lý.
+          Tech Store mang đến những sản phẩm công nghệ chính hãng chất lượng cao từ các thương hiệu hàng đầu thế giới như ASUS, Lenovo, Acer, HP, MSI... Tất cả sản phẩm đều được kiểm định nguồn gốc xuất xứ rõ ràng, bảo hành chính hãng và hỗ trợ kỹ thuật tận tâm.
         </p>
         <p className={styles.seoArticleText}>
-          Hệ thống cung cấp sáu chế độ màu sắc hiển thị khác nhau, được tối ưu riêng biệt cho chơi game, giảm mỏi mắt, chuẩn màu đồ họa sRGB, nâng cao độ sắc nét của văn bản, giảm ánh sáng xanh có hại và tăng cường độ tương phản khi xem phim. Với card đồ họa rời mạnh mẽ và tấm nền cao cấp, MSI Prestige là lựa chọn hoàn hảo cho cả thiết kế sáng tạo lẫn tác vụ văn phòng.
+          Chúng tôi cam kết cung cấp mức giá cạnh tranh nhất thị trường cùng nhiều chương trình ưu đãi, trả góp linh hoạt và giao hàng nhanh chóng trên toàn quốc. Đội ngũ tư vấn viên am hiểu công nghệ luôn sẵn sàng hỗ trợ bạn lựa chọn sản phẩm phù hợp nhất với nhu cầu làm việc, học tập hay giải trí.
         </p>
         <div className={styles.moreBtnCenter}>
           <button type="button" className={styles.morePillBtn}>

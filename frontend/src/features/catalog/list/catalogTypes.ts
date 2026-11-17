@@ -1,6 +1,7 @@
 export interface CatalogOption {
   id: string
   name: string
+  parentId?: string
 }
 
 export interface CatalogProduct {

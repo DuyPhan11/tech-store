@@ -77,6 +77,7 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 // Admin specific endpoints (quản lý chi nhánh, người dùng, danh mục theo UC Matrix)
                 .requestMatchers("/api/admin/branches/**", "/api/admin/users/**", "/api/admin/categories/**").hasRole("ADMIN")
                 // Staff & Admin endpoints (ROLE_ADMIN kế thừa ROLE_STAFF qua RoleHierarchy)

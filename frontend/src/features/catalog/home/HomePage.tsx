@@ -1,198 +1,412 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { catalogApi } from '../../../lib/api/catalogApi'
 import type { HomeData } from './homeData'
 import styles from './HomePage.module.css'
 
 interface ProductPreview {
   id: string
+  slug: string
   name: string
   image: string
   price: string
+  priceVnd?: number
   oldPrice?: string
   inStock: boolean
   reviews: number
-  bannerLabel?: string
-  bannerColor?: string
 }
 
-const newProductsList: ProductPreview[] = [
+function formatVnd(val: number): string {
+  return val.toLocaleString('vi-VN') + '₫'
+}
+
+// 1. Initial 6 Featured / New Products (Real Laptops from DB & Seed)
+const initialNewProducts: ProductPreview[] = [
   {
-    id: 'prod-1',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
+    id: 'np-1',
+    slug: 'laptop-asus-vivobook-go-14-e1404fa-eb935w-ryzen-5-40-16gb-512gb-windows-11-home',
+    name: 'Laptop Asus Vivobook Go 14 E1404FA-EB935W (Ryzen 5 40/ 16GB/ 512GB)',
+    image: 'https://lh3.googleusercontent.com/qexCUvh-ASrliTTw6635imfDBmjxIDsGC7gVBepCo11oO3JMEk3c7KsRtbr_TfzA5iciTFPwqga-hl3AdYyYE5W9OVUQdVY=w230-rw',
+    price: '20.990.000₫',
+    priceVnd: 20990000,
+    oldPrice: '28.490.000₫',
+    inStock: true,
+    reviews: 5,
+  },
+  {
+    id: 'np-2',
+    slug: 'laptop-lenovo-loq-15irh11e---83y9003vvn-core-5-205h-geforce-rtx-3050-8gb-512gb-win-11',
+    name: 'Laptop Gaming Lenovo LOQ 15IRH11E (Core 5 205H/ RTX 3050/ 8GB/ 512GB)',
+    image: 'https://lh3.googleusercontent.com/_PM-PnsTUlTl_r4iqpYJvTnADzLN-M5iZ00gSqjqEG1elMFA725DzTl7gFHenFAPmU1qxk2yE5ZQyt-3L1kZ0TpnohR_gPk=w230-rw',
+    price: '25.990.000₫',
+    priceVnd: 25990000,
+    oldPrice: '36.990.000₫',
+    inStock: true,
+    reviews: 5,
+  },
+  {
+    id: 'np-3',
+    slug: 'laptop-asus-vivobook-s14-s3407ca-sf913w-ultra-5-225h-16gb-512gb-win-11-home',
+    name: 'Laptop Asus Vivobook S14 S3407CA (Ultra 5-225H/ OLED/ 16GB/ 512GB)',
+    image: 'https://lh3.googleusercontent.com/fh3QAE_n_Y_-PrJNaJbHhURaBpqBQGu_XfE3pzvEtWVgzbnXFPE1aILkHf6Rm0k54YMEYz3zerwv34SkhvlhELSnR1t2w7jZww=w230-rw',
+    price: '27.490.000₫',
+    priceVnd: 27490000,
+    oldPrice: '35.990.000₫',
+    inStock: true,
+    reviews: 4,
+  },
+  {
+    id: 'np-4',
+    slug: 'laptop-acer-nitro-propanel-anv16-i12-53vh-core-5-205h-geforce-rtx-3050-16gb-512gb-win-11',
+    name: 'Laptop Acer Nitro ProPanel ANV16 (Core 5 205H/ RTX 3050/ 16GB/ 512GB)',
+    image: 'https://lh3.googleusercontent.com/pzhCCNum6HOe9zEXHJbr3lG5OIS6IDN5YFVi-4FAuFzASxx3Ol_gQg-UVpNYY50GfMx7sUkDwdEi1sHDlGfUFRejNQL4xW0=w230-rw',
+    price: '28.990.000₫',
+    priceVnd: 28990000,
+    oldPrice: '33.338.500₫',
+    inStock: true,
+    reviews: 5,
+  },
+  {
+    id: 'np-5',
+    slug: 'laptop-msi-prestige-14-ai-d3mg-022vn-ultra-7-355-32gb-1tb-windows-11-home',
+    name: 'Laptop MSI Prestige 14 AI+ D3MG (Ultra 7-355/ 32GB/ 1TB OLED)',
+    image: 'https://lh3.googleusercontent.com/tJdbWXqIBRbW-KlFl5CYIYYOKYMKfiRqVnHaLgvLICEpiSvrurbOOsRQv6PKwAojYT848Qn2v71z3dKbUPY9p7qO9isGyJQ=w230-rw',
+    price: '44.490.000₫',
+    priceVnd: 44490000,
+    oldPrice: '51.163.500₫',
+    inStock: true,
+    reviews: 5,
+  },
+  {
+    id: 'np-6',
+    slug: 'nova-14',
+    name: 'Laptop Nova 14 (14 inch IPS QHD/ RAM 16GB/ SSD 512GB)',
     image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
-    inStock: true,
-    reviews: 4,
-  },
-  {
-    id: 'prod-2',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
-    inStock: false, // check availability
-    reviews: 4,
-  },
-  {
-    id: 'prod-3',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
-    inStock: true,
-    reviews: 4,
-  },
-  {
-    id: 'prod-4',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
-    inStock: true,
-    reviews: 4,
-  },
-  {
-    id: 'prod-5',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1547082299-de196ea013d6?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
-    inStock: true,
-    reviews: 4,
-  },
-  {
-    id: 'prod-6',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
+    price: '18.990.000₫',
+    priceVnd: 18990000,
+    oldPrice: '21.838.500₫',
     inStock: true,
     reviews: 4,
   },
 ]
 
-const customBuildsList: ProductPreview[] = [
+// 2. Initial 5 Highlight / Custom Builds (Dàn máy & Thiết bị tuyển chọn)
+const initialCustomBuilds: ProductPreview[] = [
   {
     id: 'cb-1',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
+    slug: 'laptop-asus-tuf-gaming-a15-fa506ncg-hn329w-ryzen-7-8845hs-geforce-rtx-3050-16gb-512gb',
+    name: 'Laptop Asus TUF Gaming A15 FA506NCG (Ryzen 7 8845HS/ RTX 3050)',
+    image: 'https://lh3.googleusercontent.com/JVbjYz4WEYUOgot9lQ2vt9y-BPdlvzaxR5A9MtzEnfddsdjkaYX2q6-rt7Gwuqv3Y6L5awdsDjqQXQ3WiN-IWJWOEaLFwjIDBA=w230-rw',
+    price: '27.990.000₫',
+    priceVnd: 27990000,
+    oldPrice: '32.188.500₫',
     inStock: true,
-    reviews: 4,
-    bannerLabel: 'CHARLIE V6',
-    bannerColor: '#c2410c',
+    reviews: 5,
   },
   {
     id: 'cb-2',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
+    slug: 'laptop-acer-gaming-aspire-7-a715-59g-59rd-core-5-210h-geforce-rtx-3050-16gb-512gb-win-11',
+    name: 'Laptop Acer Gaming Aspire 7 A715 (Core 5 210H/ RTX 3050/ 16GB)',
+    image: 'https://lh3.googleusercontent.com/XocPrkhBjIbz91p7_hrFO_sbjVN9vKv5k5KAms6hRjpWoKgINeayDeI9JAJBzll3RYDC3UesGhcew8Hv8ZESPTksGRRyA9Fk=w230-rw',
+    price: '25.990.000₫',
+    priceVnd: 25990000,
+    oldPrice: '29.888.500₫',
     inStock: true,
     reviews: 4,
-    bannerLabel: 'BRAVO V6',
-    bannerColor: '#b91c1c',
   },
   {
     id: 'cb-3',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
+    slug: 'laptop-hp-probook-4-g1i---bq5c7pt-ultra-7-255u-16gb-512gb-win-11-home-sl',
+    name: 'Laptop HP ProBook 4 G11 (Ultra 7-255U/ 16GB/ 512GB/ Win 11 Pro)',
+    image: 'https://lh3.googleusercontent.com/WjSd894vIGO-EaYozFdQMK3VFU-w7Rw0qfCt0iqxBGeMP54VWD7A5VmtwxQHXF_ZpQMrVmEUghLJDGJJbMv3vBx8Upi1GyU=w230-rw',
+    price: '32.490.000₫',
+    priceVnd: 32490000,
+    oldPrice: '37.363.500₫',
     inStock: true,
     reviews: 4,
-    bannerLabel: 'ALPHA V6',
-    bannerColor: '#6d28d9',
   },
   {
     id: 'cb-4',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1547082299-de196ea013d6?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
+    slug: 'laptop-lenovo-thinkbook-14-g9-irl---21uy008tvn-core-i5-13420h-16gb-512gb-win-11',
+    name: 'Laptop Lenovo ThinkBook 14 G9 (Core i5-13420H/ 16GB/ 512GB)',
+    image: 'https://lh3.googleusercontent.com/60T5Wb3tR6ddyp_XyZsC2oMMUoDtTjyKdmHUBTksR1CRwdpHGIWvnX0_B-VZ1-blkQ57PYEx_uw6HGRIcfcK2xFk0Rvw0-Dn=w230-rw',
+    price: '26.290.000₫',
+    priceVnd: 26290000,
+    oldPrice: '30.233.500₫',
     inStock: true,
     reviews: 4,
-    bannerLabel: 'ZULU V6',
-    bannerColor: '#4f46e5',
   },
   {
     id: 'cb-5',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=300&auto=format&fit=crop&q=80',
-    price: '$499.00',
-    oldPrice: '$499.00',
+    slug: 'laptop-acer-swift-air-14-sfa14-i31-52bv-core-5-320-12gb-512gb-windows-11-home',
+    name: 'Laptop Acer Swift Air 14 OLED (Core 5 320/ 12GB/ 512GB/ 120Hz)',
+    image: 'https://lh3.googleusercontent.com/KghMvRNKo3CqbgEH5A1L0jbbMYNY0ByLZam2ABkHansFvIfu25qla_84sQ3W2VTc1aZxfA37FqIaPQNk0pF-coIsMMJAkj0=w230-rw',
+    price: '24.990.000₫',
+    priceVnd: 24990000,
+    oldPrice: '28.738.500₫',
     inStock: true,
     reviews: 4,
-    bannerLabel: 'DELTA V6',
-    bannerColor: '#1d4ed8',
   },
 ]
 
-const laptopSeriesList: ProductPreview[] = [
-  {
-    id: 'lp-1',
-    name: 'EX DISPLAY : MSI GS66 Stealth 10SGS 15.6 300Hz Gaming Laptop',
-    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=300&auto=format&fit=crop&q=80',
-    price: '$3,299.00',
-    oldPrice: '$3,799.00',
-    inStock: true,
-    reviews: 4,
-  },
-  {
-    id: 'lp-2',
-    name: 'EX DISPLAY : MSI GE66 Raider 10SFS 15.6 OLED Gaming Laptop',
-    image: 'https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?w=300&auto=format&fit=crop&q=80',
-    price: '$2,899.00',
-    oldPrice: '$3,199.00',
-    inStock: true,
-    reviews: 4,
-  },
-  {
-    id: 'lp-3',
-    name: 'EX DISPLAY : MSI GL65 Leopard 10SDK 144Hz Gaming Laptop',
-    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=300&auto=format&fit=crop&q=80',
-    price: '$1,699.00',
-    oldPrice: '$1,899.00',
-    inStock: true,
-    reviews: 4,
-  },
-  {
-    id: 'lp-4',
-    name: 'EX DISPLAY : MSI Prestige 15 A10SC Professional Laptop',
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300&auto=format&fit=crop&q=80',
-    price: '$1,999.00',
-    oldPrice: '$2,199.00',
-    inStock: true,
-    reviews: 4,
-  },
-  {
-    id: 'lp-5',
-    name: 'EX DISPLAY : MSI Modern 14 A10M Ultra-Thin Laptop',
-    image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=300&auto=format&fit=crop&q=80',
-    price: '$1,199.00',
-    oldPrice: '$1,349.00',
-    inStock: true,
-    reviews: 4,
-  },
-]
+// 3. Tabbed MSI Laptop Series
+const msiSeriesData: Record<'GS' | 'GT' | 'GL' | 'GE', ProductPreview[]> = {
+  GS: [
+    {
+      id: 'gs-1',
+      slug: 'laptop-msi-prestige-14-ai-d3mg-022vn-ultra-7-355-32gb-1tb-windows-11-home',
+      name: 'Laptop MSI Prestige 14 AI+ D3MG (Ultra 7-355/ 32GB/ 1TB OLED)',
+      image: 'https://lh3.googleusercontent.com/tJdbWXqIBRbW-KlFl5CYIYYOKYMKfiRqVnHaLgvLICEpiSvrurbOOsRQv6PKwAojYT848Qn2v71z3dKbUPY9p7qO9isGyJQ=w230-rw',
+      price: '44.490.000₫',
+      oldPrice: '51.163.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gs-2',
+      slug: 'laptop-msi-prestige-14-flip-ai-vincent-van-gogh-edition-ultra-x9-378h-32gb-1tb',
+      name: 'Laptop MSI Prestige 14 Flip AI Vincent van Gogh (Ultra 9/ 32GB/ 1TB)',
+      image: 'https://lh3.googleusercontent.com/bvm27CeviO9nTuVDmlLiIYdqHZCOQ1dYGmsj_CsLq6M5t2pH1UF_A7wQx-jXwNiSpEYiSNE0ECvrdZLVdQxFzhOmRk2MbF6p=w230-rw',
+      price: '58.590.000₫',
+      oldPrice: '67.838.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gs-3',
+      slug: 'laptop-msi-prestige-n16-flip-ai-c1xmt-017vn-rtx-spark-n1x-64gb-2tb-windows-11-pro',
+      name: 'Laptop MSI Prestige N16 Flip AI+ C1XMT (RTX Spark N1X/ 64GB/ 2TB)',
+      image: 'https://lh3.googleusercontent.com/p7mwSaoRmOnhVbwoCi3j1pmcFFX-bJQQWimMSsBGkWp7efz9nuSBmCIatUMFgsN8D3NWuhHwNpJacQJvSi9GPOLZWjqco4PRXw=w230-rw',
+      price: '139.990.000₫',
+      oldPrice: '160.988.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gs-4',
+      slug: 'laptop-msi-prestige-n16-flip-ai-c1xmt-016vn-rtx-spark-n1x-128gb-2tb-windows-11-pro',
+      name: 'Laptop MSI Prestige N16 Flip AI+ C1XMT Flagship (128GB/ 2TB Pro)',
+      image: 'https://lh3.googleusercontent.com/TR9IyRX4ggytDPYmjRhsYsODLsWCo8hWpDUA-5mwlxp3NvSLTQmF-LbvgdidKL4xQOnAg-0SvSIw-qQpjWdlzhX9uuDqXWk=w230-rw',
+      price: '222.990.000₫',
+      oldPrice: '256.438.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gs-5',
+      slug: 'nova-14',
+      name: 'Laptop Nova 14 (14 inch IPS QHD/ 8 nhân/ RAM 16GB/ SSD 512GB)',
+      image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=300&auto=format&fit=crop&q=80',
+      price: '18.990.000₫',
+      oldPrice: '21.838.500₫',
+      inStock: true,
+      reviews: 4,
+    },
+  ],
+  GT: [
+    {
+      id: 'gt-1',
+      slug: 'laptop-asus-tuf-gaming-a15-fa506ncg-hn329w-ryzen-7-8845hs-geforce-rtx-3050-16gb-512gb',
+      name: 'Laptop Asus TUF Gaming A15 FA506NCG (Ryzen 7 8845HS/ RTX 3050)',
+      image: 'https://lh3.googleusercontent.com/JVbjYz4WEYUOgot9lQ2vt9y-BPdlvzaxR5A9MtzEnfddsdjkaYX2q6-rt7Gwuqv3Y6L5awdsDjqQXQ3WiN-IWJWOEaLFwjIDBA=w230-rw',
+      price: '27.990.000₫',
+      oldPrice: '32.188.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gt-2',
+      slug: 'laptop-lenovo-loq-15irh11e---83y9003vvn-core-5-205h-geforce-rtx-3050-8gb-512gb-win-11',
+      name: 'Laptop Gaming Lenovo LOQ 15IRH11E (Core 5 205H/ RTX 3050/ 8GB)',
+      image: 'https://lh3.googleusercontent.com/_PM-PnsTUlTl_r4iqpYJvTnADzLN-M5iZ00gSqjqEG1elMFA725DzTl7gFHenFAPmU1qxk2yE5ZQyt-3L1kZ0TpnohR_gPk=w230-rw',
+      price: '25.990.000₫',
+      oldPrice: '36.990.000₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gt-3',
+      slug: 'laptop-acer-nitro-propanel-anv16-i12-53vh-core-5-205h-geforce-rtx-3050-16gb-512gb-win-11',
+      name: 'Laptop Acer Nitro ProPanel ANV16 (Core 5 205H/ RTX 3050/ 16GB)',
+      image: 'https://lh3.googleusercontent.com/pzhCCNum6HOe9zEXHJbr3lG5OIS6IDN5YFVi-4FAuFzASxx3Ol_gQg-UVpNYY50GfMx7sUkDwdEi1sHDlGfUFRejNQL4xW0=w230-rw',
+      price: '28.990.000₫',
+      oldPrice: '33.338.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gt-4',
+      slug: 'laptop-acer-gaming-aspire-7-a715-59g-59rd-core-5-210h-geforce-rtx-3050-16gb-512gb-win-11',
+      name: 'Laptop Acer Gaming Aspire 7 A715 (Core 5 210H/ RTX 3050/ 16GB)',
+      image: 'https://lh3.googleusercontent.com/XocPrkhBjIbz91p7_hrFO_sbjVN9vKv5k5KAms6hRjpWoKgINeayDeI9JAJBzll3RYDC3UesGhcew8Hv8ZESPTksGRRyA9Fk=w230-rw',
+      price: '25.990.000₫',
+      oldPrice: '29.888.500₫',
+      inStock: true,
+      reviews: 4,
+    },
+    {
+      id: 'gt-5',
+      slug: 'laptop-msi-prestige-14-ai-d3mg-022vn-ultra-7-355-32gb-1tb-windows-11-home',
+      name: 'Laptop MSI Prestige 14 AI+ D3MG (Ultra 7-355/ 32GB/ 1TB OLED)',
+      image: 'https://lh3.googleusercontent.com/tJdbWXqIBRbW-KlFl5CYIYYOKYMKfiRqVnHaLgvLICEpiSvrurbOOsRQv6PKwAojYT848Qn2v71z3dKbUPY9p7qO9isGyJQ=w230-rw',
+      price: '44.490.000₫',
+      oldPrice: '51.163.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+  ],
+  GL: [
+    {
+      id: 'gl-1',
+      slug: 'laptop-msi-prestige-n16-flip-ai-c1xmt-016vn-rtx-spark-n1x-128gb-2tb-windows-11-pro',
+      name: 'Laptop MSI Prestige N16 Flip AI+ C1XMT (128GB/ 2TB Pro)',
+      image: 'https://lh3.googleusercontent.com/TR9IyRX4ggytDPYmjRhsYsODLsWCo8hWpDUA-5mwlxp3NvSLTQmF-LbvgdidKL4xQOnAg-0SvSIw-qQpjWdlzhX9uuDqXWk=w230-rw',
+      price: '222.990.000₫',
+      oldPrice: '256.438.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gl-2',
+      slug: 'laptop-msi-prestige-n16-flip-ai-c1xmt-017vn-rtx-spark-n1x-64gb-2tb-windows-11-pro',
+      name: 'Laptop MSI Prestige N16 Flip AI+ C1XMT (64GB/ 2TB Pro)',
+      image: 'https://lh3.googleusercontent.com/p7mwSaoRmOnhVbwoCi3j1pmcFFX-bJQQWimMSsBGkWp7efz9nuSBmCIatUMFgsN8D3NWuhHwNpJacQJvSi9GPOLZWjqco4PRXw=w230-rw',
+      price: '139.990.000₫',
+      oldPrice: '160.988.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gl-3',
+      slug: 'laptop-msi-prestige-14-flip-ai-vincent-van-gogh-edition-ultra-x9-378h-32gb-1tb',
+      name: 'Laptop MSI Prestige 14 Flip AI Vincent van Gogh (Ultra 9/ 32GB/ 1TB)',
+      image: 'https://lh3.googleusercontent.com/bvm27CeviO9nTuVDmlLiIYdqHZCOQ1dYGmsj_CsLq6M5t2pH1UF_A7wQx-jXwNiSpEYiSNE0ECvrdZLVdQxFzhOmRk2MbF6p=w230-rw',
+      price: '58.590.000₫',
+      oldPrice: '67.838.500₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'gl-4',
+      slug: 'laptop-hp-probook-4-g1i---bq5c7pt-ultra-7-255u-16gb-512gb-win-11-home-sl',
+      name: 'Laptop HP ProBook 4 G11 (Ultra 7-255U/ 16GB/ 512GB/ Win 11 Pro)',
+      image: 'https://lh3.googleusercontent.com/WjSd894vIGO-EaYozFdQMK3VFU-w7Rw0qfCt0iqxBGeMP54VWD7A5VmtwxQHXF_ZpQMrVmEUghLJDGJJbMv3vBx8Upi1GyU=w230-rw',
+      price: '32.490.000₫',
+      oldPrice: '37.363.500₫',
+      inStock: true,
+      reviews: 4,
+    },
+    {
+      id: 'gl-5',
+      slug: 'laptop-lenovo-thinkbook-14-g9-irl---21uy008tvn-core-i5-13420h-16gb-512gb-win-11',
+      name: 'Laptop Lenovo ThinkBook 14 G9 (Core i5-13420H/ 16GB/ 512GB)',
+      image: 'https://lh3.googleusercontent.com/60T5Wb3tR6ddyp_XyZsC2oMMUoDtTjyKdmHUBTksR1CRwdpHGIWvnX0_B-VZ1-blkQ57PYEx_uw6HGRIcfcK2xFk0Rvw0-Dn=w230-rw',
+      price: '26.290.000₫',
+      oldPrice: '30.233.500₫',
+      inStock: true,
+      reviews: 4,
+    },
+  ],
+  GE: [
+    {
+      id: 'ge-1',
+      slug: 'laptop-asus-vivobook-s14-s3407ca-sf913w-ultra-5-225h-16gb-512gb-win-11-home',
+      name: 'Laptop Asus Vivobook S14 S3407CA (Ultra 5-225H/ OLED/ 16GB/ 512GB)',
+      image: 'https://lh3.googleusercontent.com/fh3QAE_n_Y_-PrJNaJbHhURaBpqBQGu_XfE3pzvEtWVgzbnXFPE1aILkHf6Rm0k54YMEYz3zerwv34SkhvlhELSnR1t2w7jZww=w230-rw',
+      price: '27.490.000₫',
+      oldPrice: '35.990.000₫',
+      inStock: true,
+      reviews: 4,
+    },
+    {
+      id: 'ge-2',
+      slug: 'laptop-acer-swift-air-14-sfa14-i31-52bv-core-5-320-12gb-512gb-windows-11-home',
+      name: 'Laptop Acer Swift Air 14 OLED (Core 5 320/ 12GB/ 512GB/ 120Hz)',
+      image: 'https://lh3.googleusercontent.com/KghMvRNKo3CqbgEH5A1L0jbbMYNY0ByLZam2ABkHansFvIfu25qla_84sQ3W2VTc1aZxfA37FqIaPQNk0pF-coIsMMJAkj0=w230-rw',
+      price: '24.990.000₫',
+      oldPrice: '28.738.500₫',
+      inStock: true,
+      reviews: 4,
+    },
+    {
+      id: 'ge-3',
+      slug: 'laptop-asus-vivobook-go-14-e1404fa-eb935w-ryzen-5-40-16gb-512gb-windows-11-home',
+      name: 'Laptop Asus Vivobook Go 14 E1404FA-EB935W (Ryzen 5 40/ 16GB/ 512GB)',
+      image: 'https://lh3.googleusercontent.com/qexCUvh-ASrliTTw6635imfDBmjxIDsGC7gVBepCo11oO3JMEk3c7KsRtbr_TfzA5iciTFPwqga-hl3AdYyYE5W9OVUQdVY=w230-rw',
+      price: '20.990.000₫',
+      oldPrice: '28.490.000₫',
+      inStock: true,
+      reviews: 5,
+    },
+    {
+      id: 'ge-4',
+      slug: 'laptop-lenovo-ideapad-slim-3-14ahp10-83k9004qvn-ryzen-5-125-8gb-512gb-windows-11',
+      name: 'Laptop Lenovo IdeaPad Slim 3 14AHP10 (Ryzen 5 125/ 8GB/ 512GB)',
+      image: 'https://lh3.googleusercontent.com/3eqhAIqi2zIL_xdvpgmq_a63Z3R-Riw1FodSc5aZCSDJyz_a1EXhCLfqSMqMJ0z6-ruTiDJ7AItayq2if9AORiEy-VvZpwOn=w230-rw',
+      price: '19.790.000₫',
+      oldPrice: '24.888.500₫',
+      inStock: true,
+      reviews: 4,
+    },
+    {
+      id: 'ge-5',
+      slug: 'nova-14',
+      name: 'Laptop Nova 14 (14 inch IPS QHD/ 8 nhân/ RAM 16GB/ SSD 512GB)',
+      image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=300&auto=format&fit=crop&q=80',
+      price: '18.990.000₫',
+      oldPrice: '21.838.500₫',
+      inStock: true,
+      reviews: 4,
+    },
+  ],
+}
 
 export function HomePage({ data: _data }: { data?: HomeData }) {
   const navigate = useNavigate()
   const [activeSeriesTab, setActiveSeriesTab] = useState<'GS' | 'GT' | 'GL' | 'GE'>('GS')
+  const [newProducts, setNewProducts] = useState<ProductPreview[]>(initialNewProducts)
+
+  // Fetch live products from backend if available
+  useEffect(() => {
+    const controller = new AbortController()
+    catalogApi.getProducts({ keyword: '', category: 'laptop', brand: '', sort: 'default', page: 1 }, controller.signal)
+      .then(res => {
+        if (!controller.signal.aborted && res && res.products && res.products.length > 0) {
+          const valid = res.products.filter(p => !p.name.includes('Nova Lite') && p.slug !== 'nova-out-of-stock')
+          if (valid.length > 0) {
+            const mapped: ProductPreview[] = valid.slice(0, 6).map((p, idx) => ({
+              id: p.id || `live-${idx}`,
+              slug: p.slug || p.id,
+              name: p.name,
+              image: p.image,
+              price: formatVnd(p.priceVnd),
+              priceVnd: p.priceVnd,
+              oldPrice: formatVnd(Math.round(p.priceVnd * 1.15)),
+              inStock: p.status !== 'INACTIVE',
+              reviews: 5,
+            }))
+            setNewProducts(mapped)
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback to initial seed products cleanly
+      })
+
+    return () => controller.abort()
+  }, [])
+
+  const currentSeriesList = msiSeriesData[activeSeriesTab] || msiSeriesData.GS
 
   return (
     <div className={styles.techStoreHome}>
-      {/* 1. MSI EOFY Deal Hero Banner (Matching Figma Group 56) */}
+      {/* 1. Hero Promo Banner */}
       <section className={styles.heroSection} aria-label="Khuyến mãi nổi bật">
         <div className={styles.heroBanner}>
-          {/* Arrow Left */}
           <button type="button" className={styles.bannerArrowLeft} aria-label="Banner trước">
             ‹
           </button>
 
-          {/* Left Content */}
           <div className={styles.heroLeft}>
             <div className={styles.msiLogoRow}>
               <span className={styles.msiText}>msi</span>
@@ -220,7 +434,6 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
             </p>
           </div>
 
-          {/* Right Product Imagery */}
           <div className={styles.heroRight}>
             <div className={styles.bonusBadge}>
               <span>TRỊ GIÁ LÊN ĐẾN</span>
@@ -247,13 +460,11 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
             </div>
           </div>
 
-          {/* Arrow Right */}
           <button type="button" className={styles.bannerArrowRight} aria-label="Banner kế tiếp">
             ›
           </button>
         </div>
 
-        {/* Dots */}
         <div className={styles.heroDots}>
           <span className={`${styles.dot} ${styles.activeDot}`} />
           <span className={styles.dot} />
@@ -261,7 +472,7 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
         </div>
       </section>
 
-      {/* 2. New Products Carousel (Matching Figma 50:9) */}
+      {/* 2. New Products Carousel */}
       <section className={styles.sectionWrap} id="san-pham-noi-bat">
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionHeading}>
@@ -278,15 +489,14 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
           </button>
 
           <div className={styles.productRowSix}>
-            {newProductsList.map(prod => (
+            {newProducts.map(prod => (
               <div
                 key={prod.id}
                 className={styles.productCard}
-                onClick={() => navigate('/products/nova-14')}
+                onClick={() => navigate(`/products/${prod.slug}`)}
                 role="button"
                 tabIndex={0}
               >
-                {/* Stock status */}
                 <div className={styles.stockStatus}>
                   {prod.inStock ? (
                     <span className={styles.inStock}>
@@ -299,7 +509,6 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
                   )}
                 </div>
 
-                {/* Floating Action Buttons (Wishlist & Compare) */}
                 <div className={styles.topActions}>
                   <button
                     type="button"
@@ -333,27 +542,22 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
                   </button>
                 </div>
 
-                {/* Thumb */}
                 <div className={styles.thumbWrapper}>
                   <img src={prod.image} alt={prod.name} className={prod.id ? styles.productImg : ''} />
                 </div>
 
-                {/* Reviews */}
                 <div className={styles.reviewsRow}>
                   <div className={styles.stars}>★★★★★</div>
                   <span className={styles.reviewCount}>({prod.reviews} đánh giá)</span>
                 </div>
 
-                {/* Name */}
                 <h3 className={styles.productName}>{prod.name}</h3>
 
-                {/* Prices */}
                 <div className={styles.priceRow}>
                   {prod.oldPrice && <span className={styles.oldPrice}>{prod.oldPrice}</span>}
                   <strong className={styles.currentPrice}>{prod.price}</strong>
                 </div>
 
-                {/* Hover Add To Cart Button */}
                 <div className={styles.hoverCartWrap}>
                   <button
                     type="button"
@@ -381,7 +585,7 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
         </div>
       </section>
 
-      {/* 3. Zip Financing Promo Bar (Matching Figma Group 131) */}
+      {/* 3. Zip Financing Promo Bar */}
       <section className={styles.zipBanner} id="zip-financing" aria-label="Ưu đãi trả góp Zip">
         <div className={styles.zipInner}>
           <div className={styles.zipBadgeCircle}>
@@ -397,10 +601,9 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
         </div>
       </section>
 
-      {/* 4. Custome Builds Section (Matching Figma 50:225 Component 6) */}
+      {/* 4. Custom Builds / Highlight Products Section */}
       <section className={styles.sectionWrap} id="custom-builds" aria-label="Khám phá thêm sản phẩm">
         <div className={styles.customBuildsRow}>
-          {/* Vertical Featured Card */}
           <div
             className={styles.verticalFeaturedCard}
             style={{
@@ -408,41 +611,29 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
             }}
           >
             <div className={styles.verticalCardContent}>
-              <h2 className={styles.verticalTitle}>Xây dựng cấu hình PC</h2>
+              <h2 className={styles.verticalTitle}>Dàn máy &amp; Thiết bị</h2>
               <span className={styles.verticalSubtitle}>Khám phá thêm sản phẩm</span>
             </div>
-            <a href="/products?category=phu-kien" className={styles.verticalLink}>
+            <a href="/products" className={styles.verticalLink}>
               Xem tất cả sản phẩm
             </a>
           </div>
 
-          {/* 5 Custom PC Cards */}
           <div className={styles.fiveCardsRow}>
-            {customBuildsList.map(item => (
+            {initialCustomBuilds.map(item => (
               <div
                 key={item.id}
                 className={styles.productCard}
-                onClick={() => navigate('/products/nova-14')}
+                onClick={() => navigate(`/products/${item.slug}`)}
                 role="button"
                 tabIndex={0}
               >
-                {/* Banner Label */}
-                {item.bannerLabel && (
-                  <div
-                    className={styles.bannerHeaderLabel}
-                    style={{ backgroundColor: item.bannerColor || '#c2410c' }}
-                  >
-                    {item.bannerLabel}
-                  </div>
-                )}
-
                 <div className={styles.stockStatus}>
                   <span className={styles.inStock}>
                     <span className={styles.stockDot} /> Còn hàng
                   </span>
                 </div>
 
-                {/* Floating Action Buttons */}
                 <div className={styles.topActions}>
                   <button
                     type="button"
@@ -515,9 +706,8 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
         </div>
       </section>
 
-      {/* 5. MSI Laptop Series Tabs & Section (Matching Figma Group 68) */}
+      {/* 5. MSI Laptop Series Tabs & Section */}
       <section className={styles.sectionWrap} id="msi-series">
-        {/* Series Tabs */}
         <div className={styles.seriesTabs}>
           {(['GS', 'GT', 'GL', 'GE'] as const).map(tab => (
             <button
@@ -531,9 +721,7 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
           ))}
         </div>
 
-        {/* Laptop Cards Row */}
         <div className={styles.customBuildsRow}>
-          {/* Vertical Featured Card */}
           <div
             className={styles.verticalFeaturedCard}
             style={{
@@ -549,13 +737,12 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
             </a>
           </div>
 
-          {/* 5 Laptops */}
           <div className={styles.fiveCardsRow}>
-            {laptopSeriesList.map(item => (
+            {currentSeriesList.map(item => (
               <div
                 key={item.id}
                 className={styles.productCard}
-                onClick={() => navigate('/products/nova-14')}
+                onClick={() => navigate(`/products/${item.slug}`)}
                 role="button"
                 tabIndex={0}
               >
@@ -565,7 +752,6 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
                   </span>
                 </div>
 
-                {/* Floating Action Buttons */}
                 <div className={styles.topActions}>
                   <button
                     type="button"
@@ -648,7 +834,7 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
         </div>
       </section>
 
-      {/* 6. Brand Logos Bar (Matching Figma Frame 22) */}
+      {/* 6. Brand Logos Bar */}
       <section className={styles.brandLogosBar} aria-label="Thương hiệu hợp tác">
         <div className={styles.brandLogosInner}>
           <span className={styles.brandNameLogo}>ROCCAT</span>
@@ -661,7 +847,7 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
         </div>
       </section>
 
-      {/* 7. Customer Testimonials (Matching Figma Group 62) */}
+      {/* 7. Customer Testimonials */}
       <section className={styles.testimonialSection} aria-label="Đánh giá từ khách hàng">
         <div className={styles.testimonialBox}>
           <div className={styles.quoteMark}>“</div>
@@ -678,7 +864,7 @@ export function HomePage({ data: _data }: { data?: HomeData }) {
         </div>
       </section>
 
-      {/* 8. Service Pillars (Matching Figma Component 16) */}
+      {/* 8. Service Pillars */}
       <section className={styles.pillarsSection}>
         <div className={styles.pillarItem}>
           <div className={styles.pillarIcon}>

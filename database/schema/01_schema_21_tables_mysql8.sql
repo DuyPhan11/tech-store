@@ -93,9 +93,10 @@ CREATE TABLE IF NOT EXISTS email_verifications (
   CONSTRAINT ck_email_verifications_attempts CHECK (failed_attempts >= 0)
 ) ENGINE=InnoDB;
 
--- 07. Categories with Cloudinary image
+-- 07. Categories with Cloudinary image and optional parent_id (Hierarchical Category)
 CREATE TABLE IF NOT EXISTS categories (
   id BIGINT NOT NULL AUTO_INCREMENT,
+  parent_id BIGINT NULL,
   name VARCHAR(100) NOT NULL,
   slug VARCHAR(100) NOT NULL,
   description TEXT NULL,
@@ -106,6 +107,8 @@ CREATE TABLE IF NOT EXISTS categories (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_categories_slug (slug),
+  KEY idx_categories_parent_id (parent_id),
+  CONSTRAINT fk_categories_parent FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL,
   CONSTRAINT ck_categories_status CHECK (status IN ('ACTIVE','INACTIVE'))
 ) ENGINE=InnoDB;
 
