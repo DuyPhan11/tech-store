@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { Button } from '../../../components/ui/Button'
 import { ApiError } from '../../../lib/api/apiClient'
+import { cartApi } from '../../../lib/api/cartApi'
 import { ProductCard } from '../ProductCard'
 import { ProductGallery } from './ProductGallery'
 import { apiProductDetailSource } from './apiProductDetailSource'
@@ -130,6 +131,36 @@ export function ProductDetailPage({
     }
   }
 
+  const handleAddToCartClick = async () => {
+    if (onAddToCart) {
+      onAddToCart(product.id, quantity)
+      return
+    }
+    const numId = Number(product.id)
+    if (!isNaN(numId) && numId > 0) {
+      try {
+        await cartApi.addItem(numId, quantity)
+        navigate('/cart')
+      } catch (err: unknown) {
+        if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 401) {
+          navigate('/login?redirect=' + encodeURIComponent(window.location.pathname))
+        } else {
+          alert((err as Error)?.message || 'Không thể thêm sản phẩm vào giỏ hàng')
+        }
+      }
+    } else {
+      navigate('/cart')
+    }
+  }
+
+  const handleBuyNowClick = () => {
+    if (onBuyNow) {
+      onBuyNow({ source: 'BUY_NOW', productId: product.id, quantity })
+      return
+    }
+    navigate(`/checkout?source=BUY_NOW&productId=${product.id}&quantity=${quantity}`)
+  }
+
   return (
     <div className={styles.detailContainer}>
       {/* 1. Breadcrumb điều hướng */}
@@ -218,14 +249,14 @@ export function ProductDetailPage({
               <Button
                 variant="outline"
                 disabled={!product.inStock}
-                onClick={() => onAddToCart?.(product.id, quantity)}
+                onClick={handleAddToCartClick}
               >
                 Thêm vào giỏ hàng
               </Button>
               <Button
                 variant="primary"
                 disabled={!product.inStock}
-                onClick={() => onBuyNow?.({ source: 'BUY_NOW', productId: product.id, quantity })}
+                onClick={handleBuyNowClick}
               >
                 Mua ngay
               </Button>

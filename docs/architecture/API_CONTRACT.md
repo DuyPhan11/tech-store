@@ -22,6 +22,7 @@
 | Cart | POST | `/api/cart/items` | Customer |
 | Cart | PATCH | `/api/cart/items/{itemId}` | Customer |
 | Cart | DELETE | `/api/cart/items/{itemId}` | Customer |
+| Cart | DELETE | `/api/cart` | Customer |
 | Checkout | POST | `/api/checkout/coupon-preview` | Customer |
 | Checkout | POST | `/api/checkout` | Customer |
 | Orders | GET | `/api/orders/me` | Customer |
@@ -43,6 +44,37 @@
   - Tra cứu bằng `slug`. Chỉ trả về khi `status = 'ACTIVE'`.
   - Trả về 404 Not Found nếu slug không tồn tại hoặc sản phẩm `INACTIVE`.
   - Phản hồi: `{ id, slug, sku, name, categoryId, brandId, priceVnd, image, images, specification, specifications, description, stock, inStock }`.
+
+## Cart DTO tham chiếu (UC06)
+
+- `GET /api/cart`: Lấy giỏ hàng của user đang đăng nhập (tự động khởi tạo giỏ nếu chưa có).
+- `POST /api/cart/items`: Body `{ "productId": number, "quantity": number }`. Thêm sản phẩm vào giỏ; nếu sản phẩm đã có thì cộng dồn số lượng, giữ nguyên 1 dòng/sản phẩm (`uq_cart_items_cart_product`). Không giữ tồn kho.
+- `PATCH /api/cart/items/{itemId}`: Body `{ "quantity": number }`. Cập nhật số lượng của dòng sản phẩm (kiểm tra quyền sở hữu).
+- `DELETE /api/cart/items/{itemId}`: Xóa một dòng sản phẩm khỏi giỏ (kiểm tra quyền sở hữu).
+- `DELETE /api/cart` / `DELETE /api/cart/items`: Xóa toàn bộ sản phẩm trong giỏ hàng.
+- Cấu trúc `CartResponse`:
+  ```json
+  {
+    "id": 1,
+    "items": [
+      {
+        "id": 10,
+        "productId": 1,
+        "productName": "Laptop Nova 14",
+        "productSlug": "laptop-nova-14",
+        "productSku": "NOVA-14",
+        "productImage": "https://...",
+        "priceVnd": 18990000,
+        "quantity": 2,
+        "subtotalVnd": 37980000,
+        "inStock": true
+      }
+    ],
+    "totalItems": 2,
+    "totalUniqueItems": 1,
+    "totalPriceVnd": 37980000
+  }
+  ```
 
 ## Checkout DTO tham chiếu
 

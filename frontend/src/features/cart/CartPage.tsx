@@ -1,66 +1,93 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { cartApi } from '../../lib/api/cartApi'
+import type { CartResponse } from './cartTypes'
 import styles from './CartPage.module.css'
-
-interface CartItem {
-  id: string
-  name: string
-  image: string
-  priceVnd: number
-  quantity: number
-  sku: string
-}
-
-const initialItems: CartItem[] = [
-  {
-    id: 'prod-1',
-    name: 'MSI MEG Trident X 10SD-1012AU Intel i7 10700K, 2070 SUPER, 32GB RAM, 1TB SSD, Windows 10 Home, Gaming Keyboard and Mouse 3 Years Warranty',
-    image: 'https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=200&auto=format&fit=crop&q=60',
-    priceVnd: 104376000,
-    quantity: 1,
-    sku: 'MSI-TRI-X',
-  },
-  {
-    id: 'prod-2',
-    name: 'MSI MEG Trident X 10SD-1012AU Intel i7 10700K, 2070 SUPER, 32GB RAM, 1TB SSD, Windows 10 Home, Gaming Keyboard and Mouse 3 Years Warranty',
-    image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=200&auto=format&fit=crop&q=60',
-    priceVnd: 104376000,
-    quantity: 1,
-    sku: 'MSI-TRI-X-2',
-  },
-]
 
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
 
 export function CartPage() {
   const navigate = useNavigate()
-  const [items, setItems] = useState<CartItem[]>(initialItems)
+  const [cart, setCart] = useState<CartResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+
   const [couponCode, setCouponCode] = useState('')
   const [discount, setDiscount] = useState(0)
   const [couponMsg, setCouponMsg] = useState('')
   const [shippingOpen, setShippingOpen] = useState(true)
   const [couponOpen, setCouponOpen] = useState(true)
 
-  const subtotal = items.reduce((sum, item) => sum + item.priceVnd * item.quantity, 0)
-  const shippingFee = items.length === 0 ? 0 : 504000 // $21.00 approx
-  const tax = items.length === 0 ? 0 : 45840 // $1.91 approx
-  const gst = items.length === 0 ? 0 : 45840 // GST 10%
-  const grandTotal = Math.max(0, subtotal - discount + shippingFee + tax + gst)
-
-  const handleQuantityChange = (id: string, delta: number) => {
-    setItems(prev =>
-      prev.map(item => {
-        if (item.id === id) {
-          const newQty = Math.max(1, item.quantity + delta)
-          return { ...item, quantity: newQty }
-        }
-        return item
-      })
-    )
+  const loadCart = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await cartApi.getCart()
+      setCart(data)
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 401) {
+        setError('UNAUTHORIZED')
+      } else {
+        setError((err as Error)?.message || 'Không thể tải giỏ hàng từ máy chủ.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleRemove = (id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id))
+  useEffect(() => {
+    loadCart()
+  }, [])
+
+  const items = cart?.items ?? []
+  const subtotal = cart?.totalPriceVnd ?? 0
+  const shippingFee = items.length === 0 ? 0 : 504000
+  const tax = items.length === 0 ? 0 : 45840
+  const gst = items.length === 0 ? 0 : 45840
+  const grandTotal = Math.max(0, subtotal - discount + shippingFee + tax + gst)
+
+  const handleQuantityChange = async (itemId: number, delta: number) => {
+    const currentItem = items.find(i => i.id === itemId)
+    if (!currentItem || actionLoading) return
+    const newQty = currentItem.quantity + delta
+    if (newQty < 1) return
+
+    try {
+      setActionLoading(true)
+      const updated = await cartApi.updateQuantity(itemId, newQty)
+      setCart(updated)
+    } catch (err: unknown) {
+      alert((err as Error)?.message || 'Lỗi khi cập nhật số lượng sản phẩm')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleRemove = async (itemId: number) => {
+    if (actionLoading) return
+    try {
+      setActionLoading(true)
+      const updated = await cartApi.removeItem(itemId)
+      setCart(updated)
+    } catch (err: unknown) {
+      alert((err as Error)?.message || 'Lỗi khi xóa sản phẩm khỏi giỏ hàng')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleClearCart = async () => {
+    if (actionLoading) return
+    try {
+      setActionLoading(true)
+      const updated = await cartApi.clearCart()
+      setCart(updated)
+    } catch (err: unknown) {
+      alert((err as Error)?.message || 'Lỗi khi xóa toàn bộ giỏ hàng')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const handleApplyCoupon = (e: React.FormEvent) => {
@@ -85,7 +112,41 @@ export function CartPage() {
 
       <h1 className={styles.pageTitle}>Giỏ hàng của bạn</h1>
 
-      {items.length === 0 ? (
+      {loading ? (
+        <div style={{ padding: '60px 0', textAlign: 'center', color: '#666' }}>
+          <p>Đang tải dữ liệu giỏ hàng...</p>
+        </div>
+      ) : error === 'UNAUTHORIZED' ? (
+        <div className={styles.emptyCartCard}>
+          <div className={styles.emptyIcon}>
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <h2>Vui lòng đăng nhập</h2>
+          <p>Bạn cần đăng nhập tài khoản Khách hàng để xem và quản lý giỏ hàng của mình.</p>
+          <button
+            type="button"
+            className={styles.pillPrimaryBtn}
+            onClick={() => navigate('/login?redirect=/cart')}
+          >
+            Đăng nhập ngay
+          </button>
+        </div>
+      ) : error ? (
+        <div className={styles.emptyCartCard}>
+          <h2>Không thể tải giỏ hàng</h2>
+          <p>{error}</p>
+          <button
+            type="button"
+            className={styles.pillPrimaryBtn}
+            onClick={() => loadCart()}
+          >
+            Thử lại
+          </button>
+        </div>
+      ) : items.length === 0 ? (
         <div className={styles.emptyCartCard}>
           <div className={styles.emptyIcon}>
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -122,9 +183,24 @@ export function CartPage() {
                 {items.map(item => (
                   <tr key={item.id} className={styles.itemRow}>
                     <td className={styles.tdItem}>
-                      <img src={item.image} alt={item.name} className={styles.thumb} />
+                      <img
+                        src={item.productImage || 'https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=200&auto=format&fit=crop&q=60'}
+                        alt={item.productName}
+                        className={styles.thumb}
+                      />
                       <div className={styles.itemMeta}>
-                        <strong className={styles.itemName}>{item.name}</strong>
+                        <a
+                          href={item.productSlug ? `/products/${item.productSlug}` : '/products'}
+                          className={styles.itemName}
+                          style={{ textDecoration: 'none', color: 'inherit' }}
+                        >
+                          {item.productName}
+                        </a>
+                        {item.productSku && (
+                          <small style={{ color: '#888', display: 'block', marginTop: '4px' }}>
+                            SKU: {item.productSku}
+                          </small>
+                        )}
                       </div>
                     </td>
                     <td className={styles.tdPrice}>
@@ -137,6 +213,7 @@ export function CartPage() {
                           <button
                             type="button"
                             onClick={() => handleQuantityChange(item.id, 1)}
+                            disabled={actionLoading}
                             aria-label="Tăng số lượng"
                           >
                             ▲
@@ -144,7 +221,7 @@ export function CartPage() {
                           <button
                             type="button"
                             onClick={() => handleQuantityChange(item.id, -1)}
-                            disabled={item.quantity <= 1}
+                            disabled={item.quantity <= 1 || actionLoading}
                             aria-label="Giảm số lượng"
                           >
                             ▼
@@ -153,27 +230,19 @@ export function CartPage() {
                       </div>
                     </td>
                     <td className={styles.tdSub}>
-                      <strong>{currency.format(item.priceVnd * item.quantity)}</strong>
+                      <strong>{currency.format(item.subtotalVnd)}</strong>
                     </td>
                     <td className={styles.tdAction}>
                       <div className={styles.itemActionIcons}>
                         <button
                           type="button"
                           onClick={() => handleRemove(item.id)}
+                          disabled={actionLoading}
                           className={styles.circleIconBtn}
                           aria-label="Xóa sản phẩm"
                           title="Xóa sản phẩm"
                         >
                           ×
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => alert('Chỉnh sửa cấu hình sản phẩm')}
-                          className={styles.circleIconBtn}
-                          aria-label="Chỉnh sửa sản phẩm"
-                          title="Chỉnh sửa sản phẩm"
-                        >
-                          ✎
                         </button>
                       </div>
                     </td>
@@ -195,7 +264,8 @@ export function CartPage() {
                 <button
                   type="button"
                   className={styles.clearCartBtn}
-                  onClick={() => setItems([])}
+                  onClick={handleClearCart}
+                  disabled={actionLoading}
                 >
                   Xóa giỏ hàng
                 </button>
@@ -204,14 +274,15 @@ export function CartPage() {
               <button
                 type="button"
                 className={styles.updateCartBtn}
-                onClick={() => alert('Đã cập nhật giỏ hàng thành công!')}
+                onClick={loadCart}
+                disabled={actionLoading}
               >
                 Cập nhật giỏ hàng
               </button>
             </div>
           </div>
 
-          {/* Right Column: Summary Panel (Seamless #F5F7FF background, borderless matching Figma) */}
+          {/* Right Column: Summary Panel */}
           <div className={styles.summarySection}>
             <h2 className={styles.summaryTitle}>Tóm tắt đơn hàng</h2>
 
@@ -304,9 +375,8 @@ export function CartPage() {
               </div>
             </div>
 
-            {/* 3 Call-To-Action Pill Buttons matching Figma */}
+            {/* Call-To-Action Pill Buttons */}
             <div className={styles.ctaButtonGroup}>
-              {/* Primary Blue Button */}
               <button
                 type="button"
                 className={styles.proceedCheckoutBtn}
@@ -315,7 +385,6 @@ export function CartPage() {
                 Tiến hành thanh toán
               </button>
 
-              {/* PayPal Gold Button */}
               <button
                 type="button"
                 className={styles.paypalBtn}
@@ -327,7 +396,6 @@ export function CartPage() {
                 </span>
               </button>
 
-              {/* Multi-Address Gray Outline Button */}
               <button
                 type="button"
                 className={styles.multipleAddressesBtn}
@@ -337,7 +405,7 @@ export function CartPage() {
               </button>
             </div>
 
-            {/* Zip Financing Teaser matching Figma */}
+            {/* Zip Financing Teaser */}
             <div className={styles.zipBanner}>
               <span className={styles.zipTag}>zip</span>
               <span>Sở hữu ngay, trả góp 0% lãi suất tới 6 tháng</span>
