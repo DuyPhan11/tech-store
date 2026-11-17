@@ -76,23 +76,60 @@
   }
   ```
 
-## Checkout DTO tham chiếu
+## Checkout DTO tham chiếu (UC07 - Đã triển khai)
 
-```json
-{
-  "source": "CART",
-  "selectedCartItemIds": [12, 15],
-  "branchId": 1,
-  "paymentMethod": "COD",
-  "couponCode": null,
-  "recipientName": "Demo Customer",
-  "recipientPhone": "0900000000",
-  "shippingAddress": "Demo address",
-  "notes": null
-}
-```
-
-For `BUY_NOW`: send `source="BUY_NOW"`, `productId`, `quantity` instead of `selectedCartItemIds`. **Không gửi và tin giá từ client.** Idempotency key/response shape cần chốt khi thực hiện checkout.
+- **Endpoint:** `POST /api/checkout` (Quyền: `ROLE_CUSTOMER`)
+- **Headers:** `Authorization: Bearer <token>`, tùy chọn `Idempotency-Key: <unique-key>`
+- **Request Body:**
+  ```json
+  {
+    "source": "CART",
+    "selectedCartItemIds": [12, 15],
+    "branchId": 1,
+    "paymentMethod": "COD",
+    "couponCode": null,
+    "recipientName": "Khách hàng Thử nghiệm",
+    "recipientPhone": "0901234567",
+    "shippingAddress": "123 Lê Lợi, Phường Bến Nghé, Quận 1, TP.HCM",
+    "notes": "Giao giờ hành chính",
+    "idempotencyKey": "idemp-20261117-uuid"
+  }
+  ```
+  *Lưu ý:* Với `source = "BUY_NOW"`: gửi `productId` và `quantity` thay vì `selectedCartItemIds`. **Giá tiền và tổng tiền được tính toán 100% tại backend.**
+- **Response Body (201 Created):**
+  ```json
+  {
+    "orderId": 101,
+    "orderCode": "ORD-20261117-XXXXXX",
+    "status": "PENDING",
+    "paymentMethod": "COD",
+    "paymentStatus": "UNPAID",
+    "recipientName": "Khách hàng Thử nghiệm",
+    "recipientPhone": "0901234567",
+    "shippingAddress": "123 Lê Lợi, Phường Bến Nghé, Quận 1, TP.HCM",
+    "totalItemsAmount": 18990000.00,
+    "discountAmount": 0.00,
+    "finalAmount": 18990000.00,
+    "items": [
+      {
+        "productId": 1,
+        "productName": "Laptop Nova 14",
+        "productSku": "LAP-NOV-14",
+        "productImage": "https://...",
+        "unitPrice": 18990000.00,
+        "quantity": 1,
+        "subtotalAmount": 18990000.00
+      }
+    ]
+  }
+  ```
+- **Xử lý lỗi:**
+  - `401 Unauthorized`: Chưa đăng nhập tài khoản.
+  - `403 Forbidden`: Tài khoản bị khóa (`LOCKED`) hoặc không có quyền `ROLE_CUSTOMER`.
+  - `400 Bad Request`: Chi nhánh không tồn tại / tạm ngưng (`INACTIVE`), dữ liệu form thiếu hoặc không hợp lệ.
+  - `404 Not Found`: Mục giỏ hàng không tồn tại hoặc không thuộc sở hữu của người dùng; sản phẩm không tìm thấy.
+  - `409 Conflict`: Tồn kho chi nhánh không đủ số lượng yêu cầu.
+  - **Idempotency:** Gửi retry với cùng `idempotencyKey` trả về cùng kết quả đơn hàng đã tạo, không trừ kho lần 2.
 
 ### Contract change protocol
 - Nếu cần đổi API: tạo Issue / ADR, cập nhật file này + backend DTO + frontend type + tests **trong cùng PR hoặc hai PR có thứ tự phụ thuộc rõ**.

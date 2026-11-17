@@ -158,7 +158,9 @@ export function ProductDetailPage({
       onBuyNow({ source: 'BUY_NOW', productId: product.id, quantity })
       return
     }
-    navigate(`/checkout?source=BUY_NOW&productId=${product.id}&quantity=${quantity}`)
+    navigate(`/checkout?source=BUY_NOW&productId=${product.id}&quantity=${quantity}`, {
+      state: { product, quantity },
+    })
   }
 
   return (
