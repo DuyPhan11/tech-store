@@ -6,12 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.techstore.common.exception.ProductNotFoundException;
 import com.techstore.product.dto.*;
 import com.techstore.product.entity.ActiveStatus;
+import com.techstore.product.entity.Brand;
+import com.techstore.product.entity.Category;
 import com.techstore.product.entity.Inventory;
 import com.techstore.product.entity.Product;
 import com.techstore.product.entity.ProductImage;
 import com.techstore.product.repository.InventoryRepository;
 import com.techstore.product.repository.ProductImageRepository;
 import com.techstore.product.repository.ProductRepository;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,10 +61,14 @@ public class ProductServiceImpl implements ProductService {
         Specification<Product> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            Join<Product, Category> categoryJoin = root.join("category", JoinType.INNER);
+            Join<Category, Category> parentCategoryJoin = categoryJoin.join("parent", JoinType.LEFT);
+            Join<Product, Brand> brandJoin = root.join("brand", JoinType.INNER);
+
             // Chỉ lấy sản phẩm ACTIVE, danh mục ACTIVE và thương hiệu ACTIVE
             predicates.add(cb.equal(root.get("status"), ActiveStatus.ACTIVE));
-            predicates.add(cb.equal(root.join("category").get("status"), ActiveStatus.ACTIVE));
-            predicates.add(cb.equal(root.join("brand").get("status"), ActiveStatus.ACTIVE));
+            predicates.add(cb.equal(categoryJoin.get("status"), ActiveStatus.ACTIVE));
+            predicates.add(cb.equal(brandJoin.get("status"), ActiveStatus.ACTIVE));
 
             // Tìm kiếm theo tên sản phẩm (không phân biệt hoa thường, cắt khoảng trắng đầu/cuối)
             if (q != null && !q.trim().isEmpty()) {
@@ -68,16 +76,22 @@ public class ProductServiceImpl implements ProductService {
                 predicates.add(cb.like(cb.lower(root.get("name")), keyword));
             }
 
-            // Lọc theo danh mục (hỗ trợ slug hoặc numeric id)
+            // Lọc theo danh mục (hỗ trợ slug hoặc numeric id, hỗ trợ lọc cả danh mục cha và danh mục con)
             if (category != null && !category.trim().isEmpty()) {
                 String cat = category.trim();
                 if (cat.matches("^\\d+$")) {
+                    Long catId = Long.valueOf(cat);
                     predicates.add(cb.or(
-                        cb.equal(root.get("category").get("id"), Long.valueOf(cat)),
-                        cb.equal(root.get("category").get("slug"), cat)
+                        cb.equal(categoryJoin.get("id"), catId),
+                        cb.equal(parentCategoryJoin.get("id"), catId),
+                        cb.equal(categoryJoin.get("slug"), cat),
+                        cb.equal(parentCategoryJoin.get("slug"), cat)
                     ));
                 } else {
-                    predicates.add(cb.equal(root.get("category").get("slug"), cat));
+                    predicates.add(cb.or(
+                        cb.equal(categoryJoin.get("slug"), cat),
+                        cb.equal(parentCategoryJoin.get("slug"), cat)
+                    ));
                 }
             }
 
@@ -85,12 +99,13 @@ public class ProductServiceImpl implements ProductService {
             if (brand != null && !brand.trim().isEmpty()) {
                 String b = brand.trim();
                 if (b.matches("^\\d+$")) {
+                    Long brandId = Long.valueOf(b);
                     predicates.add(cb.or(
-                        cb.equal(root.get("brand").get("id"), Long.valueOf(b)),
-                        cb.equal(root.get("brand").get("slug"), b)
+                        cb.equal(brandJoin.get("id"), brandId),
+                        cb.equal(brandJoin.get("slug"), b)
                     ));
                 } else {
-                    predicates.add(cb.equal(root.get("brand").get("slug"), b));
+                    predicates.add(cb.equal(brandJoin.get("slug"), b));
                 }
             }
 
@@ -203,6 +218,11 @@ public class ProductServiceImpl implements ProductService {
         detailDto.setMaxBranchQuantity(maxBranchQuantity);
         detailDto.setStock(maxBranchQuantity);
 
+        if (product.getCategory().getParent() != null) {
+            detailDto.setParentCategorySlug(product.getCategory().getParent().getSlug());
+            detailDto.setParentCategoryName(product.getCategory().getParent().getName());
+        }
+
         return detailDto;
     }
 
@@ -216,7 +236,7 @@ public class ProductServiceImpl implements ProductService {
 
         SpecParseResult specResult = parseSpecifications(product.getSpecifications());
 
-        return new ProductSummaryDto(
+        ProductSummaryDto summaryDto = new ProductSummaryDto(
                 String.valueOf(product.getId()),
                 product.getName(),
                 product.getSlug(),
@@ -231,6 +251,13 @@ public class ProductServiceImpl implements ProductService {
                 specResult.summary,
                 product.getStatus().name()
         );
+
+        if (product.getCategory().getParent() != null) {
+            summaryDto.setParentCategorySlug(product.getCategory().getParent().getSlug());
+            summaryDto.setParentCategoryName(product.getCategory().getParent().getName());
+        }
+
+        return summaryDto;
     }
 
     private SpecParseResult parseSpecifications(String rawSpec) {

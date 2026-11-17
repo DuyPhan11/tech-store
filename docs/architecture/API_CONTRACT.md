@@ -16,6 +16,8 @@
 | Auth | POST | `/api/auth/password/reset` | Public |
 | Catalog | GET | `/api/products` | Public |
 | Catalog | GET | `/api/products/{slug}` | Public |
+| Catalog | GET | `/api/categories` | Public |
+| Catalog | GET | `/api/categories/tree` | Public |
 | Cart | GET | `/api/cart` | Customer |
 | Cart | POST | `/api/cart/items` | Customer |
 | Cart | PATCH | `/api/cart/items/{itemId}` | Customer |

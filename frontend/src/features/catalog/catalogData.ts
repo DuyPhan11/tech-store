@@ -6,12 +6,22 @@ import type { CatalogOption, CatalogProduct, ProductBranchInventory, ProductDeta
 
 export const categories: readonly CatalogOption[] = [
   { id: 'laptop', name: 'Laptop' },
+  { id: 'laptop-van-phong', name: 'Laptop văn phòng & Học tập', parentId: 'laptop' },
+  { id: 'laptop-gaming', name: 'Laptop chơi game (Gaming)', parentId: 'laptop' },
+  { id: 'laptop-mong-nhe', name: 'Laptop mỏng nhẹ thời trang', parentId: 'laptop' },
+  { id: 'laptop-workstation', name: 'Dòng máy trạm MSI Workstation', parentId: 'laptop' },
   { id: 'dien-thoai', name: 'Điện thoại' },
   { id: 'man-hinh', name: 'Màn hình' },
   { id: 'am-thanh', name: 'Âm thanh' },
+  { id: 'phu-kien', name: 'Phụ kiện' },
 ]
 
 export const brands: readonly CatalogOption[] = [
+  { id: 'asus', name: 'ASUS' },
+  { id: 'lenovo', name: 'Lenovo' },
+  { id: 'acer', name: 'Acer' },
+  { id: 'hp', name: 'HP' },
+  { id: 'msi', name: 'MSI' },
   { id: 'nova', name: 'Nova' },
   { id: 'orbit', name: 'Orbit' },
   { id: 'vista', name: 'Vista' },

@@ -7,6 +7,8 @@ public class ProductSummaryDto {
     private String categoryId;
     private String categorySlug;
     private String categoryName;
+    private String parentCategorySlug;
+    private String parentCategoryName;
     private String brandId;
     private String brandSlug;
     private String brandName;
@@ -83,6 +85,22 @@ public class ProductSummaryDto {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    public String getParentCategorySlug() {
+        return parentCategorySlug;
+    }
+
+    public void setParentCategorySlug(String parentCategorySlug) {
+        this.parentCategorySlug = parentCategorySlug;
+    }
+
+    public String getParentCategoryName() {
+        return parentCategoryName;
+    }
+
+    public void setParentCategoryName(String parentCategoryName) {
+        this.parentCategoryName = parentCategoryName;
     }
 
     public String getBrandId() {

@@ -11,6 +11,7 @@
 6. Không commit `database` dump chứa dữ liệu thật; dữ liệu demo phải giả lập.
 
 ## Những unique quan trọng
+- `categories (parent_id)`: Tự tham chiếu khóa ngoại `parent_id REFERENCES categories(id)` hỗ trợ phân cấp danh mục đa tầng (Cha - Con, ví dụ: Laptop -> Laptop Gaming, Laptop Văn phòng).
 - `inventories (product_id, branch_id)`; không unique đơn lẻ từng FK.
 - `cart_items (cart_id, product_id)`; không unique đơn lẻ từng FK.
 - `coupon_usages (order_id)`; `(coupon_id, user_id, status)` index hỗ trợ kiểm tra usage ACTIVE với transaction.

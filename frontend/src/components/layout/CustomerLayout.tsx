@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { LayoutIcon } from './LayoutIcon'
@@ -17,6 +17,26 @@ export function CustomerLayout({ children }: PropsWithChildren) {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const megaTimeoutRef = useRef<number | null>(null)
   const cartTimeoutRef = useRef<number | null>(null)
+
+  // Tự động đóng MegaMenu và MiniCart mỗi khi chuyển route / URL thay đổi
+  useEffect(() => {
+    if (megaTimeoutRef.current) clearTimeout(megaTimeoutRef.current)
+    if (cartTimeoutRef.current) clearTimeout(cartTimeoutRef.current)
+    setIsMegaMenuOpen(false)
+    setIsCartOpen(false)
+  }, [location.pathname, location.search])
+
+  const handleMegaNavigate = (path: string) => {
+    if (megaTimeoutRef.current) clearTimeout(megaTimeoutRef.current)
+    setIsMegaMenuOpen(false)
+    navigate(path)
+  }
+
+  const handleCartNavigate = (path: string) => {
+    if (cartTimeoutRef.current) clearTimeout(cartTimeoutRef.current)
+    setIsCartOpen(false)
+    navigate(path)
+  }
 
   const handleMegaEnter = () => {
     if (megaTimeoutRef.current) clearTimeout(megaTimeoutRef.current)
@@ -103,6 +123,10 @@ export function CustomerLayout({ children }: PropsWithChildren) {
               <a
                 href="/products?category=laptop"
                 className={`${styles.navLink} ${isMegaMenuOpen ? styles.navLinkActive : ''}`}
+                onClick={e => {
+                  e.preventDefault()
+                  handleMegaNavigate('/products?category=laptop')
+                }}
               >
                 Laptop
               </a>
@@ -164,7 +188,7 @@ export function CustomerLayout({ children }: PropsWithChildren) {
 
               <MinicartFlyout
                 isOpen={isCartOpen}
-                onNavigate={navigate}
+                onNavigate={handleCartNavigate}
                 onMouseEnter={handleCartEnter}
                 onMouseLeave={handleCartLeave}
               />
@@ -218,7 +242,7 @@ export function CustomerLayout({ children }: PropsWithChildren) {
         {/* Mega Menu Dropdown Flyout */}
         <MegaMenuFlyout
           isOpen={isMegaMenuOpen}
-          onNavigate={navigate}
+          onNavigate={handleMegaNavigate}
           onMouseEnter={handleMegaEnter}
           onMouseLeave={handleMegaLeave}
         />

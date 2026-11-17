@@ -2,6 +2,8 @@ package com.techstore.product.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "categories")
@@ -10,6 +12,13 @@ public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Category parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    private List<Category> children = new ArrayList<>();
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -46,6 +55,14 @@ public class Category {
         this.status = ActiveStatus.ACTIVE;
     }
 
+    public Category(String name, String slug, String description, Category parent) {
+        this.name = name;
+        this.slug = slug;
+        this.description = description;
+        this.parent = parent;
+        this.status = ActiveStatus.ACTIVE;
+    }
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {
@@ -70,6 +87,22 @@ public class Category {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Category getParent() {
+        return parent;
+    }
+
+    public void setParent(Category parent) {
+        this.parent = parent;
+    }
+
+    public List<Category> getChildren() {
+        return children;
+    }
+
+    public void setChildren(List<Category> children) {
+        this.children = children;
     }
 
     public String getName() {

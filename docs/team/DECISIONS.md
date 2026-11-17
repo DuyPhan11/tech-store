@@ -20,6 +20,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-014 | Chuẩn hóa căn lề toàn trang, thanh Toolbar bộ lọc và kích thước nút bấm theo Figma Catalog - 1 | Approved | Catalog Layout, Filter Sidebar, CSS Modules |
 | ADR-015 | Bản địa hóa tiếng Việt toàn diện cho phân hệ khách hàng (UI Localization) | Approved | Customer Layout, Catalog, Cart, Checkout, Auth |
 | ADR-016 | Hoàn thiện giao diện toàn diện Không gian quản trị (Admin & Staff) chuẩn phong cách Tech Store | Approved | AdminLayout, Dashboard, Products, Orders, Inventory, Users |
+| ADR-017 | Bổ sung phân cấp danh mục đa tầng (parent_id) và nâng cấp bộ lọc danh mục cha - con | Approved | Schema, Categories, Catalog API, MegaMenu |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -173,6 +174,20 @@ Ngày quyết định: 16/11/2026.
      - **Quản lý chi nhánh (`AdminBranchesPage.tsx`):** Showroom Hồ Chí Minh, Hà Nội, Đà Nẵng, thông tin liên hệ, hotline và trạng thái hoạt động.
      - **Kiểm duyệt đánh giá (`AdminReviewsPage.tsx`):** Đánh giá sao, nội dung bình luận, chức năng "Duyệt đánh giá" hoặc "Ẩn vi phạm (`HIDDEN_BY_ADMIN`)".
   3. **Kết quả kiểm thử:** Toàn bộ 34 bài kiểm thử (`node --test`) đều vượt qua 100%, lệnh `npm run build` thành công trong 1.82s, không phát sinh lỗi TypeScript.
+
+### ADR-017 — Bổ sung phân cấp danh mục đa tầng (parent_id) và nâng cấp bộ lọc danh mục cha - con
+
+Ngày quyết định: 17/11/2026.
+
+- **Bối cảnh:**
+  - Nhóm cần phân loại sản phẩm theo các dòng chuyên biệt hiển thị trên Mega Menu và thanh điều hướng (ví dụ dưới danh mục chính *Laptop* có các dòng con: *Laptop văn phòng & Học tập*, *Laptop chơi game (Gaming)*, *Laptop mỏng nhẹ thời trang*, *Dòng máy trạm MSI Workstation*).
+  - Cột `specifications TEXT` trong bảng `products` chỉ phù hợp chứa thông số kỹ thuật chi tiết của từng máy dạng JSON (CPU, RAM, VGA, Màn hình, Khối lượng). Việc lọc danh mục lớn bằng cách quét chuỗi LIKE trong `specifications` gây chậm truy vấn, khó lập chỉ mục và dễ lỗi.
+- **Quyết định:**
+  1. Thêm cột tự tham chiếu `parent_id BIGINT NULL` vào bảng `categories`, kèm khóa ngoại `fk_categories_parent` liên kết tới `categories(id) ON DELETE SET NULL`.
+  2. Các danh mục gốc cấp 1 (Menu chính: Laptop, Desktop PC, Thiết bị mạng...) có `parent_id = NULL`. Các danh mục con cấp 2 (Laptop Gaming, Laptop Văn phòng...) có `parent_id = ID danh mục cha`.
+  3. Cập nhật Entity `Category.java` với quan hệ `@ManyToOne parent` và `@OneToMany children`.
+  4. Nâng cấp bộ lọc sản phẩm trong `ProductServiceImpl.java`: Khi lọc theo `category={slug}`, hệ thống sử dụng Left Join để khớp sản phẩm thuộc chính danh mục đó HOẶC thuộc bất kỳ danh mục con nào của nó.
+  5. Giữ nguyên 100% khả năng tương thích ngược của các API và bài kiểm thử hiện có.
 
 ## Mẫu một quyết định
 

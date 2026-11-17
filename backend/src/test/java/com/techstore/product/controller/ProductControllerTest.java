@@ -60,14 +60,27 @@ public class ProductControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/products?category=laptop lọc theo danh mục")
+    @DisplayName("GET /api/products?category=laptop lọc theo danh mục cha: trả về cả sản phẩm danh mục cha và con")
     void getProducts_FilterByCategory_ShouldReturnMatchingCategory() throws Exception {
         mockMvc.perform(get("/api/products")
                         .param("category", "laptop")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total", is(3)))
-                .andExpect(jsonPath("$.products[*].categorySlug", everyItem(is("laptop"))));
+                .andExpect(jsonPath("$.products[*].categorySlug", everyItem(anyOf(is("laptop"), is("laptop-gaming")))));
+    }
+
+    @Test
+    @DisplayName("GET /api/products?category=laptop-gaming lọc theo danh mục con: chỉ trả về sản phẩm con")
+    void getProducts_FilterByChildCategory_ShouldReturnChildCategoryProducts() throws Exception {
+        mockMvc.perform(get("/api/products")
+                        .param("category", "laptop-gaming")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total", is(1)))
+                .andExpect(jsonPath("$.products[0].slug", is("nova-16")))
+                .andExpect(jsonPath("$.products[0].categorySlug", is("laptop-gaming")))
+                .andExpect(jsonPath("$.products[0].parentCategorySlug", is("laptop")));
     }
 
     @Test

@@ -10,6 +10,8 @@ public class ProductDetailDto {
     private String name;
     private String categoryId;
     private String categoryName;
+    private String parentCategorySlug;
+    private String parentCategoryName;
     private String brandId;
     private String brandName;
     private Long priceVnd;
@@ -72,6 +74,22 @@ public class ProductDetailDto {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    public String getParentCategorySlug() {
+        return parentCategorySlug;
+    }
+
+    public void setParentCategorySlug(String parentCategorySlug) {
+        this.parentCategorySlug = parentCategorySlug;
+    }
+
+    public String getParentCategoryName() {
+        return parentCategoryName;
+    }
+
+    public void setParentCategoryName(String parentCategoryName) {
+        this.parentCategoryName = parentCategoryName;
     }
 
     public String getBrandId() {

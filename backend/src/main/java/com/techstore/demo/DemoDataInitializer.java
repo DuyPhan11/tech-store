@@ -140,12 +140,17 @@ public class DemoDataInitializer implements CommandLineRunner {
     }
 
     private void initCatalogData() {
-        // 1. Categories
-        Category catLaptop = getOrCreateCategory("Laptop", "laptop", "Máy tính xách tay cao cấp");
-        Category catPhone = getOrCreateCategory("Điện thoại", "dien-thoai", "Điện thoại thông minh");
-        Category catMonitor = getOrCreateCategory("Màn hình", "man-hinh", "Màn hình sắc nét độ phân giải cao");
-        Category catAudio = getOrCreateCategory("Âm thanh", "am-thanh", "Thiết bị âm thanh chính hãng");
-        getOrCreateCategory("Phụ kiện", "phu-kien", "Phụ kiện công nghệ");
+        // 1. Categories (Hỗ trợ cấu trúc phân cấp Cha - Con theo ADR-017)
+        Category catLaptop = getOrCreateCategory("Laptop", "laptop", "Máy tính xách tay cao cấp", null);
+        Category catLaptopVanPhong = getOrCreateCategory("Laptop văn phòng & Học tập", "laptop-van-phong", "Laptop văn phòng mỏng nhẹ", catLaptop);
+        Category catLaptopGaming = getOrCreateCategory("Laptop chơi game (Gaming)", "laptop-gaming", "Laptop gaming cấu hình cao", catLaptop);
+        Category catLaptopMongNhe = getOrCreateCategory("Laptop mỏng nhẹ thời trang", "laptop-mong-nhe", "Laptop thời trang mỏng nhẹ", catLaptop);
+        Category catLaptopWorkstation = getOrCreateCategory("Dòng máy trạm MSI Workstation", "laptop-workstation", "Máy trạm đồ họa chuyên nghiệp", catLaptop);
+
+        Category catPhone = getOrCreateCategory("Điện thoại", "dien-thoai", "Điện thoại thông minh", null);
+        Category catMonitor = getOrCreateCategory("Màn hình", "man-hinh", "Màn hình sắc nét độ phân giải cao", null);
+        Category catAudio = getOrCreateCategory("Âm thanh", "am-thanh", "Thiết bị âm thanh chính hãng", null);
+        getOrCreateCategory("Phụ kiện", "phu-kien", "Phụ kiện công nghệ", null);
 
         // 2. Brands
         Brand brandNova = getOrCreateBrand("Nova", "nova", "Thương hiệu Nova Technology");
@@ -259,9 +264,9 @@ public class DemoDataInitializer implements CommandLineRunner {
                 new int[]{15, 10}
         );
 
-        // 4.5 Laptop Nova 16 Pro
+        // 4.5 Laptop Nova 16 Pro (Thuộc danh mục con catLaptopGaming)
         createProductWithImagesAndInventory(
-                catLaptop, brandNova,
+                catLaptopGaming, brandNova,
                 "Laptop Nova 16 Pro", "nova-16", "LAP-NOV-16",
                 new BigDecimal("28990000"), new BigDecimal("23000000"),
                 "Laptop đồ họa chuyên nghiệp Nova 16 Pro với màn hình 16 inch 3.2K, card đồ họa rời hiệu năng mạnh mẽ cho dựng phim và thiết kế 3D.",
@@ -397,11 +402,15 @@ public class DemoDataInitializer implements CommandLineRunner {
         );
     }
 
-    private Category getOrCreateCategory(String name, String slug, String description) {
+    private Category getOrCreateCategory(String name, String slug, String description, Category parent) {
         return categoryRepository.findBySlug(slug).orElseGet(() -> {
-            Category category = new Category(name, slug, description);
+            Category category = new Category(name, slug, description, parent);
             return categoryRepository.save(category);
         });
+    }
+
+    private Category getOrCreateCategory(String name, String slug, String description) {
+        return getOrCreateCategory(name, slug, description, null);
     }
 
     private Brand getOrCreateBrand(String name, String slug, String description) {
