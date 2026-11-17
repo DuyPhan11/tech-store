@@ -34,6 +34,66 @@
 | Admin inventory | POST | `/api/admin/inventories/transfer` | Staff/Admin |
 | Admin branches | PATCH | `/api/admin/branches/{id}/status` | Admin |
 
+## Auth DTO tham chiếu (UC01 - Đã triển khai)
+
+- **Endpoint yêu cầu OTP:** `POST /api/auth/register/request-otp` (Quyền: `Public`)
+  - **Request Body:**
+    ```json
+    {
+      "email": "customer@example.com"
+    }
+    ```
+  - **Logic & Quy tắc:**
+    - Kiểm tra email hợp lệ và chưa tồn tại trong bảng `users` (`409 Conflict` nếu đã tồn tại).
+    - Giới hạn tần suất: Cooldown 60 giây giữa các lần yêu cầu OTP trên cùng email (`429 Too Many Requests` nếu yêu cầu quá sớm).
+    - Tạo mã OTP ngẫu nhiên 6 chữ số, mã hóa băm bằng BCrypt và lưu vào bảng `email_verifications`.
+    - Thời hạn hiệu lực: 5 phút (300 giây).
+  - **Response Body (200 OK):**
+    ```json
+    {
+      "message": "Mã xác thực OTP đã được gửi đến email (hiệu lực 5 phút)",
+      "email": "customer@example.com",
+      "expiresInSeconds": 300,
+      "resendCooldownSeconds": 60
+    }
+    ```
+
+- **Endpoint xác thực OTP và tạo tài khoản:** `POST /api/auth/register/verify-otp` (và alias `POST /api/auth/register`) (Quyền: `Public`)
+  - **Request Body:**
+    ```json
+    {
+      "email": "customer@example.com",
+      "otp": "123456",
+      "fullName": "Nguyễn Văn A",
+      "phone": "0901234567",
+      "password": "Password@123"
+    }
+    ```
+  - **Logic & Quy tắc:**
+    - Kiểm tra email hoặc số điện thoại chưa tồn tại trong bảng `users` (`409 Conflict` nếu trùng).
+    - Tra cứu bản ghi OTP mới nhất chưa sử dụng (`is_used = false`) cho email.
+    - Kiểm tra thời hạn hiệu lực: nếu quá 5 phút (`expires_at < now`) trả về `400 Bad Request` ("Mã OTP đã hết hạn").
+    - Đối chiếu mã OTP với hash BCrypt: nếu không khớp trả về `400 Bad Request` ("Mã OTP không chính xác"), tăng `failed_attempts`.
+    - Khi hợp lệ: đánh dấu `is_used = true`.
+    - Tạo bản ghi `User` (mật khẩu mã hóa BCrypt), gán vai trò `ROLE_CUSTOMER`, tạo giỏ hàng trống `Cart` (1 cart/user).
+    - Tạo JWT `accessToken` và trả về thông tin đăng nhập (`201 Created`).
+  - **Response Body (201 Created):**
+    ```json
+    {
+      "accessToken": "eyJhbGciOi...",
+      "tokenType": "Bearer",
+      "expiresIn": 86400,
+      "user": {
+        "id": 1,
+        "email": "customer@example.com",
+        "phone": "0901234567",
+        "fullName": "Nguyễn Văn A",
+        "status": "ACTIVE",
+        "roles": ["ROLE_CUSTOMER"]
+      }
+    }
+    ```
+
 ## Catalog DTO tham chiếu (UC04, UC05)
 
 - `GET /api/products?q={text}&category={cat}&brand={brand}&min={min}&max={max}&sort={sort}&page={page}`:

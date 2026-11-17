@@ -120,6 +120,47 @@
   color: #c94d3f;
 }
 
+.otpInputGroup {
+  display: flex;
+  gap: 10px;
+}
+
+.otpInputGroup input {
+  flex: 1;
+}
+
+.sendOtpBtn {
+  background: #ffffff;
+  color: var(--ts-color-primary);
+  border: 1px solid var(--ts-color-primary);
+  border-radius: 4px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.sendOtpBtn:hover:not(:disabled) {
+  background: var(--ts-color-primary);
+  color: #ffffff;
+}
+
+.sendOtpBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #cacdd8;
+  color: #888888;
+}
+
+.otpNotice {
+  font-size: 12px;
+  color: #15803d;
+  margin-top: 4px;
+}
+
 .newsletterCheckbox {
   display: flex;
   align-items: center;

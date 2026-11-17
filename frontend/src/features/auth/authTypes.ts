@@ -12,6 +12,25 @@ export interface LoginRequest {
   password: string
 }
 
+export interface RegisterOtpPayload {
+  email: string
+}
+
+export interface RegisterOtpResponse {
+  message: string
+  email: string
+  expiresInSeconds: number
+  resendCooldownSeconds: number
+}
+
+export interface RegisterPayload {
+  email: string
+  otp: string
+  fullName: string
+  phone: string
+  password: string
+}
+
 export interface LoginResponse {
   accessToken: string
   tokenType: string
