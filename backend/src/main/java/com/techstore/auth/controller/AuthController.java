@@ -37,4 +37,16 @@ public class AuthController {
         LoginResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PostMapping({"/password/request-otp", "/forgot-password"})
+    public ResponseEntity<ForgotPasswordResponse> requestPasswordResetOtp(@Valid @RequestBody ForgotPasswordRequest request) {
+        ForgotPasswordResponse response = authService.requestPasswordResetOtp(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping({"/password/reset", "/reset-password"})
+    public ResponseEntity<ResetPasswordResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        ResetPasswordResponse response = authService.resetPassword(request);
+        return ResponseEntity.ok(response);
+    }
 }

@@ -2,7 +2,9 @@ package com.techstore.auth.service;
 
 import com.techstore.auth.dto.*;
 import com.techstore.auth.entity.EmailVerification;
+import com.techstore.auth.entity.PasswordResetToken;
 import com.techstore.auth.repository.EmailVerificationRepository;
+import com.techstore.auth.repository.PasswordResetTokenRepository;
 import com.techstore.cart.entity.Cart;
 import com.techstore.cart.repository.CartRepository;
 import com.techstore.common.exception.*;
@@ -38,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final RoleRepository roleRepository;
     private final CartRepository cartRepository;
     private final EmailVerificationRepository emailVerificationRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
@@ -47,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
                            RoleRepository roleRepository,
                            CartRepository cartRepository,
                            EmailVerificationRepository emailVerificationRepository,
+                           PasswordResetTokenRepository passwordResetTokenRepository,
                            EmailService emailService,
                            PasswordEncoder passwordEncoder,
                            JwtTokenProvider tokenProvider,
@@ -55,6 +59,7 @@ public class AuthServiceImpl implements AuthService {
         this.roleRepository = roleRepository;
         this.cartRepository = cartRepository;
         this.emailVerificationRepository = emailVerificationRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
@@ -218,5 +223,106 @@ public class AuthServiceImpl implements AuthService {
         );
 
         return new LoginResponse(accessToken, expiresInSeconds, userSummary);
+    }
+
+    @Override
+    @Transactional
+    public ForgotPasswordResponse requestPasswordResetOtp(ForgotPasswordRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            // Quy tắc bảo mật: Không tiết lộ email có tồn tại trong hệ thống hay không
+            log.info("[PASSWORD RESET] Yêu cầu OTP cho email không tồn tại trong hệ thống: {}", email);
+            return new ForgotPasswordResponse(
+                    "Nếu email của bạn tồn tại trong hệ thống, mã xác thực OTP đã được gửi đến hộp thư (hiệu lực 15 phút).",
+                    60
+            );
+        }
+
+        User user = userOpt.get();
+
+        // Kiểm tra thời gian chờ gửi lại (cooldown 60 giây)
+        Optional<PasswordResetToken> latestOpt = passwordResetTokenRepository.findTopByUserIdOrderByCreatedAtDesc(user.getId());
+        if (latestOpt.isPresent()) {
+            LocalDateTime lastCreated = latestOpt.get().getCreatedAt();
+            long secondsPassed = ChronoUnit.SECONDS.between(lastCreated, LocalDateTime.now());
+            if (secondsPassed < 60) {
+                int remaining = (int) (60 - secondsPassed);
+                throw new OtpCooldownException("Vui lòng đợi " + remaining + " giây trước khi yêu cầu mã OTP mới.", remaining);
+            }
+        }
+
+        // Tạo mã OTP ngẫu nhiên 6 chữ số
+        String otp = String.format("%06d", secureRandom.nextInt(1_000_000));
+
+        // Băm mã OTP bằng BCrypt
+        String otpHash = passwordEncoder.encode(otp);
+
+        // Thời hạn hiệu lực 15 phút
+        LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(15);
+
+        PasswordResetToken resetToken = new PasswordResetToken(user, otpHash, expiryDate);
+        passwordResetTokenRepository.save(resetToken);
+
+        // Gửi mã OTP qua Email
+        emailService.sendPasswordResetOtp(user.getEmail(), otp);
+
+        log.info("[PASSWORD RESET] Yêu cầu mã OTP khôi phục mật khẩu thành công cho email: {}", email);
+
+        return new ForgotPasswordResponse(
+                "Nếu email của bạn tồn tại trong hệ thống, mã xác thực OTP đã được gửi đến hộp thư (hiệu lực 15 phút).",
+                60
+        );
+    }
+
+    @Override
+    @Transactional(noRollbackFor = InvalidOtpException.class)
+    public ResetPasswordResponse resetPassword(ResetPasswordRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        String otp = request.getOtp().trim();
+        String newPassword = request.getNewPassword();
+
+        // 1. Tìm người dùng theo email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new InvalidOtpException("Yêu cầu đặt lại mật khẩu không hợp lệ hoặc mã OTP không chính xác."));
+
+        // 2. Tìm mã OTP chưa sử dụng gần nhất của người dùng này
+        PasswordResetToken resetToken = passwordResetTokenRepository.findTopByUserIdAndIsUsedFalseOrderByCreatedAtDesc(user.getId())
+                .orElseThrow(() -> new InvalidOtpException("Không tìm thấy yêu cầu đặt lại mật khẩu hợp lệ. Vui lòng yêu cầu mã OTP mới."));
+
+        // 3. Kiểm tra số lần nhập sai (tối đa 5 lần)
+        if (resetToken.getFailedAttempts() >= 5) {
+            throw new InvalidOtpException("Mã OTP đã bị vô hiệu hóa do nhập sai quá 5 lần. Vui lòng yêu cầu mã mới.");
+        }
+
+        // 4. Kiểm tra thời hạn hiệu lực (15 phút)
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new OtpExpiredException("Mã OTP đã hết hạn (quá 15 phút). Vui lòng yêu cầu mã mới.");
+        }
+
+        // 5. Kiểm tra mã OTP khớp với hash
+        if (!passwordEncoder.matches(otp, resetToken.getOtpHash())) {
+            resetToken.setFailedAttempts(resetToken.getFailedAttempts() + 1);
+            passwordResetTokenRepository.saveAndFlush(resetToken);
+            int remaining = 5 - resetToken.getFailedAttempts();
+            if (remaining <= 0) {
+                throw new InvalidOtpException("Mã OTP không chính xác. Mã đã bị vô hiệu hóa do nhập sai 5 lần. Vui lòng yêu cầu mã mới.");
+            } else {
+                throw new InvalidOtpException("Mã OTP không chính xác. Bạn còn " + remaining + " lần thử.");
+            }
+        }
+
+        // 6. Đánh dấu OTP đã được sử dụng
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        // 7. Cập nhật mật khẩu mới mã hóa BCrypt
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        log.info("[PASSWORD RESET] Đặt lại mật khẩu thành công cho tài khoản: userId={}, email={}", user.getId(), user.getEmail());
+
+        return new ResetPasswordResponse("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.");
     }
 }
