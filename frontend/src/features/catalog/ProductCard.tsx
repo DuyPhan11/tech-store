@@ -1,4 +1,5 @@
 import { Card } from '../../components/ui/Card'
+import { cartApi } from '../../lib/api/cartApi'
 import styles from './ProductCard.module.css'
 
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
@@ -25,10 +26,30 @@ export function ProductCard({ product, brandName, href, className = '' }: Produc
   const targetHref = href ?? (product.slug ? `/products/${product.slug}` : undefined)
   const isInStock = product.inStock !== false
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (typeof window !== 'undefined') {
-      window.location.assign('/cart')
+    const numId = Number(product.id)
+    if (!isNaN(numId) && numId > 0) {
+      try {
+        await cartApi.addItem(numId, 1)
+        if (typeof window !== 'undefined') {
+          window.location.assign('/cart')
+        }
+      } catch (err: unknown) {
+        if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 401) {
+          if (typeof window !== 'undefined') {
+            window.location.assign('/login?redirect=' + encodeURIComponent(window.location.pathname))
+          }
+        } else {
+          if (typeof window !== 'undefined') {
+            window.location.assign('/cart')
+          }
+        }
+      }
+    } else {
+      if (typeof window !== 'undefined') {
+        window.location.assign('/cart')
+      }
     }
   }
 

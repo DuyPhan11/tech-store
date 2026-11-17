@@ -9,5 +9,6 @@ import java.util.Optional;
 @Repository
 public interface BranchRepository extends JpaRepository<Branch, Long> {
     Optional<Branch> findByName(String name);
+    Optional<Branch> findFirstByNameOrderByIdAsc(String name);
     boolean existsByName(String name);
 }

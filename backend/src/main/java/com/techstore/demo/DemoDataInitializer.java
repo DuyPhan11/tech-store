@@ -421,7 +421,7 @@ public class DemoDataInitializer implements CommandLineRunner {
     }
 
     private Branch getOrCreateBranch(String name, String phone, String address, ActiveStatus status) {
-        return branchRepository.findByName(name).orElseGet(() -> {
+        return branchRepository.findFirstByNameOrderByIdAsc(name).orElseGet(() -> {
             Branch branch = new Branch(name, phone, address, status);
             return branchRepository.save(branch);
         });

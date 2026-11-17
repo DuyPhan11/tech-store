@@ -10,7 +10,7 @@
 | TBD | UC04–05 | Catalog | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC11–12 | Product CRUD + Cloudinary | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC18–19 | Inventory + Branch | TBD | TBD | Todo | — | TBD | — |
-| TBD | UC06 | Cart | TBD | TBD | Todo | — | TBD | — |
+| TBD | UC06 | Cart | TBD | TBD | In review | feat/uc06-cart | — | — |
 | TBD | UC13 | Coupon | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC07 | Checkout | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC08 + UC14 | Order / cancellation | TBD | TBD | Todo | — | TBD | — |

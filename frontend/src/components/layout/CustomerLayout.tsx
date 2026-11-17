@@ -5,6 +5,8 @@ import { LayoutIcon } from './LayoutIcon'
 import { MinicartFlyout } from './MinicartFlyout'
 import { MegaMenuFlyout } from './MegaMenuFlyout'
 import { useAuth } from '../../features/auth/AuthContext'
+import { cartApi } from '../../lib/api/cartApi'
+import type { CartResponse } from '../../features/cart/cartTypes'
 import styles from './Layouts.module.css'
 
 export function CustomerLayout({ children }: PropsWithChildren) {
@@ -15,8 +17,30 @@ export function CustomerLayout({ children }: PropsWithChildren) {
 
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [cart, setCart] = useState<CartResponse | null>(null)
   const megaTimeoutRef = useRef<number | null>(null)
   const cartTimeoutRef = useRef<number | null>(null)
+
+  // Cập nhật giỏ hàng khi đăng nhập hoặc chuyển trang
+  useEffect(() => {
+    if (isAuthenticated) {
+      cartApi.getCart()
+        .then(res => setCart(res))
+        .catch(() => setCart(null))
+    } else {
+      setCart(null)
+      setIsCartOpen(false)
+    }
+  }, [isAuthenticated, location.pathname])
+
+  const handleMinicartRemove = async (itemId: number) => {
+    try {
+      const updated = await cartApi.removeItem(itemId)
+      setCart(updated)
+    } catch {
+      // ignore
+    }
+  }
 
   // Tự động đóng MegaMenu và MiniCart mỗi khi chuyển route / URL thay đổi
   useEffect(() => {
@@ -50,6 +74,7 @@ export function CustomerLayout({ children }: PropsWithChildren) {
   }
 
   const handleCartEnter = () => {
+    if (!isAuthenticated) return
     if (cartTimeoutRef.current) clearTimeout(cartTimeoutRef.current)
     setIsCartOpen(true)
   }
@@ -183,14 +208,17 @@ export function CustomerLayout({ children }: PropsWithChildren) {
                 onClick={() => navigate('/cart')}
               >
                 <LayoutIcon name="cart" />
-                <span className={styles.cartBadge}>2</span>
+                {cart && cart.totalItems > 0 && <span className={styles.cartBadge}>{cart.totalItems}</span>}
               </button>
 
               <MinicartFlyout
                 isOpen={isCartOpen}
+                isAuthenticated={isAuthenticated}
+                cart={cart}
                 onNavigate={handleCartNavigate}
                 onMouseEnter={handleCartEnter}
                 onMouseLeave={handleCartLeave}
+                onRemoveItem={handleMinicartRemove}
               />
             </div>
 
