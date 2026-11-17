@@ -31,6 +31,25 @@ export interface RegisterPayload {
   password: string
 }
 
+export interface ForgotPasswordPayload {
+  email: string
+}
+
+export interface ForgotPasswordResponse {
+  message: string
+  resendCooldownSeconds?: number
+}
+
+export interface ResetPasswordPayload {
+  email: string
+  otp: string
+  newPassword: string
+}
+
+export interface ResetPasswordResponse {
+  message: string
+}
+
 export interface LoginResponse {
   accessToken: string
   tokenType: string

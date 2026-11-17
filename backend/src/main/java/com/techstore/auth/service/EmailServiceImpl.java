@@ -52,6 +52,56 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    @Override
+    public void sendPasswordResetOtp(String toEmail, String otp) {
+        log.info("=================================================");
+        log.info("[EMAIL SERVICE] Gửi mã OTP khôi phục mật khẩu tới: {}", toEmail);
+        log.info("[EMAIL SERVICE] Mã OTP 6 chữ số: {}", otp);
+        log.info("[EMAIL SERVICE] Hiệu lực: 15 phút, tối đa 5 lần thử");
+        log.info("=================================================");
+
+        if (mailSender != null && mailUsername != null && !mailUsername.isBlank()) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+                helper.setFrom(mailUsername, "Tech Store");
+                helper.setTo(toEmail);
+                helper.setSubject("[Tech Store] Mã OTP khôi phục mật khẩu");
+
+                String htmlContent = buildResetOtpHtmlContent(otp);
+                helper.setText(htmlContent, true);
+
+                mailSender.send(message);
+                log.info("[EMAIL SERVICE] Đã gửi thành công email OTP khôi phục mật khẩu tới {}", toEmail);
+            } catch (Exception e) {
+                log.error("[EMAIL SERVICE] Không thể gửi email thực tế qua SMTP ({}): {}. Mã OTP vẫn được lưu trữ và có hiệu lực.",
+                        toEmail, e.getMessage());
+            }
+        } else {
+            log.info("[EMAIL SERVICE] Chưa cấu hình MAIL_USERNAME trong .env.local -> Đang chạy ở chế độ Console Log tiện lợi.");
+        }
+    }
+
+    private String buildResetOtpHtmlContent(String otp) {
+        return "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;\">"
+                + "  <div style=\"text-align: center; margin-bottom: 24px;\">"
+                + "    <h2 style=\"color: #0b57d0; margin: 0; font-size: 24px; font-weight: 700;\">Tech Store</h2>"
+                + "    <p style=\"color: #64748b; font-size: 14px; margin-top: 4px;\">Khôi phục mật khẩu tài khoản</p>"
+                + "  </div>"
+                + "  <p style=\"font-size: 15px; color: #1e293b; line-height: 1.5;\">Xin chào,</p>"
+                + "  <p style=\"font-size: 15px; color: #1e293b; line-height: 1.5;\">Bạn vừa gửi yêu cầu đặt lại mật khẩu cho tài khoản tại <strong>Tech Store</strong>. Dưới đây là mã xác thực OTP của bạn:</p>"
+                + "  <div style=\"text-align: center; margin: 28px 0;\">"
+                + "    <div style=\"display: inline-block; background-color: #f0f7ff; border: 1px dashed #0b57d0; border-radius: 8px; padding: 12px 32px;\">"
+                + "      <span style=\"font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0b57d0; font-family: monospace;\">" + otp + "</span>"
+                + "    </div>"
+                + "  </div>"
+                + "  <p style=\"font-size: 14px; color: #475569; line-height: 1.5;\">Mã OTP này có hiệu lực trong vòng <strong>15 phút</strong> (tối đa 5 lần nhập sai). Vì lý do bảo mật, vui lòng không chia sẻ mã này cho bất kỳ ai.</p>"
+                + "  <hr style=\"border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;\" />"
+                + "  <p style=\"font-size: 12px; color: #94a3b8; text-align: center; margin: 0;\">Nếu bạn không gửi yêu cầu này, vui lòng đổi mật khẩu ngay hoặc liên hệ quản trị viên.<br/>Đây là email tự động, vui lòng không trả lời thư này.</p>"
+                + "</div>";
+    }
+
     private String buildOtpHtmlContent(String otp) {
         return "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;\">"
                 + "  <div style=\"text-align: center; margin-bottom: 24px;\">"

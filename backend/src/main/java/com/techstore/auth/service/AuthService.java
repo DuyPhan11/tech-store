@@ -1,10 +1,6 @@
 package com.techstore.auth.service;
 
-import com.techstore.auth.dto.LoginRequest;
-import com.techstore.auth.dto.LoginResponse;
-import com.techstore.auth.dto.RegisterOtpRequest;
-import com.techstore.auth.dto.RegisterOtpResponse;
-import com.techstore.auth.dto.RegisterRequest;
+import com.techstore.auth.dto.*;
 
 public interface AuthService {
 
@@ -13,4 +9,8 @@ public interface AuthService {
     RegisterOtpResponse requestRegisterOtp(RegisterOtpRequest request);
 
     LoginResponse register(RegisterRequest request);
+
+    ForgotPasswordResponse requestPasswordResetOtp(ForgotPasswordRequest request);
+
+    ResetPasswordResponse resetPassword(ResetPasswordRequest request);
 }

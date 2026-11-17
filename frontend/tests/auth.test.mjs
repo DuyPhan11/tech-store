@@ -13,6 +13,7 @@ let routeGuardModule
 let loginPageModule
 let layoutModule
 let registerPageModule
+let forgotPageModule
 
 before(async () => {
   server = await createServer({
@@ -20,7 +21,7 @@ before(async () => {
     appType: 'custom',
   })
 
-  const [apiMod, storageMod, contextMod, guardMod, loginMod, custLayoutMod, regMod] = await Promise.all([
+  const [apiMod, storageMod, contextMod, guardMod, loginMod, custLayoutMod, regMod, forgotMod] = await Promise.all([
     server.ssrLoadModule('/src/lib/api/authApi.ts'),
     server.ssrLoadModule('/src/features/auth/authStorage.ts'),
     server.ssrLoadModule('/src/features/auth/AuthContext.tsx'),
@@ -28,6 +29,7 @@ before(async () => {
     server.ssrLoadModule('/src/features/auth/LoginPage.tsx'),
     server.ssrLoadModule('/src/components/layout/CustomerLayout.tsx'),
     server.ssrLoadModule('/src/features/auth/RegisterPage.tsx'),
+    server.ssrLoadModule('/src/features/auth/ForgotPasswordPage.tsx'),
   ])
 
   authApiModule = apiMod
@@ -37,6 +39,7 @@ before(async () => {
   loginPageModule = loginMod
   layoutModule = custLayoutMod
   registerPageModule = regMod
+  forgotPageModule = forgotMod
 })
 
 after(async () => server?.close())
@@ -502,4 +505,95 @@ test('RegisterPage renders required fields including OTP and send OTP button', (
   assert.match(html, /id="reg-password"/)
   assert.match(html, /id="reg-confirm"/)
   assert.match(html, /Tạo tài khoản/)
+})
+
+test('authApi.requestPasswordResetOtp sends POST to /api/auth/password/request-otp', async () => {
+  const originalFetch = globalThis.fetch
+  let interceptedUrl = ''
+  let interceptedMethod = ''
+  let interceptedBody = ''
+
+  globalThis.fetch = async (url, options) => {
+    interceptedUrl = String(url)
+    interceptedMethod = options.method
+    interceptedBody = String(options.body)
+
+    return new globalThis.Response(JSON.stringify({
+      message: 'Nếu email tồn tại trong hệ thống, mã xác thực OTP đã được gửi đến hộp thư (hiệu lực 15 phút).',
+      resendCooldownSeconds: 60,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const res = await authApiModule.authApi.requestPasswordResetOtp({ email: 'user@techstore.vn' })
+    assert.equal(interceptedUrl, '/api/auth/password/request-otp')
+    assert.equal(interceptedMethod, 'POST')
+    assert.equal(JSON.parse(interceptedBody).email, 'user@techstore.vn')
+    assert.match(res.message, /mã xác thực OTP đã được gửi/)
+    assert.equal(res.resendCooldownSeconds, 60)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('authApi.resetPassword sends POST to /api/auth/password/reset', async () => {
+  const originalFetch = globalThis.fetch
+  let interceptedUrl = ''
+  let interceptedMethod = ''
+  let interceptedBody = ''
+
+  globalThis.fetch = async (url, options) => {
+    interceptedUrl = String(url)
+    interceptedMethod = options.method
+    interceptedBody = String(options.body)
+
+    return new globalThis.Response(JSON.stringify({
+      message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.',
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const res = await authApiModule.authApi.resetPassword({
+      email: 'user@techstore.vn',
+      otp: '123456',
+      newPassword: 'NewPassword@123',
+    })
+    assert.equal(interceptedUrl, '/api/auth/password/reset')
+    assert.equal(interceptedMethod, 'POST')
+    const body = JSON.parse(interceptedBody)
+    assert.equal(body.email, 'user@techstore.vn')
+    assert.equal(body.otp, '123456')
+    assert.equal(body.newPassword, 'NewPassword@123')
+    assert.match(res.message, /Đặt lại mật khẩu thành công/)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('ForgotPasswordPage renders email input and submit button in initial step', () => {
+  const { ForgotPasswordPage } = forgotPageModule
+  const { AuthProvider } = authContextModule
+
+  const html = renderToStaticMarkup(
+    createElement(
+      MemoryRouter,
+      { initialEntries: ['/forgot-password'] },
+      createElement(
+        AuthProvider,
+        null,
+        createElement(ForgotPasswordPage),
+      ),
+    ),
+  )
+
+  assert.match(html, /<h1[^>]*>Khôi phục mật khẩu<\/h1>/)
+  assert.match(html, /id="forgot-email"/)
+  assert.match(html, /Gửi mã xác thực OTP/)
+  assert.match(html, /Hủy bỏ và quay lại/)
 })

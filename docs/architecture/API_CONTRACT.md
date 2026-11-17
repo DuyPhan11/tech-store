@@ -94,6 +94,50 @@
     }
     ```
 
+- **Endpoint yêu cầu OTP khôi phục mật khẩu:** `POST /api/auth/password/request-otp` (và alias `POST /api/auth/forgot-password`) (Quyền: `Public`)
+  - **Request Body:**
+    ```json
+    {
+      "email": "customer@example.com"
+    }
+    ```
+  - **Logic & Quy tắc bảo mật:**
+    - Không tiết lộ email có tồn tại hay không: Luôn trả về HTTP `200 OK` kể cả khi email chưa từng được đăng ký.
+    - Chống spam abuse: Cooldown 60 giây giữa các lần yêu cầu OTP trên cùng tài khoản (`429 Too Many Requests`).
+    - Nếu tài khoản tồn tại: Sinh mã OTP ngẫu nhiên 6 chữ số, băm bằng BCrypt và lưu vào bảng `password_reset_tokens`.
+    - Thời hạn hiệu lực: 15 phút (`expires_at = now + 15m`).
+    - Gửi email thông báo OTP cho người dùng (qua SMTP hoặc console log).
+  - **Response Body (200 OK):**
+    ```json
+    {
+      "message": "Nếu email của bạn tồn tại trong hệ thống, mã xác thực OTP đã được gửi đến hộp thư (hiệu lực 15 phút).",
+      "resendCooldownSeconds": 60
+    }
+    ```
+
+- **Endpoint xác thực OTP và đổi mật khẩu mới:** `POST /api/auth/password/reset` (và alias `POST /api/auth/reset-password`) (Quyền: `Public`)
+  - **Request Body:**
+    ```json
+    {
+      "email": "customer@example.com",
+      "otp": "123456",
+      "newPassword": "NewPassword@123"
+    }
+    ```
+  - **Logic & Quy tắc kiểm tra (Anti-abuse):**
+    - Kiểm tra định dạng email, mã OTP 6 số, mật khẩu mới tối thiểu 6 ký tự (`400 Bad Request`).
+    - Tra cứu bản ghi `password_reset_tokens` mới nhất chưa sử dụng (`is_used = false`) của user.
+    - Kiểm tra lạm dụng (Abuse protection): Nếu số lần nhập sai `failed_attempts >= 5`, lập tức từ chối và vô hiệu hóa mã OTP (`400 Bad Request`).
+    - Kiểm tra thời hạn: Nếu quá 15 phút (`expiry_date < now`), trả về `400 Bad Request` ("Mã OTP đã hết hạn").
+    - Kiểm tra OTP hash với BCrypt: Nếu sai mã, tăng `failed_attempts` lên 1 và lưu vào DB (`400 Bad Request`).
+    - Khi hợp lệ: Đánh dấu `is_used = true`, cập nhật mật khẩu mới mã hóa BCrypt vào bảng `users`.
+  - **Response Body (200 OK):**
+    ```json
+    {
+      "message": "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới."
+    }
+    ```
+
 ## Catalog DTO tham chiếu (UC04, UC05)
 
 - `GET /api/products?q={text}&category={cat}&brand={brand}&min={min}&max={max}&sort={sort}&page={page}`:
