@@ -235,6 +235,89 @@
   - `409 Conflict`: Tồn kho chi nhánh không đủ số lượng yêu cầu.
   - **Idempotency:** Gửi retry với cùng `idempotencyKey` trả về cùng kết quả đơn hàng đã tạo, không trừ kho lần 2.
 
+### Profile & Address DTO (UC10 - Đã triển khai)
+
+- **GET `/api/me` (Quyền: `ROLE_CUSTOMER`)**
+  - Trả về thông tin cá nhân của người dùng hiện tại kèm theo thông tin địa chỉ giao hàng mặc định (`defaultAddress`).
+  - Response (200 OK):
+    ```json
+    {
+      "id": 1,
+      "email": "customer@techstore.vn",
+      "fullName": "Nguyễn Văn A",
+      "phone": "0901234567",
+      "avatarUrl": null,
+      "roles": ["ROLE_CUSTOMER"],
+      "status": "ACTIVE",
+      "defaultAddress": {
+        "id": 1,
+        "recipientName": "Nguyễn Văn A",
+        "phone": "0901234567",
+        "streetAddress": "123 Lê Lợi",
+        "ward": "Bến Nghé",
+        "district": "Quận 1",
+        "city": "TP. Hồ Chí Minh",
+        "fullAddress": "123 Lê Lợi, Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+        "isDefault": true,
+        "createdAt": "2026-11-17T12:00:00",
+        "updatedAt": "2026-11-17T12:00:00"
+      },
+      "createdAt": "2026-11-17T10:00:00"
+    }
+    ```
+
+- **PATCH `/api/me` (Quyền: `ROLE_CUSTOMER`)**
+  - Cập nhật họ tên, số điện thoại hoặc avatar. Email là định danh bất biến không thể cập nhật.
+  - Request:
+    ```json
+    {
+      "fullName": "Nguyễn Văn B",
+      "phone": "0912345678"
+    }
+    ```
+  - Lỗi: `409 Conflict` nếu số điện thoại đã được đăng ký bởi tài khoản khác.
+
+- **POST `/api/me/change-password` (Quyền: `ROLE_CUSTOMER`)**
+  - Đổi mật khẩu tài khoản. Mật khẩu cũ được kiểm tra qua BCrypt; mật khẩu mới tối thiểu 6 ký tự.
+  - Request:
+    ```json
+    {
+      "oldPassword": "OldPassword@123",
+      "newPassword": "NewPassword@123",
+      "confirmPassword": "NewPassword@123"
+    }
+    ```
+  - Lỗi: `400 Bad Request` nếu mật khẩu cũ không đúng hoặc mật khẩu mới không hợp lệ.
+
+- **GET `/api/me/addresses` (Quyền: `ROLE_CUSTOMER`)**
+  - Danh sách địa chỉ của người dùng đã xác thực, sắp xếp địa chỉ mặc định lên đầu (`isDefault DESC, createdAt DESC`).
+
+- **POST `/api/me/addresses` (Quyền: `ROLE_CUSTOMER`)**
+  - Thêm địa chỉ mới. Nếu người dùng chưa có địa chỉ nào, địa chỉ này tự động thành mặc định (`isDefault = true`).
+  - Nếu gửi kèm `isDefault = true`, các địa chỉ còn lại của người dùng sẽ tự động hủy cờ mặc định.
+  - Request:
+    ```json
+    {
+      "recipientName": "Nguyễn Văn A",
+      "phone": "0901234567",
+      "streetAddress": "123 Lê Lợi",
+      "ward": "Bến Nghé",
+      "district": "Quận 1",
+      "city": "TP. Hồ Chí Minh",
+      "isDefault": true
+    }
+    ```
+
+- **PUT `/api/me/addresses/{id}` & PATCH `/api/me/addresses/{id}` (Quyền: `ROLE_CUSTOMER`)**
+  - Cập nhật thông tin địa chỉ với kiểm tra quyền sở hữu chặt chẽ (`404 Not Found` nếu không thuộc sở hữu của người dùng).
+
+- **DELETE `/api/me/addresses/{id}` (Quyền: `ROLE_CUSTOMER`)**
+  - Xóa địa chỉ với kiểm tra quyền sở hữu (`404 Not Found` nếu không thuộc sở hữu).
+  - Nếu xóa địa chỉ đang là mặc định và còn các địa chỉ khác, địa chỉ gần nhất còn lại sẽ tự động được gán làm mặc định.
+
+- **PATCH `/api/me/addresses/{id}/default` (Quyền: `ROLE_CUSTOMER`)**
+  - Đặt địa chỉ chỉ định làm mặc định và hủy mặc định ở tất cả các địa chỉ khác của người dùng.
+
 ### Contract change protocol
 - Nếu cần đổi API: tạo Issue / ADR, cập nhật file này + backend DTO + frontend type + tests **trong cùng PR hoặc hai PR có thứ tự phụ thuộc rõ**.
 - Không tự sửa endpoint ở UI để khớp mock data mà không sửa backend.

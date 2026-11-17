@@ -257,11 +257,10 @@ export function CustomerLayout({ children }: PropsWithChildren) {
                 onClick={() => navigate('/login')}
                 title="Đăng nhập tài khoản"
               >
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                  alt="Tài khoản"
-                  className={styles.avatarImg}
-                />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
               </button>
             )}
           </div>
