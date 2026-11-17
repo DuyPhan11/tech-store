@@ -83,7 +83,7 @@ public class SecurityConfig {
                 // Staff & Admin endpoints (ROLE_ADMIN kế thừa ROLE_STAFF qua RoleHierarchy)
                 .requestMatchers("/api/admin/**").hasRole("STAFF")
                 // Customer endpoints (yêu cầu đúng ROLE_CUSTOMER)
-                .requestMatchers("/api/cart", "/api/cart/**", "/api/checkout/**", "/api/orders/**", "/api/reviews/**", "/api/me/**").hasRole("CUSTOMER")
+                .requestMatchers("/api/cart", "/api/cart/**", "/api/checkout", "/api/checkout/**", "/api/orders/**", "/api/reviews/**", "/api/me/**").hasRole("CUSTOMER")
                 // Bất kỳ request nào khác cần xác thực
                 .anyRequest().authenticated()
             )

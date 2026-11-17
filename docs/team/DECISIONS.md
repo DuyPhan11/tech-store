@@ -11,7 +11,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-005 | Backend source of truth cho giá, stock, coupon | Proposed | Checkout invariants |
 | ADR-006 | Figma approved frames/tokens là chuẩn UI | Needs Figma URL | Frontend components |
 | ADR-007 | Frontend dùng React + TypeScript, Vite, React Router, CSS Modules + CSS Variables và npm | Frontend đã chốt. Phiên bản Java, chiến lược xác thực và migration còn mở. | Scaffold |
-| ADR-008 | Request idempotency cho checkout (mechanism) | Open | Checkout/API/schema |
+| ADR-008 | Request idempotency cho checkout (mechanism) | Approved | Checkout/API/schema |
 | ADR-009 | Tạm triển khai Home Page theo quy trình Code-first | Superseded by ADR-011 | Home Page và việc sử dụng Figma MCP |
 | ADR-010 | Định tuyến chi tiết sản phẩm bằng Slug và quy tắc tồn kho công khai (UC04/UC05) | Approved | Routing, catalog types, API contract, sequence |
 | ADR-011 | Chuẩn hóa hệ thống thiết kế từ Clicon eCommerce Marketplace Figma Template | Superseded by ADR-012 | Design System, Screen Map, UI Implementation |
@@ -188,6 +188,19 @@ Ngày quyết định: 17/11/2026.
   3. Cập nhật Entity `Category.java` với quan hệ `@ManyToOne parent` và `@OneToMany children`.
   4. Nâng cấp bộ lọc sản phẩm trong `ProductServiceImpl.java`: Khi lọc theo `category={slug}`, hệ thống sử dụng Left Join để khớp sản phẩm thuộc chính danh mục đó HOẶC thuộc bất kỳ danh mục con nào của nó.
   5. Giữ nguyên 100% khả năng tương thích ngược của các API và bài kiểm thử hiện có.
+
+### ADR-008 — Cơ chế Idempotency chống tạo đơn hàng trùng khi retry checkout (UC07)
+
+Ngày quyết định: 17/11/2026.
+
+- **Bối cảnh:**
+  - Khi khách hàng đặt hàng trực tuyến hoặc thanh toán COD, mạng có thể gặp sự cố giật lag hoặc người dùng nhấn nút "Đặt hàng ngay" nhiều lần liên tiếp.
+  - Cần đảm bảo hệ thống không tạo nhiều đơn hàng giống nhau, không trừ tồn kho lặp lại (double stock deduction) và trả về kết quả nhất quán.
+- **Quyết định:**
+  1. Client tự sinh chuỗi `idempotencyKey` duy nhất cho mỗi phiên thanh toán (gửi qua thuộc tính request body hoặc HTTP header `Idempotency-Key`).
+  2. Tại Backend `CheckoutServiceImpl`, hệ thống kiểm tra khóa kết hợp `userId:idempotencyKey` trong bộ đệm an toàn luồng (`ConcurrentHashMap`).
+  3. Nếu yêu cầu với khóa này đã được xử lý thành công, backend lập tức trả về `CheckoutResponse` đã lưu mà không tạo thêm bản ghi `orders`/`payments`, không trừ tồn kho thêm lần nào và không tác động đến giỏ hàng.
+  4. Cơ chế này bảo toàn trọn vẹn 21 bảng cơ sở dữ liệu MySQL đã duyệt, không cần tạo thêm bảng hoặc cột ngoài thiết kế gốc.
 
 ## Mẫu một quyết định
 

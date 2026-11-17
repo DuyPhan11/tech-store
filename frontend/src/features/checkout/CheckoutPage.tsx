@@ -1,10 +1,16 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
-import { Button } from '../../components/ui/Button'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useAuth } from '../auth/AuthContext'
+import { cartApi } from '../../lib/api/cartApi'
+import { catalogApi } from '../../lib/api/catalogApi'
+import { checkoutApi } from '../../lib/api/checkoutApi'
+import type { CheckoutRequest, CheckoutResponse } from './checkoutTypes'
 import styles from './CheckoutPage.module.css'
 
-interface OrderItem {
+interface DisplayOrderItem {
   id: string
+  cartItemId?: number
+  productId: number
   name: string
   image: string
   priceVnd: number
@@ -12,70 +18,285 @@ interface OrderItem {
   sku: string
 }
 
-const defaultItems: OrderItem[] = [
-  {
-    id: 'prod-1',
-    name: 'EX DISPLAY : MSI Pro 16 Flex-036AU 15.6 MULTITOUCH All-In-One',
-    image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=200&auto=format&fit=crop&q=60',
-    priceVnd: 12490000,
-    quantity: 1,
-    sku: 'MSI-PRO-16',
-  },
-  {
-    id: 'prod-2',
-    name: 'MSI MPG Trident AS 10SC-1208AU Gaming Desktop PC',
-    image: 'https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=200&auto=format&fit=crop&q=60',
-    priceVnd: 28990000,
-    quantity: 1,
-    sku: 'MSI-TRI-AS',
-  },
-]
-
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
 
 export function CheckoutPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
+
+  // Nguồn đặt hàng: CART hoặc BUY_NOW
+  const sourceParam = searchParams.get('source')
+  const productIdParam = searchParams.get('productId')
+  const quantityParam = searchParams.get('quantity')
+  const isBuyNow = sourceParam === 'BUY_NOW'
+
+  // Items State
+  const [items, setItems] = useState<DisplayOrderItem[]>([])
+  const [loadingItems, setLoadingItems] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Form State
-  const [email, setEmail] = useState('khachhang1@techstore.vn')
-  const [firstName, setFirstName] = useState('Duy')
-  const [lastName, setLastName] = useState('Nguyễn')
-  const [phone, setPhone] = useState('0901234567')
+  const [email, setEmail] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
   const [street, setStreet] = useState('123 Nguyễn Huệ, Phường Bến Nghé')
   const [city, setCity] = useState('Hồ Chí Minh')
+  const [branchId, setBranchId] = useState<number>(1)
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard')
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE_MOCK'>('COD')
   const [note, setNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const items = defaultItems
+  // Điền thông tin người dùng từ tài khoản đăng nhập
+  useEffect(() => {
+    if (user) {
+      setEmail(user.email || '')
+      setPhone(user.phone || '')
+      if (user.fullName) {
+        const parts = user.fullName.trim().split(' ')
+        if (parts.length > 1) {
+          setLastName(parts[0])
+          setFirstName(parts.slice(1).join(' '))
+        } else {
+          setLastName('')
+          setFirstName(user.fullName)
+        }
+      }
+    }
+  }, [user])
+
+  // Tải danh sách sản phẩm cần thanh toán
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadItems() {
+      setLoadingItems(true)
+      setLoadError(null)
+
+      try {
+        if (isBuyNow) {
+          // Luồng Mua Ngay (BUY_NOW)
+          const buyNowQty = quantityParam ? Math.max(1, parseInt(quantityParam, 10)) : 1
+
+          // Nếu có thông tin sản phẩm truyền qua state
+          const stateProduct = (location.state as { product?: { id: number | string; name: string; image?: string; priceVnd: number; sku?: string } })?.product
+          if (stateProduct) {
+            if (isMounted) {
+              setItems([{
+                id: String(stateProduct.id),
+                productId: Number(stateProduct.id),
+                name: stateProduct.name,
+                image: stateProduct.image || '',
+                priceVnd: stateProduct.priceVnd,
+                quantity: buyNowQty,
+                sku: stateProduct.sku || '',
+              }])
+            }
+          } else if (productIdParam) {
+            // Lấy danh sách sản phẩm từ catalog để tìm sản phẩm
+            const catalogPage = await catalogApi.getProducts({
+              keyword: '',
+              category: '',
+              brand: '',
+              sort: 'default',
+              page: 1,
+            })
+            const found = catalogPage.products.find(p => String(p.id) === String(productIdParam))
+            if (found && isMounted) {
+              setItems([{
+                id: String(found.id),
+                productId: Number(found.id),
+                name: found.name,
+                image: found.image || '',
+                priceVnd: found.priceVnd,
+                quantity: buyNowQty,
+                sku: found.slug || '',
+              }])
+            } else if (isMounted) {
+              setLoadError('Không tìm thấy thông tin sản phẩm để Mua Ngay.')
+            }
+          } else if (isMounted) {
+            setLoadError('Thiếu thông tin sản phẩm Mua Ngay.')
+          }
+        } else {
+          // Luồng Giỏ Hàng (CART)
+          if (!isAuthenticated) {
+            if (isMounted) setLoadingItems(false)
+            return
+          }
+          const cartData = await cartApi.getCart()
+          if (isMounted) {
+            if (!cartData.items || cartData.items.length === 0) {
+              setItems([])
+            } else {
+              setItems(cartData.items.map(item => ({
+                id: String(item.id),
+                cartItemId: item.id,
+                productId: item.productId,
+                name: item.productName,
+                image: item.productImage || '',
+                priceVnd: item.priceVnd,
+                quantity: item.quantity,
+                sku: item.productSku,
+              })))
+            }
+          }
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setLoadError((err as Error)?.message || 'Không thể tải danh sách sản phẩm thanh toán.')
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingItems(false)
+        }
+      }
+    }
+
+    loadItems()
+
+    return () => {
+      isMounted = false
+    }
+  }, [isBuyNow, productIdParam, quantityParam, isAuthenticated, location.state])
+
+  // Tính toán tiền hàng
   const subtotal = items.reduce((sum, item) => sum + item.priceVnd * item.quantity, 0)
   const shippingFee = shippingMethod === 'standard' ? 0 : 150000
   const grandTotal = subtotal + shippingFee
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  // Xử lý gửi đơn hàng
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitError(null)
+
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/checkout')
+      return
+    }
+
+    if (items.length === 0) {
+      setSubmitError('Không có sản phẩm nào trong đơn hàng để thanh toán.')
+      return
+    }
+
+    if (paymentMethod !== 'COD') {
+      alert('Phương thức thanh toán Online Mock sẽ được hỗ trợ trong phiên bản tiếp theo. Vui lòng chọn Thanh toán COD.')
+      return
+    }
+
     setIsSubmitting(true)
 
-    // Simulate placing order
-    setTimeout(() => {
-      setIsSubmitting(false)
-      const orderCode = `TS-${Math.floor(100000 + Math.random() * 900000)}`
+    try {
+      const recipientFullName = `${lastName} ${firstName}`.trim() || user?.fullName || 'Khách hàng'
+      const fullShippingAddress = `${street}, ${city}`.trim()
+      const idempotencyKey = `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+      const payload: CheckoutRequest = {
+        source: isBuyNow ? 'BUY_NOW' : 'CART',
+        selectedCartItemIds: isBuyNow ? undefined : items.map(i => i.cartItemId!).filter(Boolean),
+        productId: isBuyNow ? items[0]?.productId : undefined,
+        quantity: isBuyNow ? items[0]?.quantity : undefined,
+        branchId: branchId,
+        paymentMethod: 'COD',
+        couponCode: null,
+        recipientName: recipientFullName,
+        recipientPhone: phone.trim(),
+        shippingAddress: fullShippingAddress,
+        notes: note.trim() || null,
+        idempotencyKey,
+      }
+
+      const response: CheckoutResponse = await checkoutApi.checkout(payload)
+
       navigate('/checkout/success', {
         state: {
-          orderCode,
-          customerName: `${lastName} ${firstName}`,
+          orderCode: response.orderCode,
+          customerName: response.recipientName,
           email,
-          phone,
+          phone: response.recipientPhone,
           street,
           city,
-          paymentMethod,
+          paymentMethod: response.paymentMethod,
           shippingMethod,
-          grandTotal,
-          items,
+          grandTotal: response.finalAmount,
+          items: response.items,
         },
       })
-    }, 600)
+    } catch (err: unknown) {
+      const message = (err as Error)?.message || 'Đã xảy ra lỗi khi tạo đơn hàng. Vui lòng thử lại.'
+      setSubmitError(message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (authLoading || loadingItems) {
+    return (
+      <div className={styles.checkoutPage}>
+        <div style={{ padding: '60px 0', textAlign: 'center', color: '#666' }}>
+          <p>Đang chuẩn bị thông tin thanh toán...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className={styles.checkoutPage}>
+        <div className={styles.emptyState}>
+          <h2>Vui lòng đăng nhập</h2>
+          <p>Bạn cần đăng nhập tài khoản Khách hàng để tiến hành đặt hàng và thanh toán.</p>
+          <button
+            type="button"
+            className={styles.pillPrimaryBtn}
+            onClick={() => navigate('/login?redirect=/checkout')}
+          >
+            Đăng nhập ngay
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className={styles.checkoutPage}>
+        <div className={styles.emptyState}>
+          <h2>Không thể tải đơn hàng</h2>
+          <p>{loadError}</p>
+          <button
+            type="button"
+            className={styles.pillPrimaryBtn}
+            onClick={() => navigate('/products')}
+          >
+            Quay lại danh sách sản phẩm
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className={styles.checkoutPage}>
+        <div className={styles.emptyState}>
+          <h2>Chưa có sản phẩm nào để thanh toán</h2>
+          <p>Giỏ hàng của bạn đang trống hoặc bạn chưa chọn sản phẩm nào để đặt hàng.</p>
+          <button
+            type="button"
+            className={styles.pillPrimaryBtn}
+            onClick={() => navigate('/products')}
+          >
+            Khám phá sản phẩm ngay
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -90,17 +311,40 @@ export function CheckoutPage() {
 
       <h1 className={styles.pageTitle}>Thanh toán đơn hàng</h1>
 
+      {submitError && (
+        <div className={styles.errorBanner} role="alert">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{submitError}</span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmitOrder} className={styles.checkoutLayout}>
         {/* Left Form: Shipping & Payment */}
         <div className={styles.formSection}>
-          {/* Step 1: Shipping Address */}
+          {/* Step 1: Shipping Address & Branch Selection */}
           <section className={styles.stepBlock}>
             <div className={styles.stepHeader}>
               <span className={styles.stepBadge}>1</span>
-              <h2>Địa chỉ nhận hàng</h2>
+              <h2>Địa chỉ nhận hàng & Chi nhánh phục vụ</h2>
             </div>
 
             <div className={styles.fieldGrid}>
+              <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
+                <label htmlFor="chk-branch">Chi nhánh xuất hàng và bảo hành <span className={styles.required}>*</span></label>
+                <select
+                  id="chk-branch"
+                  value={branchId}
+                  onChange={e => setBranchId(Number(e.target.value))}
+                >
+                  <option value={1}>Chi nhánh Quận 1 — Showroom 123 Lê Lợi, Quận 1, TP.HCM</option>
+                  <option value={2}>Chi nhánh Quận 7 — Showroom 456 Nguyễn Thị Thập, Quận 7, TP.HCM</option>
+                </select>
+              </div>
+
               <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
                 <label htmlFor="chk-email">Địa chỉ Email <span className={styles.required}>*</span></label>
                 <input
@@ -204,7 +448,7 @@ export function CheckoutPage() {
                 />
                 <div className={styles.radioLabel}>
                   <strong>Giao hàng Tiêu chuẩn</strong>
-                  <span>Giao trong 2-3 ngày làm việc • Miễn phí vận chuyển cho đơn hàng lớn</span>
+                  <span>Giao trong 2-3 ngày làm việc • Miễn phí vận chuyển</span>
                 </div>
                 <div className={styles.radioPrice}>Miễn phí</div>
               </label>
@@ -275,7 +519,7 @@ export function CheckoutPage() {
                 <div key={item.id} className={styles.itemRow}>
                   <img src={item.image} alt={item.name} className={styles.itemThumb} />
                   <div className={styles.itemInfo}>
-                    <p className={styles.itemName}>{item.name}</p>
+                    <p className={styles.itemName} title={item.name}>{item.name}</p>
                     <div className={styles.itemMeta}>
                       <span>Số lượng: {item.quantity}</span>
                       <strong className={styles.itemPrice}>{currency.format(item.priceVnd)}</strong>

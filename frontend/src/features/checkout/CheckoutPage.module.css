@@ -336,3 +336,57 @@
     grid-template-columns: 1fr;
   }
 }
+
+.errorBanner {
+  background: #fde8e8;
+  border: 1px solid #f8b4b4;
+  color: #9b1c1c;
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--ts-radius-sm);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 4rem 1rem;
+  background: #ffffff;
+  border: 1px solid var(--ts-color-border);
+  border-radius: var(--ts-radius-md);
+  max-width: 600px;
+  margin: 2rem auto;
+}
+
+.emptyState h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.emptyState p {
+  color: var(--ts-color-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.pillPrimaryBtn {
+  display: inline-block;
+  background: var(--ts-color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--ts-radius-pill);
+  padding: 0.75rem 2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity var(--ts-transition-fast);
+}
+
+.pillPrimaryBtn:hover {
+  opacity: 0.9;
+}
+
