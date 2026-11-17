@@ -112,18 +112,20 @@ public class DemoDataInitializer implements CommandLineRunner {
             log.info("Tạo thành công tài khoản demo STAFF: staff@techstore.vn / 0902345678");
         }
 
-        // 4. Tạo tài khoản Demo Customer (ROLE_CUSTOMER)
-        if (!userRepository.existsByEmail("customer@techstore.vn")) {
-            User customer = new User();
-            customer.setEmail("customer@techstore.vn");
-            customer.setPhone("0903456789");
-            customer.setFullName("Khách hàng Thử nghiệm");
-            customer.setPassword(passwordEncoder.encode(customerPassword));
-            customer.setStatus(UserStatus.ACTIVE);
-            customer.setRoles(Set.of(roleCustomer));
-            userRepository.save(customer);
-            log.info("Tạo thành công tài khoản demo CUSTOMER: customer@techstore.vn / 0903456789");
-        }
+        // 4. Tạo hoặc khôi phục mật khẩu chuẩn cho Demo Customer (ROLE_CUSTOMER)
+        User customer = userRepository.findByEmail("customer@techstore.vn").orElseGet(() -> {
+            User c = new User();
+            c.setEmail("customer@techstore.vn");
+            c.setPhone("0903456789");
+            c.setFullName("Khách hàng Thử nghiệm");
+            c.setStatus(UserStatus.ACTIVE);
+            c.setRoles(Set.of(roleCustomer));
+            return c;
+        });
+        customer.setPassword(passwordEncoder.encode(customerPassword));
+        customer.setStatus(UserStatus.ACTIVE);
+        userRepository.save(customer);
+        log.info("Đã đồng bộ tài khoản demo CUSTOMER: customer@techstore.vn / {}", customerPassword);
 
         // 5. Tạo tài khoản Demo Locked (status = LOCKED để kiểm thử 403 Forbidden)
         if (!userRepository.existsByEmail("locked@techstore.vn")) {

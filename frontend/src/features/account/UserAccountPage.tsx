@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import { Button } from '../../components/ui/Button'
+import { profileApi } from '../../lib/api/profileApi'
+import type { AddressItem, AddressPayload, UserProfile } from './accountTypes'
 import styles from './UserAccountPage.module.css'
 
 type TabType =
@@ -62,17 +64,217 @@ export function UserAccountPage() {
   const initialTab: TabType = location.pathname.includes('/orders') ? 'orders' : 'dashboard'
   const [activeTab, setActiveTab] = useState<TabType>(initialTab)
   const [orders, setOrders] = useState<MockOrder[]>(mockOrders)
+  
+  // Real Profile & Address State
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [addresses, setAddresses] = useState<AddressItem[]>([])
+  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const displayName = user?.fullName || 'Alex Driver'
-  const displayEmail = user?.email || 'ExampeAdress@gmail.com'
+  // Form states for profile info
+  const [fullNameInput, setFullNameInput] = useState('')
+  const [phoneInput, setPhoneInput] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+
+  // Form states for password change
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+
+  // Address Modal State
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null)
+  const [modalRecipientName, setModalRecipientName] = useState('')
+  const [modalPhone, setModalPhone] = useState('')
+  const [modalStreetAddress, setModalStreetAddress] = useState('')
+  const [modalWard, setModalWard] = useState('')
+  const [modalDistrict, setModalDistrict] = useState('')
+  const [modalCity, setModalCity] = useState('')
+  const [modalIsDefault, setModalIsDefault] = useState(false)
+  const [modalSubmitting, setModalSubmitting] = useState(false)
+
+  // Load profile and addresses from API
+  const fetchProfileAndAddresses = async () => {
+    if (!isAuthenticated) return
+    setLoading(true)
+    try {
+      const [profData, addrData] = await Promise.all([
+        profileApi.getProfile(),
+        profileApi.getAddresses(),
+      ])
+      setProfile(profData)
+      setAddresses(addrData)
+      setFullNameInput(profData.fullName || '')
+      setPhoneInput(profData.phone || '')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể tải dữ liệu tài khoản'
+      setErrorMessage(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProfileAndAddresses()
+  }, [isAuthenticated])
+
+  const showToastSuccess = (text: string) => {
+    setMessage(text)
+    setErrorMessage('')
+    setTimeout(() => setMessage(''), 4000)
+  }
+
+  const showToastError = (text: string) => {
+    setErrorMessage(text)
+    setMessage('')
+    setTimeout(() => setErrorMessage(''), 5000)
+  }
+
+  // Handle Profile Update
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setProfileSaving(true)
+    setErrorMessage('')
+    try {
+      const updated = await profileApi.updateProfile({
+        fullName: fullNameInput.trim(),
+        phone: phoneInput.trim() || undefined,
+      })
+      setProfile(updated)
+      showToastSuccess('Cập nhật thông tin tài khoản thành công!')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Cập nhật thất bại. Vui lòng kiểm tra lại.'
+      showToastError(msg)
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
+  // Handle Change Password
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword.length < 6) {
+      showToastError('Mật khẩu mới phải có tối thiểu 6 ký tự.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      showToastError('Xác nhận mật khẩu mới không khớp.')
+      return
+    }
+    setPasswordSaving(true)
+    setErrorMessage('')
+    try {
+      await profileApi.changePassword({
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      })
+      showToastSuccess('Đổi mật khẩu tài khoản thành công!')
+      setOldPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Đổi mật khẩu thất bại. Vui lòng thử lại.'
+      showToastError(msg)
+    } finally {
+      setPasswordSaving(false)
+    }
+  }
+
+  // Open modal to add address
+  const handleOpenAddAddress = () => {
+    setEditingAddressId(null)
+    setModalRecipientName(profile?.fullName || '')
+    setModalPhone(profile?.phone || '')
+    setModalStreetAddress('')
+    setModalWard('')
+    setModalDistrict('')
+    setModalCity('')
+    setModalIsDefault(addresses.length === 0)
+    setIsAddressModalOpen(true)
+  }
+
+  // Open modal to edit address
+  const handleOpenEditAddress = (addr: AddressItem) => {
+    setEditingAddressId(addr.id)
+    setModalRecipientName(addr.recipientName)
+    setModalPhone(addr.phone)
+    setModalStreetAddress(addr.streetAddress)
+    setModalWard(addr.ward || '')
+    setModalDistrict(addr.district || '')
+    setModalCity(addr.city)
+    setModalIsDefault(addr.isDefault)
+    setIsAddressModalOpen(true)
+  }
+
+  // Submit address modal
+  const handleSaveAddress = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!modalRecipientName.trim() || !modalPhone.trim() || !modalStreetAddress.trim() || !modalCity.trim()) {
+      showToastError('Vui lòng điền đầy đủ các thông tin bắt buộc.')
+      return
+    }
+    setModalSubmitting(true)
+    const payload: AddressPayload = {
+      recipientName: modalRecipientName.trim(),
+      phone: modalPhone.trim(),
+      streetAddress: modalStreetAddress.trim(),
+      ward: modalWard.trim() || undefined,
+      district: modalDistrict.trim() || undefined,
+      city: modalCity.trim(),
+      isDefault: modalIsDefault,
+    }
+
+    try {
+      if (editingAddressId) {
+        await profileApi.updateAddress(editingAddressId, payload)
+        showToastSuccess('Cập nhật địa chỉ thành công!')
+      } else {
+        await profileApi.addAddress(payload)
+        showToastSuccess('Thêm địa chỉ mới thành công!')
+      }
+      setIsAddressModalOpen(false)
+      await fetchProfileAndAddresses()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi lưu địa chỉ'
+      showToastError(msg)
+    } finally {
+      setModalSubmitting(false)
+    }
+  }
+
+  // Delete address
+  const handleDeleteAddress = async (id: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa địa chỉ này khỏi sổ địa chỉ?')) return
+    try {
+      await profileApi.deleteAddress(id)
+      showToastSuccess('Đã xóa địa chỉ thành công.')
+      await fetchProfileAndAddresses()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể xóa địa chỉ.'
+      showToastError(msg)
+    }
+  }
+
+  // Set default address
+  const handleSetDefaultAddress = async (id: number) => {
+    try {
+      await profileApi.setDefaultAddress(id)
+      showToastSuccess('Đã đổi địa chỉ mặc định thành công.')
+      await fetchProfileAndAddresses()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể đặt làm mặc định.'
+      showToastError(msg)
+    }
+  }
 
   const handleCancelOrder = (code: string) => {
     setOrders(prev =>
       prev.map(ord => (ord.code === code ? { ...ord, status: 'CANCELLED' } : ord))
     )
-    setMessage(`Đã gửi yêu cầu hủy đơn hàng #${code} thành công.`)
-    setTimeout(() => setMessage(''), 4000)
+    showToastSuccess(`Đã gửi yêu cầu hủy đơn hàng #${code} thành công.`)
   }
 
   const getStatusBadge = (status: MockOrder['status']) => {
@@ -90,6 +292,11 @@ export function UserAccountPage() {
     }
   }
 
+  const displayName = profile?.fullName || user?.fullName || 'Khách hàng'
+  const displayEmail = profile?.email || user?.email || ''
+  const displayPhone = profile?.phone || user?.phone || 'Chưa cập nhật'
+  const defaultAddress = profile?.defaultAddress || addresses.find(a => a.isDefault) || null
+
   return (
     <div className={styles.accountPage}>
       {/* Breadcrumb */}
@@ -103,6 +310,7 @@ export function UserAccountPage() {
       <h1 className={styles.pageTitle}>Bảng điều khiển tài khoản</h1>
 
       {message && <div className={styles.toastSuccess}>{message}</div>}
+      {errorMessage && <div className={styles.toastError}>{errorMessage}</div>}
 
       <div className={styles.accountLayout}>
         {/* Left Sidebar matching Figma */}
@@ -204,22 +412,22 @@ export function UserAccountPage() {
             )}
           </nav>
 
-          {/* Widget 1: Compare Products matching Figma */}
+          {/* Widget 1: Compare Products */}
           <div className={styles.sideWidget}>
             <h3 className={styles.sideWidgetTitle}>So sánh sản phẩm</h3>
             <p className={styles.sideWidgetText}>Bạn chưa có sản phẩm nào để so sánh.</p>
           </div>
 
-          {/* Widget 2: My Wish List matching Figma */}
+          {/* Widget 2: My Wish List */}
           <div className={styles.sideWidget}>
             <h3 className={styles.sideWidgetTitle}>Danh sách yêu thích</h3>
             <p className={styles.sideWidgetText}>Bạn chưa có sản phẩm nào trong danh sách yêu thích.</p>
           </div>
         </aside>
 
-        {/* Right Main Content: CLEAN & BORDERLESS matching Figma */}
+        {/* Right Main Content */}
         <main className={styles.mainContent}>
-          {/* TAB 1: DASHBOARD (Exact Match to Figma Image 2) */}
+          {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
             <div className={styles.tabPane}>
               {/* Section 1: Account Information */}
@@ -230,8 +438,9 @@ export function UserAccountPage() {
                 <div className={styles.twoColGrid}>
                   <div className={styles.infoCol}>
                     <h3 className={styles.subTitle}>Thông tin liên lạc</h3>
-                    <p className={styles.infoText}>{displayName}</p>
-                    <p className={styles.infoText}>{displayEmail}</p>
+                    <p className={styles.infoText}><strong>Họ tên:</strong> {displayName}</p>
+                    <p className={styles.infoText}><strong>Email:</strong> {displayEmail}</p>
+                    <p className={styles.infoText}><strong>Điện thoại:</strong> {displayPhone}</p>
                     <div className={styles.actionLinks}>
                       <button
                         type="button"
@@ -243,7 +452,7 @@ export function UserAccountPage() {
                       <button
                         type="button"
                         className={styles.actionLink}
-                        onClick={() => alert('Chức năng đổi mật khẩu tài khoản')}
+                        onClick={() => setActiveTab('account_info')}
                       >
                         Đổi mật khẩu
                       </button>
@@ -252,7 +461,7 @@ export function UserAccountPage() {
 
                   <div className={styles.infoCol}>
                     <h3 className={styles.subTitle}>Bản tin khuyến mãi</h3>
-                    <p className={styles.infoMuted}>Bạn chưa đăng ký nhận bản tin công nghệ của chúng tôi.</p>
+                    <p className={styles.infoMuted}>Bạn đang đăng ký nhận thông tin ưu đãi từ Tech Store.</p>
                     <div className={styles.actionLinks}>
                       <button
                         type="button"
@@ -280,29 +489,51 @@ export function UserAccountPage() {
                 </div>
                 <div className={styles.twoColGrid}>
                   <div className={styles.infoCol}>
-                    <h3 className={styles.subTitle}>Địa chỉ thanh toán mặc định</h3>
-                    <p className={styles.infoMuted}>Bạn chưa thiết lập địa chỉ thanh toán mặc định.</p>
-                    <div className={styles.actionLinks}>
-                      <button
-                        type="button"
-                        className={styles.actionLink}
-                        onClick={() => setActiveTab('addresses')}
-                      >
-                        Chỉnh sửa địa chỉ
-                      </button>
-                    </div>
+                    <h3 className={styles.subTitle}>Địa chỉ giao hàng mặc định</h3>
+                    {defaultAddress ? (
+                      <>
+                        <p className={styles.infoText}><strong>Người nhận:</strong> {defaultAddress.recipientName}</p>
+                        <p className={styles.infoText}><strong>Điện thoại:</strong> {defaultAddress.phone}</p>
+                        <p className={styles.infoMuted}>{defaultAddress.fullAddress}</p>
+                        <div className={styles.actionLinks}>
+                          <button
+                            type="button"
+                            className={styles.actionLink}
+                            onClick={() => {
+                              setActiveTab('addresses')
+                              handleOpenEditAddress(defaultAddress)
+                            }}
+                          >
+                            Chỉnh sửa địa chỉ
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className={styles.infoMuted}>Bạn chưa thiết lập địa chỉ nhận hàng mặc định.</p>
+                        <div className={styles.actionLinks}>
+                          <button
+                            type="button"
+                            className={styles.actionLink}
+                            onClick={handleOpenAddAddress}
+                          >
+                            Thêm địa chỉ ngay
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className={styles.infoCol}>
-                    <h3 className={styles.subTitle}>Địa chỉ nhận hàng mặc định</h3>
-                    <p className={styles.infoMuted}>Bạn chưa thiết lập địa chỉ nhận hàng mặc định.</p>
+                    <h3 className={styles.subTitle}>Tổng số địa chỉ đã lưu</h3>
+                    <p className={styles.infoText}>Hiện tại bạn có <strong>{addresses.length}</strong> địa chỉ trong sổ địa chỉ.</p>
                     <div className={styles.actionLinks}>
                       <button
                         type="button"
                         className={styles.actionLink}
                         onClick={() => setActiveTab('addresses')}
                       >
-                        Chỉnh sửa địa chỉ
+                        Xem tất cả địa chỉ
                       </button>
                     </div>
                   </div>
@@ -376,63 +607,162 @@ export function UserAccountPage() {
             <div className={styles.tabPane}>
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>Sổ địa chỉ giao nhận</h2>
+                  <h2 className={styles.sectionTitle}>Sổ địa chỉ giao nhận ({addresses.length})</h2>
                   <button
                     type="button"
                     className={styles.headerLink}
-                    onClick={() => alert('Thêm địa chỉ mới')}
+                    onClick={handleOpenAddAddress}
                   >
                     + Thêm địa chỉ mới
                   </button>
                 </div>
-                <div className={styles.twoColGrid}>
-                  <div className={styles.infoCol}>
-                    <h3 className={styles.subTitle}>Địa chỉ nhà riêng (Mặc định)</h3>
-                    <p className={styles.infoText}><strong>Người nhận:</strong> Nguyễn Văn A</p>
-                    <p className={styles.infoText}><strong>Điện thoại:</strong> 0901234567</p>
-                    <p className={styles.infoMuted}>123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</p>
-                    <div className={styles.actionLinks}>
-                      <button type="button" className={styles.actionLink}>Chỉnh sửa địa chỉ</button>
-                    </div>
-                  </div>
 
-                  <div className={styles.infoCol}>
-                    <h3 className={styles.subTitle}>Địa chỉ văn phòng / Công ty</h3>
-                    <p className={styles.infoText}><strong>Người nhận:</strong> Nguyễn Văn A</p>
-                    <p className={styles.infoText}><strong>Điện thoại:</strong> 0901234567</p>
-                    <p className={styles.infoMuted}>Tầng 8 Tòa nhà Bitexco, 2 Hải Triều, Bến Nghé, Quận 1, TP. HCM</p>
-                    <div className={styles.actionLinks}>
-                      <button type="button" className={styles.actionLink}>Chỉnh sửa địa chỉ</button>
-                      <button type="button" className={styles.actionLink}>Đặt làm mặc định</button>
-                    </div>
+                {loading ? (
+                  <p className={styles.infoMuted}>Đang tải danh sách địa chỉ...</p>
+                ) : addresses.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                    <p className={styles.infoMuted} style={{ marginBottom: '16px' }}>
+                      Bạn chưa có địa chỉ nào được lưu. Hãy thêm địa chỉ để thanh toán nhanh hơn!
+                    </p>
+                    <Button variant="primary" onClick={handleOpenAddAddress}>
+                      + Thêm địa chỉ đầu tiên
+                    </Button>
                   </div>
-                </div>
+                ) : (
+                  <div className={styles.twoColGrid}>
+                    {addresses.map((addr, idx) => (
+                      <div key={addr.id} className={styles.infoCol}>
+                        <h3 className={styles.subTitle}>
+                          Địa chỉ #{idx + 1}
+                          {addr.isDefault && <span className={styles.badgeDefault}>Mặc định</span>}
+                        </h3>
+                        <p className={styles.infoText}><strong>Người nhận:</strong> {addr.recipientName}</p>
+                        <p className={styles.infoText}><strong>Điện thoại:</strong> {addr.phone}</p>
+                        <p className={styles.infoMuted}>{addr.fullAddress}</p>
+                        <div className={styles.actionLinks} style={{ marginTop: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className={styles.actionLink}
+                            onClick={() => handleOpenEditAddress(addr)}
+                          >
+                            Chỉnh sửa
+                          </button>
+                          {!addr.isDefault && (
+                            <button
+                              type="button"
+                              className={styles.actionLink}
+                              onClick={() => handleSetDefaultAddress(addr.id)}
+                            >
+                              Đặt làm mặc định
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={styles.actionBtnDelete}
+                            onClick={() => handleDeleteAddress(addr.id)}
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* TAB 4: ACCOUNT INFO */}
+          {/* TAB 4: ACCOUNT INFO & PASSWORD */}
           {activeTab === 'account_info' && (
             <div className={styles.tabPane}>
+              {/* Profile Details Form */}
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>Chỉnh sửa thông tin tài khoản</h2>
                 </div>
-                <form className={styles.infoForm} onSubmit={e => { e.preventDefault(); alert('Cập nhật thông tin thành công!') }}>
+                <form className={styles.infoForm} onSubmit={handleProfileSubmit}>
                   <div className={styles.formRow}>
-                    <label htmlFor="usr-fullname">Họ và tên</label>
-                    <input id="usr-fullname" type="text" defaultValue={displayName} />
+                    <label htmlFor="usr-fullname">Họ và tên *</label>
+                    <input
+                      id="usr-fullname"
+                      type="text"
+                      value={fullNameInput}
+                      onChange={e => setFullNameInput(e.target.value)}
+                      placeholder="Nguyễn Văn A"
+                      required
+                    />
                   </div>
                   <div className={styles.formRow}>
                     <label htmlFor="usr-email">Email đăng nhập</label>
-                    <input id="usr-email" type="email" defaultValue={displayEmail} disabled />
+                    <input
+                      id="usr-email"
+                      type="email"
+                      value={displayEmail}
+                      disabled
+                      title="Email là định danh tài khoản và không thể thay đổi"
+                    />
                   </div>
                   <div className={styles.formRow}>
-                    <label htmlFor="usr-phone">Số điện thoại</label>
-                    <input id="usr-phone" type="tel" defaultValue="0901234567" />
+                    <label htmlFor="usr-phone">Số điện thoại *</label>
+                    <input
+                      id="usr-phone"
+                      type="tel"
+                      value={phoneInput}
+                      onChange={e => setPhoneInput(e.target.value)}
+                      placeholder="0901234567"
+                      pattern="^(0|\+84)[0-9]{9,10}$"
+                      title="Số điện thoại gồm 10 hoặc 11 chữ số, bắt đầu bằng 0 hoặc +84"
+                    />
                   </div>
-                  <button type="submit" className={styles.saveBtnPill}>
-                    Lưu thay đổi
+                  <button type="submit" className={styles.saveBtnPill} disabled={profileSaving}>
+                    {profileSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  </button>
+                </form>
+              </div>
+
+              {/* Change Password Form */}
+              <div className={styles.passwordSection}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Đổi mật khẩu tài khoản</h2>
+                </div>
+                <form className={styles.infoForm} onSubmit={handlePasswordSubmit}>
+                  <div className={styles.formRow}>
+                    <label htmlFor="old-password">Mật khẩu hiện tại *</label>
+                    <input
+                      id="old-password"
+                      type="password"
+                      value={oldPassword}
+                      onChange={e => setOldPassword(e.target.value)}
+                      placeholder="Nhập mật khẩu cũ"
+                      required
+                    />
+                  </div>
+                  <div className={styles.formRow}>
+                    <label htmlFor="new-password">Mật khẩu mới (tối thiểu 6 ký tự) *</label>
+                    <input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Nhập mật khẩu mới"
+                      minLength={6}
+                      required
+                    />
+                  </div>
+                  <div className={styles.formRow}>
+                    <label htmlFor="confirm-password">Xác nhận mật khẩu mới *</label>
+                    <input
+                      id="confirm-password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Nhập lại mật khẩu mới"
+                      minLength={6}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className={styles.saveBtnPill} disabled={passwordSaving}>
+                    {passwordSaving ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}
                   </button>
                 </form>
               </div>
@@ -519,7 +849,7 @@ export function UserAccountPage() {
                   <button
                     type="button"
                     className={styles.saveBtnPill}
-                    onClick={() => alert('Cài đặt bản tin đã được lưu thành công!')}
+                    onClick={() => showToastSuccess('Cài đặt bản tin đã được lưu thành công!')}
                   >
                     Lưu cài đặt
                   </button>
@@ -529,6 +859,127 @@ export function UserAccountPage() {
           )}
         </main>
       </div>
+
+      {/* Modal: Thêm / Sửa Địa chỉ */}
+      {isAddressModalOpen && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="modal-addr-title">
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 id="modal-addr-title" className={styles.modalTitle}>
+                {editingAddressId ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ giao nhận mới'}
+              </h3>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setIsAddressModalOpen(false)}
+                aria-label="Đóng"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAddress}>
+              <div className={styles.infoForm} style={{ maxWidth: '100%' }}>
+                <div className={styles.formRow}>
+                  <label htmlFor="modal-name">Tên người nhận *</label>
+                  <input
+                    id="modal-name"
+                    type="text"
+                    value={modalRecipientName}
+                    onChange={e => setModalRecipientName(e.target.value)}
+                    placeholder="Nguyễn Văn A"
+                    required
+                  />
+                </div>
+
+                <div className={styles.formRow}>
+                  <label htmlFor="modal-phone">Số điện thoại *</label>
+                  <input
+                    id="modal-phone"
+                    type="tel"
+                    value={modalPhone}
+                    onChange={e => setModalPhone(e.target.value)}
+                    placeholder="0901234567"
+                    required
+                  />
+                </div>
+
+                <div className={styles.formRow}>
+                  <label htmlFor="modal-street">Địa chỉ chi tiết (số nhà, đường) *</label>
+                  <input
+                    id="modal-street"
+                    type="text"
+                    value={modalStreetAddress}
+                    onChange={e => setModalStreetAddress(e.target.value)}
+                    placeholder="123 Đường Lê Lợi"
+                    required
+                  />
+                </div>
+
+                <div className={styles.formRow}>
+                  <label htmlFor="modal-ward">Phường / Xã</label>
+                  <input
+                    id="modal-ward"
+                    type="text"
+                    value={modalWard}
+                    onChange={e => setModalWard(e.target.value)}
+                    placeholder="Phường Bến Nghé"
+                  />
+                </div>
+
+                <div className={styles.formRow}>
+                  <label htmlFor="modal-district">Quận / Huyện</label>
+                  <input
+                    id="modal-district"
+                    type="text"
+                    value={modalDistrict}
+                    onChange={e => setModalDistrict(e.target.value)}
+                    placeholder="Quận 1"
+                  />
+                </div>
+
+                <div className={styles.formRow}>
+                  <label htmlFor="modal-city">Tỉnh / Thành phố *</label>
+                  <input
+                    id="modal-city"
+                    type="text"
+                    value={modalCity}
+                    onChange={e => setModalCity(e.target.value)}
+                    placeholder="TP. Hồ Chí Minh"
+                    required
+                  />
+                </div>
+
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={modalIsDefault}
+                    onChange={e => setModalIsDefault(e.target.checked)}
+                  />
+                  <span>Đặt làm địa chỉ giao hàng mặc định</span>
+                </label>
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.btnSecondary}
+                    onClick={() => setIsAddressModalOpen(false)}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className={styles.saveBtnPill}
+                    disabled={modalSubmitting}
+                  >
+                    {modalSubmitting ? 'Đang lưu...' : 'Lưu địa chỉ'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
