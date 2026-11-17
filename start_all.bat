@@ -12,8 +12,11 @@ if exist "%ROOT%.env.local" (
 )
 
 echo Database User: %DB_USERNAME%
+if not "%MAIL_USERNAME%"=="" (
+  echo Email Sender:  %MAIL_USERNAME%
+)
 echo [1/2] Starting Backend at http://localhost:8080 (Connecting to MySQL) ...
-start "Tech Store - Backend" /D "%ROOT%backend" cmd /k "set DB_USERNAME=%DB_USERNAME%&& set DB_PASSWORD=%DB_PASSWORD%&& mvnw.cmd spring-boot:run"
+start "Tech Store - Backend" /D "%ROOT%backend" cmd /k "set DB_USERNAME=%DB_USERNAME%&& set DB_PASSWORD=%DB_PASSWORD%&& set MAIL_USERNAME=%MAIL_USERNAME%&& set MAIL_PASSWORD=%MAIL_PASSWORD%&& mvnw.cmd spring-boot:run"
 
 echo Dang doi Backend khoi dong (khoang 8 giay)...
 timeout /t 8 /nobreak >nul

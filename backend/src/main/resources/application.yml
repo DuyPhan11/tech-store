@@ -16,6 +16,21 @@ spring:
       hibernate:
         format_sql: true
     show-sql: false
+  mail:
+    host: ${MAIL_HOST:${SMTP_HOST:smtp.gmail.com}}
+    port: ${MAIL_PORT:${SMTP_PORT:587}}
+    username: ${MAIL_USERNAME:${SMTP_USERNAME:}}
+    password: ${MAIL_PASSWORD:${SMTP_PASSWORD:}}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 app:
   jwt:

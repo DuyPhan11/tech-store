@@ -12,6 +12,7 @@ let authContextModule
 let routeGuardModule
 let loginPageModule
 let layoutModule
+let registerPageModule
 
 before(async () => {
   server = await createServer({
@@ -19,13 +20,14 @@ before(async () => {
     appType: 'custom',
   })
 
-  const [apiMod, storageMod, contextMod, guardMod, loginMod, custLayoutMod] = await Promise.all([
+  const [apiMod, storageMod, contextMod, guardMod, loginMod, custLayoutMod, regMod] = await Promise.all([
     server.ssrLoadModule('/src/lib/api/authApi.ts'),
     server.ssrLoadModule('/src/features/auth/authStorage.ts'),
     server.ssrLoadModule('/src/features/auth/AuthContext.tsx'),
     server.ssrLoadModule('/src/features/auth/RouteGuard.tsx'),
     server.ssrLoadModule('/src/features/auth/LoginPage.tsx'),
     server.ssrLoadModule('/src/components/layout/CustomerLayout.tsx'),
+    server.ssrLoadModule('/src/features/auth/RegisterPage.tsx'),
   ])
 
   authApiModule = apiMod
@@ -34,6 +36,7 @@ before(async () => {
   routeGuardModule = guardMod
   loginPageModule = loginMod
   layoutModule = custLayoutMod
+  registerPageModule = regMod
 })
 
 after(async () => server?.close())
@@ -386,4 +389,117 @@ test('CustomerLayout displays authenticated user fullName in account area', () =
   )
 
   assert.match(html, /Nguyễn Văn A/)
+})
+
+test('authApi.requestRegisterOtp sends POST to /api/auth/register/request-otp', async () => {
+  const originalFetch = globalThis.fetch
+  let interceptedUrl = ''
+  let interceptedMethod = ''
+  let interceptedBody = ''
+
+  globalThis.fetch = async (url, options) => {
+    interceptedUrl = String(url)
+    interceptedMethod = options.method
+    interceptedBody = String(options.body)
+
+    return new globalThis.Response(JSON.stringify({
+      message: 'Mã xác thực OTP đã được gửi đến email (hiệu lực 5 phút)',
+      email: 'newuser@example.com',
+      expiresInSeconds: 300,
+      resendCooldownSeconds: 60,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const res = await authApiModule.authApi.requestRegisterOtp({ email: 'newuser@example.com' })
+    assert.equal(interceptedUrl, '/api/auth/register/request-otp')
+    assert.equal(interceptedMethod, 'POST')
+    assert.equal(JSON.parse(interceptedBody).email, 'newuser@example.com')
+    assert.equal(res.expiresInSeconds, 300)
+    assert.equal(res.resendCooldownSeconds, 60)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('authApi.register sends POST to /api/auth/register/verify-otp and returns auth response', async () => {
+  const originalFetch = globalThis.fetch
+  let interceptedUrl = ''
+  let interceptedMethod = ''
+  let interceptedBody = ''
+
+  globalThis.fetch = async (url, options) => {
+    interceptedUrl = String(url)
+    interceptedMethod = options.method
+    interceptedBody = String(options.body)
+
+    return new globalThis.Response(JSON.stringify({
+      accessToken: 'jwt-new-user-token',
+      tokenType: 'Bearer',
+      expiresIn: 86400,
+      user: {
+        id: 15,
+        email: 'newuser@example.com',
+        phone: '0912345678',
+        fullName: 'Nguyễn Văn B',
+        status: 'ACTIVE',
+        roles: ['ROLE_CUSTOMER'],
+      },
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const res = await authApiModule.authApi.register({
+      email: 'newuser@example.com',
+      otp: '123456',
+      fullName: 'Nguyễn Văn B',
+      phone: '0912345678',
+      password: 'Password@123',
+    })
+    assert.equal(interceptedUrl, '/api/auth/register/verify-otp')
+    assert.equal(interceptedMethod, 'POST')
+    const body = JSON.parse(interceptedBody)
+    assert.equal(body.email, 'newuser@example.com')
+    assert.equal(body.otp, '123456')
+    assert.equal(body.fullName, 'Nguyễn Văn B')
+    assert.equal(res.accessToken, 'jwt-new-user-token')
+    assert.equal(res.user.roles[0], 'ROLE_CUSTOMER')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('RegisterPage renders required fields including OTP and send OTP button', () => {
+  const { RegisterPage } = registerPageModule
+  const { AuthProvider } = authContextModule
+
+  const html = renderToStaticMarkup(
+    createElement(
+      MemoryRouter,
+      { initialEntries: ['/register'] },
+      createElement(
+        AuthProvider,
+        null,
+        createElement(RegisterPage),
+      ),
+    ),
+  )
+
+  assert.match(html, /<h1[^>]*>Tạo tài khoản khách hàng mới<\/h1>/)
+  assert.match(html, /Họ &amp; tên đệm/)
+  assert.match(html, /id="reg-lastname"/)
+  assert.match(html, /id="reg-firstname"/)
+  assert.match(html, /id="reg-email"/)
+  assert.match(html, /id="reg-phone"/)
+  assert.match(html, /id="reg-otp"/)
+  assert.match(html, /Gửi mã OTP/)
+  assert.match(html, /id="reg-password"/)
+  assert.match(html, /id="reg-confirm"/)
+  assert.match(html, /Tạo tài khoản/)
 })
