@@ -5,11 +5,7 @@ import { AdminLayout } from '../components/layout/AdminLayout'
 import { ContentSlot } from '../components/layout/ContentSlot'
 import { HomePage } from '../features/catalog/home/HomePage'
 import { homeSample } from '../features/catalog/home/homeSample'
-import { ProductListPage } from '../features/catalog/list/ProductListPage'
-import { categories, brands } from '../features/catalog/list/catalogSample'
-import { apiCatalogSource } from '../features/catalog/list/apiCatalogSource'
-import { ProductDetailPage } from '../features/catalog/detail/ProductDetailPage'
-import { apiProductDetailSource } from '../features/catalog/detail/apiProductDetailSource'
+import { PublicProductListRoute, PublicProductDetailRoute } from '../features/catalog/list/PublicCatalogRoutes'
 import { LoginPage } from '../features/auth/LoginPage'
 import { RegisterPage } from '../features/auth/RegisterPage'
 import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage'
@@ -36,10 +32,10 @@ export const routes: RouteObject[] = [
   // 1. Customer & Public Pages
   { path: '/', element: <CustomerLayout><HomePage data={homeSample} /></CustomerLayout> },
   { path: '/products', element: <CustomerLayout>
-    <ProductListPage source={apiCatalogSource} categories={categories} brands={brands} />
+    <PublicProductListRoute />
   </CustomerLayout> },
   { path: '/products/:slug', element: <CustomerLayout>
-    <ProductDetailPage source={apiProductDetailSource} categories={categories} brands={brands} />
+    <PublicProductDetailRoute />
   </CustomerLayout> },
 
   // Cart & Checkout

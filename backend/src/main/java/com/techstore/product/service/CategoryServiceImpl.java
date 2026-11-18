@@ -24,7 +24,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CategoryDto> getAllCategories() {
         return categoryRepository.findAll().stream()
-                .filter(c -> c.getStatus() == ActiveStatus.ACTIVE)
+                .filter(this::isPubliclyVisible)
                 .map(this::mapToDtoFlat)
                 .collect(Collectors.toList());
     }
@@ -40,9 +40,24 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryDto getCategoryBySlug(String slug) {
         return categoryRepository.findBySlug(slug)
-                .filter(c -> c.getStatus() == ActiveStatus.ACTIVE)
+                .filter(this::isPubliclyVisible)
                 .map(this::mapToDtoWithChildren)
                 .orElse(null);
+    }
+
+    /**
+     * Danh mục hiển thị công khai khi chính nó và mọi danh mục tổ tiên đều ACTIVE (ADR-018 A6).
+     */
+    private boolean isPubliclyVisible(Category cat) {
+        Category cursor = cat;
+        int guard = 0;
+        while (cursor != null && guard++ < 32) {
+            if (cursor.getStatus() != ActiveStatus.ACTIVE) {
+                return false;
+            }
+            cursor = cursor.getParent();
+        }
+        return true;
     }
 
     private CategoryDto mapToDtoFlat(Category cat) {

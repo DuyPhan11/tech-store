@@ -18,3 +18,9 @@
 - `reviews (user_id, product_id, order_id)`; ẩn review vẫn chiếm bản ghi.
 
 **Migration phải được reviewer đọc kỹ** khi có DROP, TRUNCATE, làm thay đổi dữ liệu hoặc FK.
+
+## Migrations đã áp dụng sau schema gốc
+| File | Nội dung | Quyết định |
+|---|---|---|
+| `database/migrations/01_add_parent_id_to_categories.sql` | `categories.parent_id` tự tham chiếu | ADR-017 |
+| `database/migrations/02_add_country_to_brands.sql` | `brands.country VARCHAR(100) NULL` — quốc gia xuất xứ thương hiệu (Admin Catalog UC12) | ADR-018 (A5) |

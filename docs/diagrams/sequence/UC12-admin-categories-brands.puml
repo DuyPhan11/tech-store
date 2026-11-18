@@ -3,32 +3,38 @@ autonumber
 skinparam monochrome true
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-title sd Quản lý danh mục và thương hiệu
+title sd Quản lý danh mục và thương hiệu (ADR-018)
 actor "Admin" as U
 boundary "Màn hình danh mục / hãng" as UI
-control "CatalogController" as C
-control "CatalogService" as S
-participant "Cloudinary" as Cloud
+control "AdminCategoryController /\nAdminBrandController" as C
+control "AdminCatalogService" as S
 database "Category" as Categories
 database "Brand" as Brands
-U -> UI: Thêm / sửa / vô hiệu hóa
-UI -> C: saveCatalog(type, data, image)
-C -> S: saveCatalog(request)
-S -> S: Kiểm tra ROLE_ADMIN, slug, dữ liệu
-alt Hợp lệ
-    opt Có ảnh mới
-        S -> Cloud: uploadImage(file)
-        Cloud --> S: secure_url, public_id
-    end
-    alt type = CATEGORY
-        S -> Categories: saveCategory()
-    else type = BRAND
-        S -> Brands: saveBrand()
-    end
-    S --> UI: 200 / 201 OK
-    UI --> U: Cập nhật danh sách
-else Không hợp lệ
-    S --> UI: 400 / 403 / 409
+U -> UI: Thêm / sửa / vô hiệu hóa (không xóa vật lý)
+UI -> C: POST|PUT /api/admin/{categories|brands}[/{id}]\nhoặc PATCH .../{id}/status
+C -> C: SecurityConfig + @PreAuthorize: ROLE_ADMIN
+alt Không đủ quyền
+    C --> UI: 401 / 403
     UI --> U: Hiển thị lỗi
+else Là Admin
+    C -> S: save / updateStatus(request)
+    S -> S: Kiểm tra dữ liệu, slug duy nhất,\ndanh mục cha tồn tại & không tạo vòng
+    alt Hợp lệ
+        alt type = CATEGORY
+            S -> Categories: saveAndFlush(category)
+        else type = BRAND
+            S -> Brands: saveAndFlush(brand) (gồm country)
+        end
+        S --> UI: 200 / 201 OK
+        UI --> U: Cập nhật danh sách
+    else Không hợp lệ
+        S --> UI: 400 / 404 / 409
+        UI --> U: Hiển thị lỗi
+    end
 end
+note over S
+  Upload ảnh/logo Cloudinary hoãn sang Issue riêng (ADR-018 A7).
+  INACTIVE ẩn danh mục (kèm nhánh con), thương hiệu và
+  sản phẩm liên quan khỏi catalog công khai.
+end note
 @enduml

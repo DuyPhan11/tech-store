@@ -69,6 +69,11 @@ public class ProductServiceImpl implements ProductService {
             predicates.add(cb.equal(root.get("status"), ActiveStatus.ACTIVE));
             predicates.add(cb.equal(categoryJoin.get("status"), ActiveStatus.ACTIVE));
             predicates.add(cb.equal(brandJoin.get("status"), ActiveStatus.ACTIVE));
+            // Danh mục cha (nếu có) cũng phải ACTIVE: vô hiệu hóa danh mục cha ẩn cả nhánh con (ADR-018 A6)
+            predicates.add(cb.or(
+                cb.isNull(parentCategoryJoin.get("id")),
+                cb.equal(parentCategoryJoin.get("status"), ActiveStatus.ACTIVE)
+            ));
 
             // Tìm kiếm theo tên sản phẩm (không phân biệt hoa thường, cắt khoảng trắng đầu/cuối)
             if (q != null && !q.trim().isEmpty()) {
@@ -159,6 +164,8 @@ public class ProductServiceImpl implements ProductService {
         // Kiểm tra tính khả dụng (ADR-010: chỉ trả về nếu status = ACTIVE)
         if (product.getStatus() != ActiveStatus.ACTIVE
                 || product.getCategory().getStatus() != ActiveStatus.ACTIVE
+                || (product.getCategory().getParent() != null
+                    && product.getCategory().getParent().getStatus() != ActiveStatus.ACTIVE)
                 || product.getBrand().getStatus() != ActiveStatus.ACTIVE) {
             throw new ProductNotFoundException("Sản phẩm không tồn tại hoặc đã ngừng kinh doanh: " + slug);
         }
