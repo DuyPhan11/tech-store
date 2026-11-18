@@ -318,6 +318,33 @@
 - **PATCH `/api/me/addresses/{id}/default` (Quyền: `ROLE_CUSTOMER`)**
   - Đặt địa chỉ chỉ định làm mặc định và hủy mặc định ở tất cả các địa chỉ khác của người dùng.
 
+### Order DTO (UC08 - Đã triển khai)
+
+- **GET `/api/orders/me` (Quyền: `ROLE_CUSTOMER`)**
+  - Lấy danh sách lịch sử đơn hàng của người dùng hiện tại, sắp xếp theo thời gian tạo mới nhất (`createdAt DESC`).
+  - Response (200 OK): Mảng các `OrderResponse`.
+
+- **GET `/api/orders/me/{id}` (Quyền: `ROLE_CUSTOMER`)**
+  - Xem chi tiết đơn hàng kèm danh sách sản phẩm (`items`), trạng thái đơn và thông tin thanh toán.
+  - Phân quyền sở hữu: trả về `404 Not Found` nếu đơn hàng không tồn tại hoặc không thuộc sở hữu của người dùng.
+
+- **POST `/api/orders/{id}/cancel` (Quyền: `ROLE_CUSTOMER`)**
+  - Hủy đơn hàng kèm lý do hủy (`cancelReason`).
+  - Request Body:
+    ```json
+    {
+      "cancelReason": "Khách hàng đổi ý / không còn nhu cầu"
+    }
+    ```
+  - Nghiệp vụ & Bất biến:
+    - Chỉ cho phép hủy khi đơn ở trạng thái `PENDING` hoặc `CONFIRMED` (BR18).
+    - Khóa bi quan (`PESSIMISTIC_WRITE`) chống tranh chấp hủy đồng thời (BR48).
+    - Hoàn trả số lượng tồn kho nguyên tử đúng 1 lần về chi nhánh gốc (BR32, BR48). Sắp xếp theo `productId` tăng dần khi khóa tồn kho để phòng ngừa deadlock.
+    - Cập nhật trạng thái thanh toán (BR19, BR21): đơn COD chuyển sang `CANCELLED`; đơn ONLINE_MOCK chuyển sang `REFUNDED` và cập nhật `refundedAt`.
+    - Đơn đã hủy chuyển trạng thái `CANCELLED`, ghi nhận `cancelReason` và `cancelledAt`.
+    - Trả về `400 Bad Request` nếu đơn hàng ở trạng thái không thể hủy (`SHIPPING`, `COMPLETED`, hoặc đã `CANCELLED`).
+    - Trả về `404 Not Found` nếu đơn hàng không thuộc sở hữu của người dùng (BR49).
+
 ### Contract change protocol
 - Nếu cần đổi API: tạo Issue / ADR, cập nhật file này + backend DTO + frontend type + tests **trong cùng PR hoặc hai PR có thứ tự phụ thuộc rõ**.
 - Không tự sửa endpoint ở UI để khớp mock data mà không sửa backend.

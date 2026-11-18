@@ -3,7 +3,9 @@ import { useNavigate, useLocation } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import { Button } from '../../components/ui/Button'
 import { profileApi } from '../../lib/api/profileApi'
+import { orderApi } from '../../lib/api/orderApi'
 import type { AddressItem, AddressPayload, UserProfile } from './accountTypes'
+import type { OrderResponse } from '../orders/orderTypes'
 import styles from './UserAccountPage.module.css'
 
 type TabType =
@@ -18,42 +20,6 @@ type TabType =
   | 'reviews'
   | 'newsletters'
 
-interface MockOrder {
-  code: string
-  date: string
-  totalVnd: number
-  status: 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED'
-  itemSummary: string
-  paymentMethod: string
-}
-
-const mockOrders: MockOrder[] = [
-  {
-    code: 'TS-100245',
-    date: '15/11/2026',
-    totalVnd: 41480000,
-    status: 'PENDING',
-    itemSummary: 'MSI Pro 16 Flex + MSI MPG Trident AS PC',
-    paymentMethod: 'COD',
-  },
-  {
-    code: 'TS-100189',
-    date: '02/10/2026',
-    totalVnd: 28990000,
-    status: 'COMPLETED',
-    itemSummary: 'MSI Gaming Laptop GE66 Raider 10SFS',
-    paymentMethod: 'ONLINE_MOCK',
-  },
-  {
-    code: 'TS-099412',
-    date: '18/08/2026',
-    totalVnd: 5490000,
-    status: 'CANCELLED',
-    itemSummary: 'Màn hình MSI Optix MAG274QRF-QD 27 inch',
-    paymentMethod: 'COD',
-  },
-]
-
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
 
 export function UserAccountPage() {
@@ -63,7 +29,18 @@ export function UserAccountPage() {
 
   const initialTab: TabType = location.pathname.includes('/orders') ? 'orders' : 'dashboard'
   const [activeTab, setActiveTab] = useState<TabType>(initialTab)
-  const [orders, setOrders] = useState<MockOrder[]>(mockOrders)
+  const [orders, setOrders] = useState<OrderResponse[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(false)
+
+  // State cho Modal chi tiết đơn hàng
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+
+  // State cho Modal hủy đơn hàng
+  const [cancellingOrder, setCancellingOrder] = useState<OrderResponse | null>(null)
+  const [cancelReasonInput, setCancelReasonInput] = useState('')
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   
   // Real Profile & Address State
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -116,8 +93,23 @@ export function UserAccountPage() {
     }
   }
 
+  // Load danh sách đơn hàng thật từ backend API
+  const fetchOrders = async () => {
+    if (!isAuthenticated) return
+    setLoadingOrders(true)
+    try {
+      const data = await orderApi.getMyOrders()
+      setOrders(data)
+    } catch {
+      // ignore
+    } finally {
+      setLoadingOrders(false)
+    }
+  }
+
   useEffect(() => {
     fetchProfileAndAddresses()
+    fetchOrders()
   }, [isAuthenticated])
 
   const showToastSuccess = (text: string) => {
@@ -270,14 +262,61 @@ export function UserAccountPage() {
     }
   }
 
-  const handleCancelOrder = (code: string) => {
-    setOrders(prev =>
-      prev.map(ord => (ord.code === code ? { ...ord, status: 'CANCELLED' } : ord))
-    )
-    showToastSuccess(`Đã gửi yêu cầu hủy đơn hàng #${code} thành công.`)
+  // Mở modal xem chi tiết đơn hàng
+  const handleOpenDetailModal = async (ord: OrderResponse) => {
+    try {
+      const fullDetail = await orderApi.getOrderDetail(ord.id)
+      setSelectedOrder(fullDetail)
+    } catch {
+      setSelectedOrder(ord)
+    }
+    setIsDetailModalOpen(true)
   }
 
-  const getStatusBadge = (status: MockOrder['status']) => {
+  // Mở modal hủy đơn hàng
+  const handleOpenCancelModal = (ord: OrderResponse) => {
+    setCancellingOrder(ord)
+    setCancelReasonInput('Khách hàng đổi ý / không còn nhu cầu')
+    setIsCancelModalOpen(true)
+  }
+
+  // Xác nhận hủy đơn hàng
+  const handleConfirmCancel = async () => {
+    if (!cancellingOrder) return
+    setIsCancelling(true)
+    try {
+      const updated = await orderApi.cancelOrder(cancellingOrder.id, cancelReasonInput.trim())
+      setOrders(prev => prev.map(o => (o.id === updated.id ? updated : o)))
+      if (selectedOrder && selectedOrder.id === updated.id) {
+        setSelectedOrder(updated)
+      }
+      setIsCancelModalOpen(false)
+      showToastSuccess(`Đã gửi yêu cầu hủy đơn hàng #${cancellingOrder.orderCode} thành công. Tồn kho đã được hoàn lại.`)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể hủy đơn hàng'
+      showToastError(msg)
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '—'
+    try {
+      const d = new Date(dateStr)
+      return d.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    } catch {
+      return dateStr
+    }
+  }
+
+  const getStatusBadge = (status: OrderResponse['status']) => {
     switch (status) {
       case 'PENDING':
         return <span className={`${styles.badge} ${styles.badgePending}`}>Chờ xác nhận</span>
@@ -549,8 +588,17 @@ export function UserAccountPage() {
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>Lịch sử đơn hàng của tôi ({orders.length})</h2>
                 </div>
-                {orders.length === 0 ? (
-                  <p className={styles.infoMuted}>Bạn chưa có đơn đặt hàng nào.</p>
+                {loadingOrders ? (
+                  <p className={styles.infoMuted}>Đang tải lịch sử đơn hàng...</p>
+                ) : orders.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                    <p className={styles.infoMuted} style={{ marginBottom: '16px' }}>
+                      Bạn chưa có đơn đặt hàng nào trong hệ thống.
+                    </p>
+                    <Button variant="primary" onClick={() => navigate('/products')}>
+                      Khám phá sản phẩm ngay
+                    </Button>
+                  </div>
                 ) : (
                   <table className={styles.orderTable}>
                     <thead>
@@ -566,20 +614,29 @@ export function UserAccountPage() {
                     </thead>
                     <tbody>
                       {orders.map(ord => (
-                        <tr key={ord.code}>
-                          <td><strong>#{ord.code}</strong></td>
-                          <td>{ord.date}</td>
-                          <td>{ord.itemSummary}</td>
-                          <td>{ord.paymentMethod === 'COD' ? 'Tiền mặt khi nhận (COD)' : 'Chuyển khoản (Online Mock)'}</td>
-                          <td><strong>{currency.format(ord.totalVnd)}</strong></td>
+                        <tr key={ord.id}>
+                          <td><strong>#{ord.orderCode}</strong></td>
+                          <td>{formatDate(ord.createdAt)}</td>
+                          <td>{ord.itemSummary || 'Chi tiết trong đơn'}</td>
+                          <td>
+                            {ord.paymentMethod === 'COD' ? 'Tiền mặt khi nhận (COD)' : 'Chuyển khoản (Online Mock)'}
+                          </td>
+                          <td><strong>{currency.format(ord.finalAmount)}</strong></td>
                           <td>{getStatusBadge(ord.status)}</td>
                           <td>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              {ord.status === 'PENDING' && (
+                              <button
+                                type="button"
+                                className={styles.detailOrderBtn}
+                                onClick={() => handleOpenDetailModal(ord)}
+                              >
+                                Chi tiết
+                              </button>
+                              {ord.canCancel && (
                                 <button
                                   type="button"
                                   className={styles.cancelOrderBtn}
-                                  onClick={() => handleCancelOrder(ord.code)}
+                                  onClick={() => handleOpenCancelModal(ord)}
                                 >
                                   Hủy
                                 </button>
@@ -977,6 +1034,179 @@ export function UserAccountPage() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xem chi tiết đơn hàng */}
+      {isDetailModalOpen && selectedOrder && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+          <div className={styles.detailModalContent}>
+            <div className={styles.detailModalHeader}>
+              <h2 className={styles.detailModalTitle}>Chi tiết đơn hàng #{selectedOrder.orderCode}</h2>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setIsDetailModalOpen(false)}
+                aria-label="Đóng"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.twoColGrid} style={{ marginBottom: '20px' }}>
+              <div>
+                <h3 className={styles.subTitle}>Thông tin giao hàng</h3>
+                <p className={styles.infoText}><strong>Người nhận:</strong> {selectedOrder.recipientName}</p>
+                <p className={styles.infoText}><strong>Số điện thoại:</strong> {selectedOrder.recipientPhone}</p>
+                <p className={styles.infoMuted}>{selectedOrder.shippingAddress}</p>
+              </div>
+              <div>
+                <h3 className={styles.subTitle}>Thông tin đơn hàng</h3>
+                <p className={styles.infoText}><strong>Ngày đặt:</strong> {formatDate(selectedOrder.createdAt)}</p>
+                <p className={styles.infoText}>
+                  <strong>Phương thức:</strong>{' '}
+                  {selectedOrder.paymentMethod === 'COD' ? 'Tiền mặt khi nhận hàng (COD)' : 'Thanh toán trực tuyến (Online Mock)'}
+                </p>
+                <p className={styles.infoText}>
+                  <strong>Thanh toán:</strong> {selectedOrder.paymentStatusLabel}
+                </p>
+                <p className={styles.infoText}>
+                  <strong>Trạng thái:</strong> {getStatusBadge(selectedOrder.status)}
+                </p>
+              </div>
+            </div>
+
+            {selectedOrder.cancelReason && (
+              <div className={styles.cancelledNotice}>
+                <strong>Đơn hàng đã hủy:</strong> {selectedOrder.cancelReason}
+                {selectedOrder.cancelledAt && <span> ({formatDate(selectedOrder.cancelledAt)})</span>}
+              </div>
+            )}
+
+            <h3 className={styles.subTitle} style={{ marginTop: '20px' }}>Danh sách sản phẩm</h3>
+            <table className={styles.detailTable}>
+              <thead>
+                <tr>
+                  <th>Sản phẩm</th>
+                  <th>SKU</th>
+                  <th>Đơn giá</th>
+                  <th>Số lượng</th>
+                  <th style={{ textAlign: 'right' }}>Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedOrder.items && selectedOrder.items.map(item => (
+                  <tr key={item.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {item.productImage && (
+                          <img src={item.productImage} alt={item.productName} className={styles.detailItemThumb} />
+                        )}
+                        <span>{item.productName}</span>
+                      </div>
+                    </td>
+                    <td>{item.productSku}</td>
+                    <td>{currency.format(item.unitPrice)}</td>
+                    <td>{item.quantity}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{currency.format(item.subtotalAmount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className={styles.detailSummaryBox}>
+              <div className={styles.summaryRow}>
+                <span>Tổng tiền hàng:</span>
+                <span>{currency.format(selectedOrder.totalItemsAmount)}</span>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>Giảm giá khuyến mãi:</span>
+                <span>-{currency.format(selectedOrder.discountAmount || 0)}</span>
+              </div>
+              <div className={styles.summaryRowTotal}>
+                <span>Tổng thanh toán:</span>
+                <span>{currency.format(selectedOrder.finalAmount)}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+              {selectedOrder.canCancel && (
+                <button
+                  type="button"
+                  className={styles.cancelOrderBtn}
+                  onClick={() => {
+                    setIsDetailModalOpen(false)
+                    handleOpenCancelModal(selectedOrder)
+                  }}
+                >
+                  Hủy đơn hàng này
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.saveBtnPill}
+                onClick={() => setIsDetailModalOpen(false)}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xác nhận hủy đơn hàng */}
+      {isCancelModalOpen && cancellingOrder && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Xác nhận hủy đơn hàng #{cancellingOrder.orderCode}</h2>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setIsCancelModalOpen(false)}
+                aria-label="Đóng"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div>
+              <p className={styles.infoText} style={{ marginBottom: '16px' }}>
+                Bạn có chắc chắn muốn hủy đơn hàng này? Sau khi hủy, sản phẩm sẽ được hoàn lại kho và trạng thái đơn hàng sẽ không thể thay đổi.
+              </p>
+
+              <div className={styles.formRow}>
+                <label htmlFor="cancel-reason">Lý do hủy đơn hàng *</label>
+                <textarea
+                  id="cancel-reason"
+                  className={styles.cancelTextarea}
+                  value={cancelReasonInput}
+                  onChange={e => setCancelReasonInput(e.target.value)}
+                  placeholder="Nhập lý do bạn muốn hủy đơn hàng..."
+                  required
+                />
+              </div>
+
+              <div className={styles.modalActions} style={{ marginTop: '20px' }}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => setIsCancelModalOpen(false)}
+                  disabled={isCancelling}
+                >
+                  Không, giữ đơn
+                </button>
+                <button
+                  type="button"
+                  className={styles.dangerBtnPill}
+                  onClick={handleConfirmCancel}
+                  disabled={isCancelling || !cancelReasonInput.trim()}
+                >
+                  {isCancelling ? 'Đang xử lý...' : 'Xác nhận hủy đơn'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
