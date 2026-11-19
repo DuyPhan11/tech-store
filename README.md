@@ -16,6 +16,22 @@
 
 ## Bắt đầu từ đây
 
+## Chạy dự án trên máy local
+
+**Yêu cầu:** JDK 17, Node.js + npm, MySQL 8 (đang chạy). Không cần cài Maven: `backend/mvnw.cmd` tự tải Maven 3.9.16 ở lần chạy đầu.
+
+**Lần đầu sau khi clone:**
+1. Chép `.env.example` thành `.env.local` ở thư mục gốc, điền `DB_USERNAME`, `DB_PASSWORD` của MySQL máy mình. Không commit file này.
+2. Cài thư viện frontend: `npm --prefix frontend ci`
+
+**Chạy:** bấm đúp `start_all.bat` (hoặc `Start-Process .\start_all.bat` từ PowerShell).
+- Backend: http://localhost:8080 — tự tạo database `tech_store` nếu chưa có.
+- Frontend: http://localhost:5173
+
+**Chạy riêng backend:** `cd backend` → `.\mvnw.cmd spring-boot:run` (cần đặt biến môi trường `DB_USERNAME`, `DB_PASSWORD` trước, vì Spring Boot không tự đọc `.env.local`).
+
+**Test backend:** `cd backend` → `.\mvnw.cmd test` (dùng H2 in-memory, không cần MySQL).
+
 1. Đặt toàn bộ nội dung thư mục này ở **root** một Git repository mới (hoặc chép chọn lọc vào repo đã tồn tại; không ghi đè file quan trọng).
 2. Cả hai đọc `AGENTS.md`, `docs/requirements/PROJECT_SCOPE.md`, `docs/team/GIT_WORKFLOW.md`.
 3. Kiểm tra `database/schema/01_schema_21_tables_mysql8.sql` trên database THỬ NGHIỆM; không dùng trực tiếp để migrate DB có dữ liệu.

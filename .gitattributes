@@ -1,0 +1,6 @@
+# Script Unix phải dùng LF
+backend/mvnw text eol=lf
+
+# Script Windows dùng CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
