@@ -17,6 +17,9 @@ public class Brand {
     @Column(nullable = false, unique = true, length = 100)
     private String slug;
 
+    @Column(length = 100)
+    private String country;
+
     @Column(name = "logo_url", length = 1024)
     private String logoUrl;
 
@@ -86,6 +89,14 @@ public class Brand {
 
     public void setSlug(String slug) {
         this.slug = slug;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
     }
 
     public String getLogoUrl() {

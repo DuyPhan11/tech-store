@@ -1,5 +1,5 @@
 import { apiFetch } from './apiClient'
-import type { CatalogPage, CatalogQuery, ProductDetail } from '../../features/catalog/list/catalogTypes'
+import type { CatalogPage, CatalogQuery, ProductDetail, PublicBrand, PublicCategory } from '../../features/catalog/list/catalogTypes'
 
 export const catalogApi = {
   getProducts(query: CatalogQuery, signal?: AbortSignal): Promise<CatalogPage> {
@@ -19,5 +19,15 @@ export const catalogApi = {
 
   getProductBySlug(slug: string, signal?: AbortSignal): Promise<ProductDetail> {
     return apiFetch<ProductDetail>(`/products/${encodeURIComponent(slug)}`, { signal })
+  },
+
+  /** Danh mục ACTIVE (dạng phẳng, có parentSlug) cho bộ lọc catalog công khai. */
+  getCategories(signal?: AbortSignal): Promise<PublicCategory[]> {
+    return apiFetch<PublicCategory[]>('/categories', { signal })
+  },
+
+  /** Thương hiệu ACTIVE cho bộ lọc catalog công khai (ADR-018 A6). */
+  getBrands(signal?: AbortSignal): Promise<PublicBrand[]> {
+    return apiFetch<PublicBrand[]>('/brands', { signal })
   },
 }

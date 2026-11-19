@@ -100,3 +100,31 @@ export interface ProductDetail {
 
 export type ProductDetailSource = (slug: string, signal?: AbortSignal) => Promise<ProductDetail>
 
+
+/** Phản hồi GET /api/categories (danh mục ACTIVE, danh mục tổ tiên cũng ACTIVE). */
+export interface PublicCategory {
+  id: number
+  name: string
+  slug: string
+  description?: string | null
+  imageUrl?: string | null
+  parentId?: number | null
+  parentSlug?: string | null
+}
+
+/** Phản hồi GET /api/brands (thương hiệu ACTIVE, ADR-018 A6). */
+export interface PublicBrand {
+  id: number
+  name: string
+  slug: string
+  logoUrl?: string | null
+}
+
+/** Chuyển dữ liệu API sang tùy chọn bộ lọc; id = slug vì /api/products lọc theo slug. */
+export function toCategoryOptions(list: readonly PublicCategory[]): CatalogOption[] {
+  return list.map(c => (c.parentSlug ? { id: c.slug, name: c.name, parentId: c.parentSlug } : { id: c.slug, name: c.name }))
+}
+
+export function toBrandOptions(list: readonly PublicBrand[]): CatalogOption[] {
+  return list.map(b => ({ id: b.slug, name: b.name }))
+}

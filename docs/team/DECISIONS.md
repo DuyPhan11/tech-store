@@ -21,6 +21,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-015 | Bản địa hóa tiếng Việt toàn diện cho phân hệ khách hàng (UI Localization) | Approved | Customer Layout, Catalog, Cart, Checkout, Auth |
 | ADR-016 | Hoàn thiện giao diện toàn diện Không gian quản trị (Admin & Staff) chuẩn phong cách Tech Store | Approved | AdminLayout, Dashboard, Products, Orders, Inventory, Users |
 | ADR-017 | Bổ sung phân cấp danh mục đa tầng (parent_id) và nâng cấp bộ lọc danh mục cha - con | Approved | Schema, Categories, Catalog API, MegaMenu |
+| ADR-018 | Hợp đồng API quản trị danh mục/thương hiệu (UC12) và danh sách thương hiệu công khai | Approved (A2: chỉ vô hiệu hóa; A5: giữ quốc gia xuất xứ) | API contract, SecurityConfig, Admin Catalog UI, Catalog filters |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -215,3 +216,31 @@ Ngày quyết định: 17/11/2026.
 ```
 
 Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xuất hiện ở đây (và docs liên quan) bằng PR.
+
+### ADR-018 — Hợp đồng API quản trị danh mục/thương hiệu (UC12) và danh sách thương hiệu công khai
+
+- Date: 19/11/2026 — Trạng thái: **Approved** bởi Tech Lead (19/11/2026) với điều chỉnh A2, A5 — xem mục "Decision" cuối ADR.
+- Context / xung đột phát hiện khi bắt đầu UC12 (branch dự kiến `feat/uc12-admin-catalog`):
+  1. `API_CONTRACT.md` không định nghĩa endpoint quản trị danh mục/thương hiệu. `SCREEN_MAP.md` chỉ ghi chung `CRUD /api/admin/categories`, `brands`; sequence `UC12-admin-categories-brands.puml` dùng một lời gọi chung `saveCatalog(type, data, image)`.
+  2. Issue ghi "CRUD", nhưng sequence UC12 chỉ có "Thêm / sửa / vô hiệu hóa" (không xóa vật lý). `products.category_id/brand_id` là FK không `ON DELETE`, nên xóa danh mục/hãng đang có sản phẩm sẽ lỗi FK.
+  3. `SecurityConfig` chỉ giới hạn `/api/admin/categories/**` cho `ROLE_ADMIN`; `/api/admin/brands/**` hiện rơi vào rule `ROLE_STAFF`, trái với UC_MATRIX (UC12 chỉ Admin).
+  4. Màn `AdminCatalogPage.tsx` hiển thị/nhập "Quốc gia xuất xứ" (`country`) cho thương hiệu, nhưng bảng `brands` không có cột này (chỉ có `name, slug, logo_url, logo_public_id, description, status`). Form danh mục không có trường slug và cha (`parent_id`, ADR-017).
+  5. Catalog công khai (`/products`) lấy danh mục/thương hiệu từ dữ liệu mẫu hardcode (`catalogData.ts`), không gọi `GET /api/categories`; không có endpoint công khai nào trả danh sách thương hiệu.
+  6. Sequence có bước upload ảnh Cloudinary, nhưng backend chưa có Cloudinary SDK/service (cài dependency cần sự đồng ý của operator; UC11 cũng phụ thuộc).
+- Options đề xuất (Option A là khuyến nghị):
+  - **A1 — Endpoint quản trị (ROLE_ADMIN):**
+    - `GET /api/admin/categories` → mọi danh mục kể cả `INACTIVE`: `{ id, name, slug, description, imageUrl, parentId, parentName, status, productCount, createdAt, updatedAt }`.
+    - `POST /api/admin/categories` (201), `PUT /api/admin/categories/{id}` (200). Body `{ name, slug, description?, parentId? }`.
+    - `PATCH /api/admin/categories/{id}/status` body `{ "status": "ACTIVE" | "INACTIVE" }`.
+    - Tương tự `GET/POST/PUT /api/admin/brands`, `PATCH /api/admin/brands/{id}/status`; DTO `{ id, name, slug, description, logoUrl, status, productCount, createdAt, updatedAt }`.
+  - **A2 — Không xóa vật lý** (theo sequence: "vô hiệu hóa"); vô hiệu hóa = `INACTIVE`, sản phẩm thuộc đó đã tự bị ẩn khỏi catalog công khai (`ProductServiceImpl` hiện lọc category/brand `ACTIVE`). Phương án thay thế: thêm `DELETE` chỉ cho bản ghi không còn sản phẩm/danh mục con, ngược lại `409`.
+  - **A3 — Validate:** `name` bắt buộc ≤100; `slug` bắt buộc, ≤100, regex `^[a-z0-9]+(-[a-z0-9]+)*$` (UI gợi ý slug bỏ dấu tiếng Việt từ tên), trùng slug → `409`; `parentId` phải tồn tại, không trỏ về chính nó/hậu duệ (chống vòng) → `400`; id không tồn tại → `404`; không token `401`, Staff/Customer `403`.
+  - **A4 — Security:** thêm `/api/admin/brands/**` vào rule `hasRole("ADMIN")`.
+  - **A5 — UI:** giữ layout hiện có; thay cột/field "Quốc gia xuất xứ" bằng "Mô tả" (map `brands.description`), thêm trường Slug + Danh mục cha, nút "Sửa" mở lại modal sẵn có. Không thêm cột DB `country`.
+  - **A6 — Catalog công khai:** thêm `GET /api/brands` (Public, chỉ `ACTIVE`, `{ id, name, slug, logoUrl }`); frontend `/products` và chi tiết sản phẩm lấy danh mục từ `GET /api/categories` và hãng từ `GET /api/brands`, `CatalogOption.id = slug`. Quy tắc: danh mục con của danh mục cha `INACTIVE` cũng bị ẩn khỏi catalog công khai.
+  - **A7 — Ảnh/logo Cloudinary:** hoãn sang Issue riêng (dùng chung service với UC11); UC12 chỉ giữ nguyên `image_url/logo_url` hiện có.
+- Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md` (cột API), `SecurityConfig`, test RBAC; vẫn 21 bảng; thêm 1 cột nullable `brands.country` theo điều chỉnh A5 (xem Decision).
+- Decision (Tech Lead, 19/11/2026): duyệt ADR-018 nguyên trạng, với hai điều chỉnh:
+  - **A2:** chỉ vô hiệu hóa (`INACTIVE`), không có endpoint `DELETE`.
+  - **A5:** GIỮ trường "Quốc gia xuất xứ" của thương hiệu → thêm cột `brands.country VARCHAR(100) NULL` (migration `database/migrations/02_add_country_to_brands.sql`); DTO brand có thêm `country`. Form danh mục vẫn thêm Slug + Danh mục cha; form thương hiệu có Slug, Quốc gia xuất xứ, Mô tả.
+- Who approved / PR URL: Tech Lead (chat duyệt 19/11/2026); PR: _(chưa tạo)_

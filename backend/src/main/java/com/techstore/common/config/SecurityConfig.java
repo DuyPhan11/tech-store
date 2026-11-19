@@ -78,8 +78,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                // Admin specific endpoints (quản lý chi nhánh, người dùng, danh mục theo UC Matrix)
-                .requestMatchers("/api/admin/branches/**", "/api/admin/users/**", "/api/admin/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/brands", "/api/brands/**").permitAll()
+                // Admin specific endpoints (quản lý chi nhánh, người dùng, danh mục & thương hiệu UC12 theo UC Matrix)
+                .requestMatchers("/api/admin/branches/**", "/api/admin/users/**",
+                        "/api/admin/categories", "/api/admin/categories/**",
+                        "/api/admin/brands", "/api/admin/brands/**").hasRole("ADMIN")
                 // Staff & Admin endpoints (ROLE_ADMIN kế thừa ROLE_STAFF qua RoleHierarchy)
                 .requestMatchers("/api/admin/**").hasRole("STAFF")
                 // Customer endpoints (yêu cầu đúng ROLE_CUSTOMER)

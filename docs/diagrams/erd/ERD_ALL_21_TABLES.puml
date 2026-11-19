@@ -79,6 +79,7 @@ entity "brands" as brands {
   * id : BIGINT <<PK>>
     name : VARCHAR(100)  (required)
     slug : VARCHAR(100)  (required)
+    country : VARCHAR(100)
     logo_url : VARCHAR(1024)
     logo_public_id : VARCHAR(255)
     description : TEXT

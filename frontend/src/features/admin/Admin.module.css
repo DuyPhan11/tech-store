@@ -673,3 +673,27 @@
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
+
+/* Error notice (UC12 — lỗi API) — cùng hình khối với toastNotice */
+.errorNotice {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fieldError {
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.subText {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 2px;
+}

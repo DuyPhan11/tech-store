@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -55,6 +56,29 @@ public class GlobalExceptionHandler {
             HttpStatus.NOT_FOUND.value(),
             "Not Found",
             ex.getMessage() != null ? ex.getMessage() : "Sản phẩm không tồn tại hoặc đã ngừng kinh doanh",
+            request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /** Method không được hỗ trợ (vd. DELETE danh mục — ADR-018 A2) → 405 thay vì rơi vào handler 500 chung. */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.METHOD_NOT_ALLOWED.value(),
+            "Method Not Allowed",
+            "Phương thức " + ex.getMethod() + " không được hỗ trợ cho tài nguyên này",
+            request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+    }
+
+    @ExceptionHandler(CatalogResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCatalogResourceNotFound(CatalogResourceNotFoundException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.NOT_FOUND.value(),
+            "Not Found",
+            ex.getMessage(),
             request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);

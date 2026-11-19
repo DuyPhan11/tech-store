@@ -18,6 +18,7 @@
 | Catalog | GET | `/api/products/{slug}` | Public |
 | Catalog | GET | `/api/categories` | Public |
 | Catalog | GET | `/api/categories/tree` | Public |
+| Catalog | GET | `/api/brands` | Public |
 | Cart | GET | `/api/cart` | Customer |
 | Cart | POST | `/api/cart/items` | Customer |
 | Cart | PATCH | `/api/cart/items/{itemId}` | Customer |
@@ -30,6 +31,12 @@
 | Reviews | POST | `/api/reviews` | Customer |
 | Profile | GET/PATCH | `/api/me` | Customer |
 | Admin products | POST/PUT | `/api/admin/products` / `/api/admin/products/{id}` | Staff/Admin |
+| Admin categories (UC12) | GET/POST | `/api/admin/categories` | Admin |
+| Admin categories (UC12) | PUT | `/api/admin/categories/{id}` | Admin |
+| Admin categories (UC12) | PATCH | `/api/admin/categories/{id}/status` | Admin |
+| Admin brands (UC12) | GET/POST | `/api/admin/brands` | Admin |
+| Admin brands (UC12) | PUT | `/api/admin/brands/{id}` | Admin |
+| Admin brands (UC12) | PATCH | `/api/admin/brands/{id}/status` | Admin |
 | Admin inventory | POST | `/api/admin/inventories/adjust` | Staff/Admin |
 | Admin inventory | POST | `/api/admin/inventories/transfer` | Staff/Admin |
 | Admin branches | PATCH | `/api/admin/branches/{id}/status` | Admin |
@@ -148,6 +155,40 @@
   - Tra cứu bằng `slug`. Chỉ trả về khi `status = 'ACTIVE'`.
   - Trả về 404 Not Found nếu slug không tồn tại hoặc sản phẩm `INACTIVE`.
   - Phản hồi: `{ id, slug, sku, name, categoryId, brandId, priceVnd, image, images, specification, specifications, description, stock, inStock }`.
+
+## Admin Catalog DTO (UC12 - Đã triển khai, ADR-018)
+
+- Quyền: chỉ `ROLE_ADMIN` (`ROLE_STAFF`/`ROLE_CUSTOMER` → `403`, không token → `401`). **Không có `DELETE`** (→ `405`); vô hiệu hóa bằng trạng thái.
+- Slug: bắt buộc, ≤100 ký tự, regex `^[a-z0-9]+(-[a-z0-9]+)*$`, duy nhất trong bảng (trùng → `409`). Lỗi validate → `400` với `errors.{field}`. Id không tồn tại → `404`.
+- `GET /api/admin/categories` → mọi danh mục kể cả `INACTIVE`, sắp theo `id`:
+  ```json
+  [{ "id": 2, "name": "Laptop chơi game (Gaming)", "slug": "laptop-gaming", "description": "...", "imageUrl": null,
+     "parentId": 1, "parentName": "Laptop", "status": "ACTIVE", "productCount": 1,
+     "createdAt": "2026-11-19T10:00:00", "updatedAt": "2026-11-19T10:00:00" }]
+  ```
+- `POST /api/admin/categories` (`201`) / `PUT /api/admin/categories/{id}` (`200`):
+  ```json
+  { "name": "Laptop AI", "slug": "laptop-ai", "description": "Tùy chọn", "parentId": 1 }
+  ```
+  `parentId` phải tồn tại (→ `400`), không được là chính nó hoặc danh mục con cháu (chống vòng → `400`). `parentId: null` = danh mục gốc.
+- `GET /api/admin/brands` → mọi thương hiệu kể cả `INACTIVE`:
+  ```json
+  [{ "id": 1, "name": "Nova", "slug": "nova", "country": "Việt Nam", "description": "...", "logoUrl": null,
+     "status": "ACTIVE", "productCount": 3, "createdAt": "...", "updatedAt": "..." }]
+  ```
+- `POST /api/admin/brands` (`201`) / `PUT /api/admin/brands/{id}` (`200`):
+  ```json
+  { "name": "Corsair", "slug": "corsair", "country": "Mỹ", "description": "Tùy chọn" }
+  ```
+- `PATCH /api/admin/categories/{id}/status`, `PATCH /api/admin/brands/{id}/status`: body `{ "status": "ACTIVE" | "INACTIVE" }` (giá trị khác → `400`); trả về DTO admin tương ứng.
+- `productCount`: số sản phẩm mọi trạng thái gắn trực tiếp với danh mục/thương hiệu.
+- Ảnh/logo Cloudinary: chưa hỗ trợ trong UC12 (ADR-018 A7); `imageUrl`/`logoUrl` chỉ đọc.
+
+### Ảnh hưởng tới catalog công khai
+- `GET /api/brands` (Public): `[{ "id": 1, "name": "Nova", "slug": "nova", "logoUrl": null }]`, chỉ `ACTIVE`, sắp theo tên.
+- `GET /api/categories`, `/api/categories/tree`, `/api/categories/{slug}`: chỉ trả danh mục `ACTIVE` **và** mọi danh mục tổ tiên `ACTIVE`.
+- `GET /api/products`, `/api/products/{slug}`: ẩn sản phẩm có danh mục, danh mục cha hoặc thương hiệu `INACTIVE`.
+- Frontend `/products` lấy bộ lọc từ `GET /api/categories` + `GET /api/brands` (`CatalogOption.id = slug`).
 
 ## Cart DTO tham chiếu (UC06)
 
