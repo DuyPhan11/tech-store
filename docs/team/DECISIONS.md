@@ -23,6 +23,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-017 | Bổ sung phân cấp danh mục đa tầng (parent_id) và nâng cấp bộ lọc danh mục cha - con | Approved | Schema, Categories, Catalog API, MegaMenu |
 | ADR-018 | Hợp đồng API quản trị danh mục/thương hiệu (UC12) và danh sách thương hiệu công khai | Approved (A2: chỉ vô hiệu hóa; A5: giữ quốc gia xuất xứ) | API contract, SecurityConfig, Admin Catalog UI, Catalog filters |
 | ADR-019 | Hợp đồng API quản trị sản phẩm (UC11) và upload ảnh Cloudinary qua backend | Proposed | API contract, Admin Products UI, Cloudinary service, pom.xml, application.yml |
+| ADR-020 | Hợp đồng API quản trị chi nhánh (UC19), quy tắc vô hiệu hóa và phạm vi hoãn | Proposed | API contract, Admin Branches UI, BranchRepository, OrderRepository |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -263,4 +264,29 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   - **Cloudinary:** dependency chính thức `com.cloudinary:cloudinary-http5:2.4.0`; cấu hình từ biến môi trường `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET`. Validate trước khi upload; upload trước transaction DB; DB lỗi → xóa bù các ảnh vừa upload. Ảnh cũ bị gỡ chỉ bị `destroy` sau commit, chỉ khi là URL Cloudinary và không còn `order_items.product_image` tham chiếu.
   - **DB:** không đổi schema, vẫn 21 bảng, không migration.
 - Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `UC11-admin-products.puml`, `pom.xml`, `application.yml`; test backend mock Cloudinary.
+- Who approved / PR URL: _(chờ duyệt)_
+
+### ADR-020 — Hợp đồng API quản trị chi nhánh (UC19), quy tắc vô hiệu hóa và phạm vi hoãn
+
+- Date: 22/11/2026 — Trạng thái: **Proposed** (chờ Tech Lead duyệt trên PR).
+- Context:
+  1. `API_CONTRACT.md` chỉ ghi `PATCH /api/admin/branches/{id}/status`; sequence UC19 có thêm / sửa / đổi trạng thái, khóa `findByIdForUpdate` và kiểm tra đơn đang xử lý.
+  2. `AdminBranchesPage.tsx` dùng mock với cột "Tỉnh / Thành phố" (`city`) và "Quản lý chi nhánh" (`managerName`) không có trong bảng `branches` (`name, phone, address, status`).
+  3. `orders.branch_id` và `inventories.branch_id` tham chiếu `branches` (FK không `ON DELETE`).
+  4. `CheckoutServiceImpl` đã từ chối chi nhánh `INACTIVE` (400) nhưng đọc chi nhánh không khóa; `CheckoutPage.tsx` dùng `branchId = 1` cố định.
+- Decision đề xuất:
+  - **Endpoint (chỉ `ROLE_ADMIN`; Staff/Customer → 403, không token → 401):** `GET /api/admin/branches` (mọi trạng thái, theo `id`), `POST /api/admin/branches` (201), `PUT /api/admin/branches/{id}` (200), `PATCH /api/admin/branches/{id}/status` (`{ status: ACTIVE | INACTIVE }`). **Không có `DELETE`** (→ 405).
+  - **Body** `{ name, phone?, address }`: `name` bắt buộc ≤150, `address` bắt buộc ≤255, `phone` tùy chọn ≤20 theo `^[0-9+() .-]{8,20}$`. Response `{ id, name, phone, address, status, createdAt, updatedAt }`.
+  - **Vô hiệu hóa:** khóa chi nhánh (`PESSIMISTIC_WRITE`); còn đơn `PENDING`/`CONFIRMED`/`SHIPPING` → `409`; chỉ còn đơn `COMPLETED`/`CANCELLED` → cho phép.
+  - **Phạm vi UC19:**
+    1. Cột "Tỉnh / Thành phố": không thêm cột DB / field API; frontend tách phần sau dấu phẩy cuối của `address` (không có → "—").
+    2. Cột "Quản lý chi nhánh": bỏ khỏi UI.
+    3. Không sửa `CheckoutPage.tsx`, không thêm `GET /api/branches` public.
+    4. Không sửa `CheckoutServiceImpl`; chỉ thêm test xác nhận checkout vào chi nhánh vừa bị vô hiệu hóa qua API admin bị từ chối.
+    5. Phía admin khóa chi nhánh theo sequence; phía checkout chưa khóa chi nhánh → **rủi ro đã biết**: nếu admin vô hiệu hóa đúng lúc khách đặt hàng, một đơn mới vẫn có thể được tạo cho chi nhánh vừa `INACTIVE`.
+  - **Điểm cần Tech Lead xác nhận:** tên chi nhánh không bắt buộc duy nhất (SQL không có unique); định dạng `phone` như trên; chi nhánh mới mặc định `ACTIVE`; được sửa thông tin chi nhánh `INACTIVE`; kích hoạt lại không có điều kiện.
+- Hoãn sang FS sau:
+  - **FS16 (UC07):** danh sách chi nhánh `ACTIVE` ở Checkout (thay `branchId = 1`), có thể kèm `GET /api/branches` public; khóa chi nhánh khi checkout để loại bỏ race ở mục 5.
+  - **FS20 (UC16):** liên kết nhân viên – chi nhánh và cột "Quản lý chi nhánh".
+- Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`; không đổi schema (vẫn 21 bảng), không đổi `SecurityConfig`.
 - Who approved / PR URL: _(chờ duyệt)_

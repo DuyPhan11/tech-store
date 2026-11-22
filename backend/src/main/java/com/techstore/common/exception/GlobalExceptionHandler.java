@@ -142,6 +142,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    /** Vô hiệu hóa chi nhánh còn đơn PENDING/CONFIRMED/SHIPPING (UC19, ADR-020) → 409. */
+    @ExceptionHandler(BranchHasOpenOrdersException.class)
+    public ResponseEntity<ErrorResponse> handleBranchHasOpenOrders(BranchHasOpenOrdersException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.CONFLICT.value(),
+            "Conflict",
+            ex.getMessage(),
+            request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateResource(DuplicateResourceException ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(

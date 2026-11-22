@@ -41,7 +41,9 @@
 | Admin brands (UC12) | PATCH | `/api/admin/brands/{id}/status` | Admin |
 | Admin inventory | POST | `/api/admin/inventories/adjust` | Staff/Admin |
 | Admin inventory | POST | `/api/admin/inventories/transfer` | Staff/Admin |
-| Admin branches | PATCH | `/api/admin/branches/{id}/status` | Admin |
+| Admin branches (UC19) | GET/POST | `/api/admin/branches` | Admin |
+| Admin branches (UC19) | PUT | `/api/admin/branches/{id}` | Admin |
+| Admin branches (UC19) | PATCH | `/api/admin/branches/{id}/status` | Admin |
 
 ## Auth DTO tham chiếu (UC01 - Đã triển khai)
 
@@ -222,6 +224,23 @@
 - `GET /api/categories`, `/api/categories/tree`, `/api/categories/{slug}`: chỉ trả danh mục `ACTIVE` **và** mọi danh mục tổ tiên `ACTIVE`.
 - `GET /api/products`, `/api/products/{slug}`: ẩn sản phẩm có danh mục, danh mục cha hoặc thương hiệu `INACTIVE`.
 - Frontend `/products` lấy bộ lọc từ `GET /api/categories` + `GET /api/brands` (`CatalogOption.id = slug`).
+
+## Admin Branches DTO (UC19 - ADR-020, Proposed)
+
+- Quyền: chỉ `ROLE_ADMIN` (`ROLE_STAFF`/`ROLE_CUSTOMER` → `403`, không token → `401`). **Không có `DELETE`** (→ `405`): `orders`, `inventories` tham chiếu chi nhánh.
+- `GET /api/admin/branches` → mọi chi nhánh kể cả `INACTIVE`, sắp theo `id`:
+  ```json
+  [{ "id": 1, "name": "Chi nhánh Quận 1", "phone": "02811112222", "address": "123 Lê Lợi, Quận 1, TP.HCM",
+     "status": "ACTIVE", "createdAt": "2026-11-22T10:00:00", "updatedAt": "2026-11-22T10:00:00" }]
+  ```
+- `POST /api/admin/branches` (`201`, mặc định `ACTIVE`) / `PUT /api/admin/branches/{id}` (`200`, `404` nếu không tồn tại):
+  ```json
+  { "name": "Chi nhánh Thủ Đức", "phone": "028 3333 4444", "address": "12 Võ Văn Ngân, Thủ Đức, TP.HCM" }
+  ```
+  `name` bắt buộc ≤150; `address` bắt buộc ≤255; `phone` tùy chọn ≤20, `^[0-9+() .-]{8,20}$` (rỗng → `null`). Lỗi → `400` với `errors.{field}`.
+- `PATCH /api/admin/branches/{id}/status`: body `{ "status": "ACTIVE" | "INACTIVE" }` (giá trị khác → `400`). Chuyển `INACTIVE` khi còn đơn `PENDING`/`CONFIRMED`/`SHIPPING` → `409` ("Chi nhánh còn N đơn hàng chưa hoàn tất"); chỉ còn đơn `COMPLETED`/`CANCELLED` → `200`. Thao tác khóa chi nhánh (`PESSIMISTIC_WRITE`).
+- Chi nhánh `INACTIVE` không nhận checkout mới (`POST /api/checkout` → `400`, đã có từ UC07) và không được tính vào tồn kho công khai.
+- "Tỉnh / Thành phố" trên UI được tách từ `address` ở frontend; không có field API riêng.
 
 ## Cart DTO tham chiếu (UC06)
 
