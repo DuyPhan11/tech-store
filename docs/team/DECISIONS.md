@@ -22,6 +22,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-016 | Hoàn thiện giao diện toàn diện Không gian quản trị (Admin & Staff) chuẩn phong cách Tech Store | Approved | AdminLayout, Dashboard, Products, Orders, Inventory, Users |
 | ADR-017 | Bổ sung phân cấp danh mục đa tầng (parent_id) và nâng cấp bộ lọc danh mục cha - con | Approved | Schema, Categories, Catalog API, MegaMenu |
 | ADR-018 | Hợp đồng API quản trị danh mục/thương hiệu (UC12) và danh sách thương hiệu công khai | Approved (A2: chỉ vô hiệu hóa; A5: giữ quốc gia xuất xứ) | API contract, SecurityConfig, Admin Catalog UI, Catalog filters |
+| ADR-019 | Hợp đồng API quản trị sản phẩm (UC11) và upload ảnh Cloudinary qua backend | Proposed | API contract, Admin Products UI, Cloudinary service, pom.xml, application.yml |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -244,3 +245,22 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   - **A2:** chỉ vô hiệu hóa (`INACTIVE`), không có endpoint `DELETE`.
   - **A5:** GIỮ trường "Quốc gia xuất xứ" của thương hiệu → thêm cột `brands.country VARCHAR(100) NULL` (migration `database/migrations/02_add_country_to_brands.sql`); DTO brand có thêm `country`. Form danh mục vẫn thêm Slug + Danh mục cha; form thương hiệu có Slug, Quốc gia xuất xứ, Mô tả.
 - Who approved / PR URL: Tech Lead (chat duyệt 19/11/2026); PR: _(chưa tạo)_
+
+### ADR-019 — Hợp đồng API quản trị sản phẩm (UC11) và upload ảnh Cloudinary qua backend
+
+- Date: 22/11/2026 — Trạng thái: **Proposed** (chờ Tech Lead duyệt trên PR; operator đã đồng ý phương án trong phiên lập kế hoạch).
+- Context:
+  1. `API_CONTRACT.md` chỉ ghi `POST/PUT /api/admin/products` (Staff/Admin), không có DTO, endpoint danh sách, chi tiết hay đổi trạng thái.
+  2. `AdminProductsPage.tsx` dùng dữ liệu mock (`adminData.ts`), có nút "Xóa", ô "Số lượng nhập kho ban đầu" và không có slug/giá vốn (`products.cost_price NOT NULL`).
+  3. `products` bị tham chiếu bởi `order_items`, `inventories`, `cart_items` (FK không `ON DELETE`); ảnh trong snapshot `order_items.product_image` không được xóa (BUSINESS_RULES §6).
+  4. Backend chưa có Cloudinary SDK (ADR-018 A7 hoãn sang Issue này).
+- Decision đề xuất:
+  - **Quyền:** `ROLE_STAFF` (ADMIN kế thừa) qua rule `/api/admin/**` sẵn có; không đổi rule ADMIN-only của UC12.
+  - **Endpoint:** `GET /api/admin/products` (mọi trạng thái, `id` giảm dần, lọc ở client), `GET /api/admin/products/{id}`, `POST /api/admin/products` (multipart, 201), `PUT /api/admin/products/{id}` (multipart, 200), `PATCH /api/admin/products/{id}/status`. **Không có `DELETE`** (→ 405); UI đổi nút "Xóa" thành "Sửa".
+  - **Multipart:** part `data` (JSON) + part `files` (0..n). `data.images` là mảng có thứ tự, mỗi phần tử `{ imageId }` (ảnh cũ giữ lại) hoặc `{ fileIndex }` (ảnh mới), kèm `primary`. Ảnh cũ không có trong mảng bị gỡ. Tối đa 8 ảnh; có ảnh thì đúng 1 primary (không chỉ định → ảnh đầu).
+  - **Validate:** slug theo `CatalogSlug.PATTERN` ≤255; SKU `^[A-Z0-9]+(-[A-Z0-9]+)*$` ≤50; trùng → 409; giá ≥ 0; category (và cha) + brand phải `ACTIVE` khi chọn mới (giữ nguyên giá trị cũ thì cho phép); file chỉ JPEG/PNG/WebP, ≤5MB → 400; Cloudinary lỗi/chưa cấu hình → 502.
+  - **Tồn kho:** form bỏ ô nhập kho (thuộc UC18); `totalStock` = tổng tồn ở chi nhánh `ACTIVE`, chỉ đọc.
+  - **Cloudinary:** dependency chính thức `com.cloudinary:cloudinary-http5:2.4.0`; cấu hình từ biến môi trường `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET`. Validate trước khi upload; upload trước transaction DB; DB lỗi → xóa bù các ảnh vừa upload. Ảnh cũ bị gỡ chỉ bị `destroy` sau commit, chỉ khi là URL Cloudinary và không còn `order_items.product_image` tham chiếu.
+  - **DB:** không đổi schema, vẫn 21 bảng, không migration.
+- Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `UC11-admin-products.puml`, `pom.xml`, `application.yml`; test backend mock Cloudinary.
+- Who approved / PR URL: _(chờ duyệt)_

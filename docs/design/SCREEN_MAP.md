@@ -54,7 +54,7 @@ Layout Admin kế thừa toàn bộ hệ thống Component (Bảng dữ liệu, 
 | Tuyến đường (Route) | Chức năng nghiệp vụ | UC | Quyền hạn | Cấu trúc UI tham chiếu từ Figma | API Dependency |
 |---|---|---|---|---|---|
 | `/admin` | Thống kê Dashboard & Doanh thu | UC17 | Staff, Admin | Card số liệu viền `#CACDD8` + Bảng đơn hàng gần đây | `GET /api/admin/dashboard/stats` |
-| `/admin/products` | Quản lý sản phẩm | UC11 | Staff, Admin | Bảng sản phẩm, lọc danh mục/hãng, modal Form Elements | `POST/PUT /api/admin/products` |
+| `/admin/products` | Quản lý sản phẩm | UC11 | Staff, Admin | Bảng sản phẩm, lọc danh mục/trạng thái, modal thêm/sửa kèm ảnh (ADR-019) | `GET/POST /api/admin/products`, `GET/PUT /api/admin/products/{id}`, `PATCH /api/admin/products/{id}/status` |
 | `/admin/catalog` | Quản lý danh mục & thương hiệu | UC12 | Admin | Bảng phân cấp danh mục + thương hiệu (`73:3935`) | `GET/POST/PUT /api/admin/categories`, `PATCH .../{id}/status`; tương tự `/api/admin/brands` (ADR-018, không DELETE) |
 | `/admin/coupons` | Quản lý mã khuyến mãi | UC13 | Staff, Admin | Bảng mã giảm giá, trạng thái Active/Expired, Form tạo mã | `CRUD /api/admin/coupons` |
 | `/admin/orders` | Quản lý và xử lý đơn hàng | UC14 | Staff, Admin | Bảng đơn hàng từ `User Account - 1` (`137:115`), chuyển CONFIRMED/SHIPPING | `GET/PATCH /api/admin/orders` |

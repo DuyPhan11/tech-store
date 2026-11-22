@@ -8,7 +8,7 @@
 | TBD | — | Scaffold frontend/backend, auth/API conventions | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC01–03 | Auth OTP | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC04–05 | Catalog | TBD | TBD | Todo | — | TBD | — |
-| TBD | UC11–12 | Product CRUD + Cloudinary | TBD | TBD | Todo | — | TBD | — |
+| TBD | UC11–12 | Product CRUD + Cloudinary | TBD | TBD | In progress | feat/uc11-admin-products | TBD | AdminProductControllerTest, adminProductApi.test.mjs |
 | TBD | UC18–19 | Inventory + Branch | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC06 | Cart | TBD | TBD | In review | feat/uc06-cart | — | — |
 | TBD | UC13 | Coupon | TBD | TBD | Todo | — | TBD | — |
