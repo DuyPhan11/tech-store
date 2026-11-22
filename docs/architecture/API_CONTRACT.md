@@ -39,6 +39,9 @@
 | Admin brands (UC12) | GET/POST | `/api/admin/brands` | Admin |
 | Admin brands (UC12) | PUT | `/api/admin/brands/{id}` | Admin |
 | Admin brands (UC12) | PATCH | `/api/admin/brands/{id}/status` | Admin |
+| Admin coupons (UC13) | GET/POST | `/api/admin/coupons` | Staff/Admin |
+| Admin coupons (UC13) | GET/PUT | `/api/admin/coupons/{id}` | Staff/Admin |
+| Admin coupons (UC13) | PATCH | `/api/admin/coupons/{id}/status` | Staff/Admin |
 | Admin inventory (UC18) | GET | `/api/admin/inventories` | Staff/Admin |
 | Admin inventory (UC18) | GET | `/api/admin/inventories/branches` | Staff/Admin |
 | Admin inventory (UC18) | POST | `/api/admin/inventories/adjust` | Staff/Admin |
@@ -249,6 +252,41 @@
   `quantity > 0`; nguồn = đích → `400`; nguồn thiếu hàng/không có dòng → `409`; đích tự tạo dòng; tổng tồn không đổi.
 - Chung: `reason` ≤255; chi nhánh `INACTIVE` (adjust, nguồn hoặc đích) → `400`; sản phẩm/chi nhánh không tồn tại → `404`. Thao tác khóa sản phẩm rồi các dòng tồn (`PESSIMISTIC_WRITE`, TRANSFER theo `branchId` tăng dần). Mỗi thao tác thành công ghi 1 dòng `audit_logs` (`INVENTORY_INBOUND|OUTBOUND|SET|TRANSFER`).
 - `minStockAlert` chỉ đọc trong UC18.
+
+## Admin Coupon DTO (UC13 - ADR-022, Proposed)
+
+- Quyền: `ROLE_STAFF` (ADMIN kế thừa); `ROLE_CUSTOMER` → `403`, không token → `401`. **Không có `DELETE`** (→ `405`); vô hiệu hóa bằng `PATCH .../status`.
+- `CouponResponse`:
+  ```json
+  { "id": 1, "code": "TECHSTORE10", "discountType": "PERCENTAGE", "discountValue": 10.00,
+    "minOrderAmount": 0.00, "maxDiscountAmount": 2000000.00, "usageLimit": 100, "usedCount": 0,
+    "startDate": "2026-01-01T00:00:00", "endDate": "2027-12-31T23:59:59", "active": true,
+    "displayStatus": "ACTIVE", "createdAt": "2026-11-22T10:00:00", "updatedAt": "2026-11-22T10:00:00" }
+  ```
+  `displayStatus` tính ở server, ưu tiên `DISABLED` (`active = false`) > `EXPIRED` (now > `endDate`) > `EXHAUSTED` (`usedCount ≥ usageLimit`) > `SCHEDULED` (now < `startDate`) > `ACTIVE`.
+- `GET /api/admin/coupons?q={text}&status={displayStatus}` → mọi coupon, sắp `id` giảm dần; `q` khớp một phần mã (không phân biệt hoa thường); `status` ∈ 5 giá trị trên (khác → `400`). `GET /api/admin/coupons/{id}` → `404` nếu không tồn tại.
+- `POST /api/admin/coupons` (`201`, mặc định `active = true`) / `PUT /api/admin/coupons/{id}` (`200`):
+  ```json
+  { "code": "giam500k", "discountType": "FIXED_AMOUNT", "discountValue": 500000, "minOrderAmount": 10000000,
+    "maxDiscountAmount": null, "usageLimit": 50, "startDate": "2026-11-22T00:00", "endDate": "2026-12-31T23:59" }
+  ```
+  - `code` trim + UPPERCASE, `^[A-Z0-9_-]{3,50}$`; trùng mã → `409`.
+  - `discountType` ∈ `PERCENTAGE | FIXED_AMOUNT`; PERCENTAGE `0 < value ≤ 100`; FIXED_AMOUNT `value > 0`. `maxDiscountAmount` null hoặc `> 0`, chỉ dùng với PERCENTAGE (FIXED_AMOUNT → lưu `null`). `minOrderAmount ≥ 0` (bỏ trống = 0). `usageLimit ≥ 1`. `endDate > startDate`. Tiền tối đa 13 chữ số nguyên, 2 thập phân. Lỗi → `400` với `errors.{field}`; ngày/enum sai định dạng → `400`.
+  - Sửa: `usageLimit < usedCount` → `409`. Coupon đã có usage (bất kỳ trạng thái, hoặc `usedCount > 0`): đổi `code`/`discountType`/`discountValue` → `409`; vẫn được đổi hạn, `usageLimit`, `minOrderAmount`, `maxDiscountAmount`.
+- `PATCH /api/admin/coupons/{id}/status`: body `{ "active": true | false }` (thiếu → `400`), trả `CouponResponse`. Sửa và đổi trạng thái khóa dòng coupon (`PESSIMISTIC_WRITE`).
+
+## Coupon preview DTO (UC07/UC13 - ADR-022, Proposed)
+
+- `POST /api/checkout/coupon-preview` (Quyền: `ROLE_CUSTOMER`; Staff/Admin không có `ROLE_CUSTOMER` → `403`; tài khoản `LOCKED` → `403`).
+  ```json
+  { "couponCode": "TECHSTORE10", "source": "CART", "selectedCartItemIds": [12, 15] }
+  { "couponCode": "GIAM500K", "source": "BUY_NOW", "productId": 1, "quantity": 1 }
+  ```
+- Response `200`: `{ "couponCode": "TECHSTORE10", "subtotal": 18990000.00, "discountAmount": 1899000.00, "finalAmount": 17091000.00 }`.
+- Subtotal tính ở server theo giá hiện tại; cart item không thuộc user → `404`; sản phẩm `INACTIVE` / dữ liệu thiếu → `400`. Không kiểm tra tồn kho.
+- Tính giảm: PERCENTAGE = `floor(subtotal × value / 100)` giới hạn bởi `maxDiscountAmount`; FIXED_AMOUNT = `value`; luôn `≤ subtotal`; làm tròn xuống đồng.
+- Mã không hợp lệ → `400`, `message` tiếng Việt và `errors.reason` ∈ `NOT_FOUND | DISABLED | NOT_STARTED | EXPIRED | EXHAUSTED | MIN_ORDER_NOT_MET | ALREADY_USED` (user đã có usage `ACTIVE`).
+- Preview **không khóa, không tạo `coupon_usages`, không tăng `used_count`**. Áp coupon khi `POST /api/checkout` là FS16.
 
 ## Admin Branches DTO (UC19 - ADR-020, Proposed)
 
