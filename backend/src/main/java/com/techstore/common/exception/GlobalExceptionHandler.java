@@ -200,6 +200,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    /** Chuyển trạng thái đơn sai luồng / đã bị người khác đổi (UC14, ADR-023) → 409. */
+    @ExceptionHandler(OrderStatusConflictException.class)
+    public ResponseEntity<ErrorResponse> handleOrderStatusConflict(OrderStatusConflictException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.CONFLICT.value(),
+            "Conflict",
+            ex.getMessage(),
+            request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     /** Coupon không áp dụng được (UC07/UC13, ADR-022) → 400 kèm errors.reason. */
     @ExceptionHandler(InvalidCouponException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCoupon(InvalidCouponException ex, HttpServletRequest request) {
