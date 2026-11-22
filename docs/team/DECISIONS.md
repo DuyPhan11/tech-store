@@ -24,6 +24,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-018 | Hợp đồng API quản trị danh mục/thương hiệu (UC12) và danh sách thương hiệu công khai | Approved (A2: chỉ vô hiệu hóa; A5: giữ quốc gia xuất xứ) | API contract, SecurityConfig, Admin Catalog UI, Catalog filters |
 | ADR-019 | Hợp đồng API quản trị sản phẩm (UC11) và upload ảnh Cloudinary qua backend | Proposed | API contract, Admin Products UI, Cloudinary service, pom.xml, application.yml |
 | ADR-020 | Hợp đồng API quản trị chi nhánh (UC19), quy tắc vô hiệu hóa và phạm vi hoãn | Proposed | API contract, Admin Branches UI, BranchRepository, OrderRepository |
+| ADR-021 | Hợp đồng API tồn kho / chuyển kho (UC18), khóa giao dịch và audit log | Proposed | API contract, Admin Inventory UI, InventoryRepository, audit_logs entity |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -289,4 +290,25 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   - **FS16 (UC07):** danh sách chi nhánh `ACTIVE` ở Checkout (thay `branchId = 1`), có thể kèm `GET /api/branches` public; khóa chi nhánh khi checkout để loại bỏ race ở mục 5.
   - **FS20 (UC16):** liên kết nhân viên – chi nhánh và cột "Quản lý chi nhánh".
 - Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`; không đổi schema (vẫn 21 bảng), không đổi `SecurityConfig`.
+- Who approved / PR URL: _(chờ duyệt)_
+
+### ADR-021 — Hợp đồng API tồn kho / chuyển kho (UC18), khóa giao dịch và audit log
+
+- Date: 22/11/2026 — Trạng thái: **Proposed** (chờ Tech Lead duyệt trên PR).
+- Context:
+  1. `API_CONTRACT.md` chỉ ghi `POST /api/admin/inventories/adjust` và `/transfer` (Staff/Admin), chưa có DTO và endpoint danh sách.
+  2. Bảng `audit_logs` có trong schema nhưng backend chưa có entity; BUSINESS_RULES §5 yêu cầu `INBOUND`/`OUTBOUND`/`SET`/`TRANSFER` có lock/transaction nhất quán.
+  3. `AdminInventoryPage.tsx` dùng mock (tên chi nhánh, SKU cứng). Sản phẩm mới (UC11) chưa có dòng `inventories`.
+  4. `GET /api/admin/branches` chỉ dành cho ADMIN (ADR-020) nên Staff không lấy được danh sách chi nhánh.
+- Decision đề xuất (quyền `ROLE_STAFF`, ADMIN kế thừa; không đổi `SecurityConfig`):
+  1. **Endpoint:** `GET /api/admin/inventories?branchId=&q=` (lọc chi nhánh, từ khóa tên/SKU; trả `inventoryId, productId, productName, sku, branchId, branchName, branchStatus, quantity, minStockAlert, updatedAt`); `POST /api/admin/inventories/adjust` `{ productId, branchId, type: INBOUND|OUTBOUND|SET, quantity, reason? }`; `POST /api/admin/inventories/transfer` `{ productId, fromBranchId, toBranchId, quantity, reason? }`. **Bổ sung (operator chọn):** `GET /api/admin/inventories/branches` → `{ id, name, status }` chỉ đọc cho Staff, không nới quyền `/api/admin/branches`.
+  2. INBOUND/OUTBOUND/TRANSFER: `quantity > 0`; SET: `quantity >= 0`. Thiếu hàng (OUTBOUND, nguồn TRANSFER) → `409`. Dữ liệu sai → `400`. Sản phẩm/chi nhánh không tồn tại → `404`.
+  3. Chưa có dòng inventory: INBOUND/SET và đích TRANSFER tự tạo dòng (quantity 0, `min_stock_alert` mặc định 5) rồi áp dụng; OUTBOUND và nguồn TRANSFER không có dòng → `409`. Chống tạo trùng khi đồng thời: khóa dòng `products` (`PESSIMISTIC_WRITE`) trước khi kiểm tra/tạo dòng tồn, tuần tự hóa thao tác kho trên cùng sản phẩm (checkout không khóa `products` nên không tạo vòng chờ); vẫn bắt vi phạm unique → `409` để an toàn.
+  4. Chi nhánh `INACTIVE`: chặn mọi thao tác (adjust, nguồn và đích transfer) → `400`.
+  5. TRANSFER: nguồn ≠ đích (→ `400`); khóa 2 dòng theo `branchId` tăng dần; tổng tồn không đổi.
+  6. Mỗi thao tác thành công ghi đúng 1 dòng `audit_logs` trong cùng transaction: `user_id` người thực hiện, `action` = `INVENTORY_INBOUND|INVENTORY_OUTBOUND|INVENTORY_SET|INVENTORY_TRANSFER`, `entity_name` = `inventories`, `entity_id` = dòng tồn (TRANSFER: dòng nguồn), `details` = JSON (productId, branchId(s), trước/sau, quantity, reason), `ip_address` nếu có. Thao tác lỗi rollback nên không có audit. Entity/service audit đặt ở `common.audit` để UC khác dùng lại; không đổi schema.
+  7. `min_stock_alert` chỉ đọc; UI hiển thị Còn hàng / Sắp hết (≤ ngưỡng) / Hết hàng (0).
+  8. UI: giữ layout; nút nhanh −1/+5/+20 gọi OUTBOUND/INBOUND; modal chuyển kho chọn theo id; **thêm modal "± Điều chỉnh tồn kho" (operator chọn)** để nhập kho lần đầu và SET.
+- Hoãn sang FS sau: màn hình xem lịch sử audit; sửa ngưỡng `min_stock_alert`. Không sửa `CheckoutServiceImpl`/`OrderServiceImpl`.
+- Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `DATABASE.md`; vẫn 21 bảng, không migration.
 - Who approved / PR URL: _(chờ duyệt)_

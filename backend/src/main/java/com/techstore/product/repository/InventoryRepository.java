@@ -21,6 +21,15 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId AND i.branch.id = :branchId")
     Optional<Inventory> findByProductIdAndBranchIdForUpdate(@Param("productId") Long productId, @Param("branchId") Long branchId);
 
+    /**
+     * Danh sách tồn quản trị (UC18): lọc chi nhánh và từ khóa (pattern '%x%' đã lowercase) theo tên hoặc SKU.
+     */
+    @Query("SELECT i FROM Inventory i JOIN FETCH i.product p JOIN FETCH i.branch b "
+            + "WHERE (:branchId IS NULL OR b.id = :branchId) "
+            + "AND (:pattern IS NULL OR LOWER(p.name) LIKE :pattern OR LOWER(p.sku) LIKE :pattern) "
+            + "ORDER BY p.name ASC, b.id ASC")
+    List<Inventory> searchForAdmin(@Param("branchId") Long branchId, @Param("pattern") String pattern);
+
     /** Tổng tồn theo sản phẩm ở các chi nhánh có trạng thái cho trước (UC11, chỉ đọc). Mỗi phần tử: [productId, sum]. */
     @Query("SELECT i.product.id, SUM(i.quantity) FROM Inventory i WHERE i.branch.status = :status GROUP BY i.product.id")
     List<Object[]> sumQuantityGroupByProductId(@Param("status") ActiveStatus status);
