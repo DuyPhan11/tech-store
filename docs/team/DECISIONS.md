@@ -25,6 +25,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-019 | Hợp đồng API quản trị sản phẩm (UC11) và upload ảnh Cloudinary qua backend | Proposed | API contract, Admin Products UI, Cloudinary service, pom.xml, application.yml |
 | ADR-020 | Hợp đồng API quản trị chi nhánh (UC19), quy tắc vô hiệu hóa và phạm vi hoãn | Proposed | API contract, Admin Branches UI, BranchRepository, OrderRepository |
 | ADR-021 | Hợp đồng API tồn kho / chuyển kho (UC18), khóa giao dịch và audit log | Proposed | API contract, Admin Inventory UI, InventoryRepository, audit_logs entity |
+| ADR-022 | Hợp đồng API quản trị coupon (UC13), CouponService dùng chung và coupon-preview | Proposed | API contract, Admin Coupons UI, coupon entities, GlobalExceptionHandler, DemoDataInitializer, checkoutApi (FE) |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -311,4 +312,32 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   8. UI: giữ layout; nút nhanh −1/+5/+20 gọi OUTBOUND/INBOUND; modal chuyển kho chọn theo id; **thêm modal "± Điều chỉnh tồn kho" (operator chọn)** để nhập kho lần đầu và SET.
 - Hoãn sang FS sau: màn hình xem lịch sử audit; sửa ngưỡng `min_stock_alert`. Không sửa `CheckoutServiceImpl`/`OrderServiceImpl`.
 - Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `DATABASE.md`; vẫn 21 bảng, không migration.
+- Who approved / PR URL: _(chờ duyệt)_
+
+### ADR-022 — Hợp đồng API quản trị coupon (UC13), CouponService dùng chung và coupon-preview
+
+- Date: 22/11/2026 — Trạng thái: **Proposed** (chờ Tech Lead duyệt trên PR).
+- Context:
+  1. Backend chưa có entity/repository/service cho `coupons`, `coupon_usages`. `API_CONTRACT.md` chỉ có `POST /api/checkout/coupon-preview` (Customer), chưa có endpoint admin.
+  2. `AdminCouponsPage.tsx` dùng mock (`PERCENT`/`FIXED` lệch DB, ngày dạng text). `CartPage.tsx` hardcode `TECHSTORE10`. `CheckoutServiceImpl` để `discountAmount = 0` — áp coupon khi checkout là FS16.
+  3. `SecurityConfig` đã cho `/api/admin/**` → STAFF (ADMIN kế thừa) và `/api/checkout/**` → CUSTOMER, nên không sửa.
+- Decision đề xuất (theo Issue UC13):
+  1. **Endpoint admin (Staff/Admin):** `GET /api/admin/coupons?q=&status=`, `GET /api/admin/coupons/{id}`, `POST /api/admin/coupons`, `PUT /api/admin/coupons/{id}`, `PATCH /api/admin/coupons/{id}/status { active }`. Không có `DELETE` (không xóa vật lý → `405`). Response: `id, code, discountType, discountValue, minOrderAmount, maxDiscountAmount, usageLimit, usedCount, startDate, endDate, active, displayStatus (ACTIVE|SCHEDULED|EXPIRED|EXHAUSTED|DISABLED, tính ở server), createdAt, updatedAt`.
+  2. **Validation (`400`):** code chuẩn hóa UPPERCASE, `^[A-Z0-9_-]{3,50}$`; PERCENTAGE `0 < value ≤ 100`; FIXED_AMOUNT `value > 0`; `minOrderAmount ≥ 0`; `maxDiscountAmount` null hoặc `> 0`; `usageLimit ≥ 1`; `endDate > startDate`. Trùng mã → `409`.
+  3. **Sửa coupon:** `usageLimit < usedCount` → `409`. Coupon đã có usage (bất kỳ trạng thái): không đổi `code`/`discountType`/`discountValue` (`409`); vẫn đổi được hạn, `usageLimit`, `minOrderAmount`, `maxDiscountAmount`, bật/tắt.
+  4. **`CouponService` dùng chung (FS16 gọi lại):** `validate(coupon, userId, subtotal, now)` và `calculateDiscount(coupon, subtotal)`: PERCENTAGE = `floor(subtotal × value / 100)` giới hạn bởi `maxDiscountAmount`; FIXED_AMOUNT = `value`; luôn `≤ subtotal`; làm tròn xuống đồng. Từ chối khi: không tồn tại, tắt, chưa tới `startDate`, quá `endDate`, `usedCount ≥ usageLimit`, `subtotal < minOrderAmount`, user đã có usage `ACTIVE`.
+  5. **`POST /api/checkout/coupon-preview` (Customer):** `{ couponCode, source: CART|BUY_NOW, selectedCartItemIds?, productId?, quantity? }` → `{ couponCode, subtotal, discountAmount, finalAmount }`. Subtotal tính ở server theo giá hiện tại (cart item phải thuộc user). Mã không hợp lệ → `400` kèm lý do tiếng Việt. Preview KHÔNG khóa, KHÔNG tạo usage, KHÔNG tăng `used_count`.
+  6. Entity `CouponUsage` + repository chỉ đọc (kiểm tra usage ACTIVE / đã có usage). Ghi usage, khóa coupon khi checkout, tăng/hoàn `used_count` là FS16/FS sau.
+  7. Không đổi schema, không migration. Không sửa `CheckoutServiceImpl`, `CartPage.tsx`, `CheckoutPage`.
+- Chi tiết bổ sung (Claude đề xuất, cần Tech Lead xác nhận):
+  - **Ưu tiên `displayStatus`:** `DISABLED` (`is_active = false`) > `EXPIRED` (now > `endDate`) > `EXHAUSTED` (`usedCount ≥ usageLimit`) > `SCHEDULED` (now < `startDate`) > `ACTIVE`. Hiệu lực trong `[startDate, endDate]` theo giờ server.
+  - `maxDiscountAmount` gửi kèm FIXED_AMOUNT → server lưu `null` (không báo lỗi).
+  - `?status=` chỉ nhận 5 giá trị `displayStatus` (khác → `400`); `q` khớp một phần mã, không phân biệt hoa thường; sắp `id` giảm dần. Tiền tối đa 13 chữ số nguyên, 2 thập phân.
+  - Sửa / bật-tắt khóa dòng coupon (`PESSIMISTIC_WRITE`) để kiểm tra `usageLimit ≥ usedCount` nhất quán với FS16.
+  - "Đã có usage" = có bất kỳ dòng `coupon_usages` (ACTIVE hoặc REVERSED) hoặc `usedCount > 0`.
+  - Preview: sản phẩm INACTIVE → `400`, cart item không thuộc user → `404`, tài khoản LOCKED → `403` (giống checkout); không kiểm tra tồn kho. Lỗi coupon trả `errors.reason` ∈ `NOT_FOUND | DISABLED | NOT_STARTED | EXPIRED | EXHAUSTED | MIN_ORDER_NOT_MET | ALREADY_USED`.
+  - Body sai định dạng (ngày, enum, JSON hỏng) → `400` thay vì `500` (handler chung mới).
+  - **Operator chọn:** seed demo `TECHSTORE10` (10%, tối đa 2.000.000đ), `GIAM500K` (500.000đ, đơn từ 10.000.000đ), `HETHAN2025` (đã hết hạn) trong `DemoDataInitializer` (chỉ tạo khi mã chưa có); thêm `checkoutApi.previewCoupon` ở frontend nhưng chưa nối UI.
+- Hoãn sang FS16 / FS sau: áp coupon khi checkout, ghi `coupon_usages`, tăng/hoàn `used_count`, nối preview vào CartPage/CheckoutPage, test đồng thời lượt cuối.
+- Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `DATABASE.md`, `TASK_BOARD.md`; vẫn 21 bảng, không migration.
 - Who approved / PR URL: _(chờ duyệt)_

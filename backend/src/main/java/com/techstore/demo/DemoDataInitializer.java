@@ -1,5 +1,8 @@
 package com.techstore.demo;
 
+import com.techstore.coupon.entity.Coupon;
+import com.techstore.coupon.entity.DiscountType;
+import com.techstore.coupon.repository.CouponRepository;
 import com.techstore.product.entity.*;
 import com.techstore.product.repository.*;
 import com.techstore.user.entity.Role;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Component
@@ -33,6 +37,7 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final InventoryRepository inventoryRepository;
+    private final CouponRepository couponRepository;
 
     @Value("${app.demo.enabled:true}")
     private boolean demoEnabled;
@@ -54,7 +59,8 @@ public class DemoDataInitializer implements CommandLineRunner {
                                BranchRepository branchRepository,
                                ProductRepository productRepository,
                                ProductImageRepository productImageRepository,
-                               InventoryRepository inventoryRepository) {
+                               InventoryRepository inventoryRepository,
+                               CouponRepository couponRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -64,6 +70,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
         this.inventoryRepository = inventoryRepository;
+        this.couponRepository = couponRepository;
     }
 
     @Override
@@ -78,6 +85,41 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         log.info("Khởi tạo danh mục, thương hiệu, chi nhánh và sản phẩm catalog demo...");
         initCatalogData();
+
+        log.info("Khởi tạo mã giảm giá demo (UC13, ADR-022)...");
+        initCoupons();
+    }
+
+    /** Coupon demo (ADR-022, operator chọn). Chỉ tạo khi mã chưa tồn tại; không ghi đè chỉnh sửa của người dùng. */
+    private void initCoupons() {
+        getOrCreateCoupon("TECHSTORE10", DiscountType.PERCENTAGE, new BigDecimal("10"), BigDecimal.ZERO,
+                new BigDecimal("2000000"), 100,
+                LocalDateTime.of(2026, 1, 1, 0, 0), LocalDateTime.of(2027, 12, 31, 23, 59, 59));
+        getOrCreateCoupon("GIAM500K", DiscountType.FIXED_AMOUNT, new BigDecimal("500000"), new BigDecimal("10000000"),
+                null, 50,
+                LocalDateTime.of(2026, 1, 1, 0, 0), LocalDateTime.of(2027, 12, 31, 23, 59, 59));
+        getOrCreateCoupon("HETHAN2025", DiscountType.PERCENTAGE, new BigDecimal("15"), BigDecimal.ZERO,
+                new BigDecimal("1000000"), 100,
+                LocalDateTime.of(2025, 1, 1, 0, 0), LocalDateTime.of(2025, 12, 31, 23, 59, 59));
+    }
+
+    private void getOrCreateCoupon(String code, DiscountType type, BigDecimal value, BigDecimal minOrder,
+                                   BigDecimal maxDiscount, int usageLimit, LocalDateTime start, LocalDateTime end) {
+        if (couponRepository.existsByCode(code)) {
+            return;
+        }
+        Coupon coupon = new Coupon();
+        coupon.setCode(code);
+        coupon.setDiscountType(type);
+        coupon.setDiscountValue(value);
+        coupon.setMinOrderAmount(minOrder);
+        coupon.setMaxDiscountAmount(maxDiscount);
+        coupon.setUsageLimit(usageLimit);
+        coupon.setUsedCount(0);
+        coupon.setStartDate(start);
+        coupon.setEndDate(end);
+        coupon.setActive(true);
+        couponRepository.save(coupon);
     }
 
     private void initUsersAndRoles() {

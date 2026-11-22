@@ -11,7 +11,7 @@
 | TBD | UC11–12 | Product CRUD + Cloudinary | TBD | TBD | In progress | feat/uc11-admin-products | TBD | AdminProductControllerTest, adminProductApi.test.mjs |
 | TBD | UC18–19 | Inventory + Branch (UC19 xong, UC18 đang làm) | TBD | TBD | In progress | feat/uc18-inventory | TBD | AdminInventoryControllerTest, InventoryConcurrencyTest, adminInventoryApi.test.mjs |
 | TBD | UC06 | Cart | TBD | TBD | In review | feat/uc06-cart | — | — |
-| TBD | UC13 | Coupon | TBD | TBD | Todo | — | TBD | — |
+| TBD | UC13 | Coupon (admin + preview; áp coupon khi checkout là FS16) | TBD | TBD | In progress | feat/uc13-coupons | TBD | AdminCouponControllerTest, CouponServiceTest, CouponPreviewControllerTest, adminCouponApi.test.mjs |
 | TBD | UC07 | Checkout | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC08 + UC14 | Order / cancellation | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC09–10 + UC15–17 + UC20 | Final modules | TBD | TBD | Todo | — | TBD | — |

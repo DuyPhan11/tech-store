@@ -37,3 +37,29 @@ export interface CheckoutRequest {
   notes?: string | null
   idempotencyKey?: string
 }
+
+/** POST /api/checkout/coupon-preview (UC07/UC13, ADR-022). */
+export interface CouponPreviewRequest {
+  couponCode: string
+  source: 'CART' | 'BUY_NOW'
+  selectedCartItemIds?: number[]
+  productId?: number
+  quantity?: number
+}
+
+export interface CouponPreviewResponse {
+  couponCode: string
+  subtotal: number
+  discountAmount: number
+  finalAmount: number
+}
+
+/** errors.reason khi mã không áp dụng được (400). */
+export type CouponRejectReason =
+  | 'NOT_FOUND'
+  | 'DISABLED'
+  | 'NOT_STARTED'
+  | 'EXPIRED'
+  | 'EXHAUSTED'
+  | 'MIN_ORDER_NOT_MET'
+  | 'ALREADY_USED'
