@@ -61,7 +61,7 @@ Layout Admin kế thừa toàn bộ hệ thống Component (Bảng dữ liệu, 
 | `/admin/users` | Quản lý người dùng & khóa tài khoản | UC15 | Admin | Bảng khách hàng, nút Lock/Unlock, modal thông tin | `GET/PATCH /api/admin/users` |
 | `/admin/staff` | Quản lý nhân viên & phân quyền | UC16 | Admin | Bảng nhân viên (ROLE_STAFF), thêm nhân viên mới | `CRUD /api/admin/staff` |
 | `/admin/inventory` | Quản lý tồn kho & chuyển kho | UC18 | Staff, Admin | Bảng tồn theo chi nhánh, modal điều chỉnh & chuyển kho | `POST /api/admin/inventories/*` |
-| `/admin/branches` | Quản lý chi nhánh | UC19 | Admin | Bảng chi nhánh, cập nhật trạng thái ACTIVE/INACTIVE | `CRUD /api/admin/branches` |
+| `/admin/branches` | Quản lý chi nhánh | UC19 | Admin | Bảng chi nhánh, modal thêm/sửa, cập nhật trạng thái ACTIVE/INACTIVE (ADR-020) | `GET/POST /api/admin/branches`, `PUT /api/admin/branches/{id}`, `PATCH /api/admin/branches/{id}/status` |
 | `/admin/reviews` | Kiểm duyệt đánh giá khách hàng | UC20 | Admin | Bảng đánh giá, xem nội dung, ẩn vi phạm (HIDDEN_BY_ADMIN) | `PATCH /api/admin/reviews/{id}` |
 
 ---
