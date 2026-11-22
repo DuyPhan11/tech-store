@@ -39,8 +39,10 @@
 | Admin brands (UC12) | GET/POST | `/api/admin/brands` | Admin |
 | Admin brands (UC12) | PUT | `/api/admin/brands/{id}` | Admin |
 | Admin brands (UC12) | PATCH | `/api/admin/brands/{id}/status` | Admin |
-| Admin inventory | POST | `/api/admin/inventories/adjust` | Staff/Admin |
-| Admin inventory | POST | `/api/admin/inventories/transfer` | Staff/Admin |
+| Admin inventory (UC18) | GET | `/api/admin/inventories` | Staff/Admin |
+| Admin inventory (UC18) | GET | `/api/admin/inventories/branches` | Staff/Admin |
+| Admin inventory (UC18) | POST | `/api/admin/inventories/adjust` | Staff/Admin |
+| Admin inventory (UC18) | POST | `/api/admin/inventories/transfer` | Staff/Admin |
 | Admin branches (UC19) | GET/POST | `/api/admin/branches` | Admin |
 | Admin branches (UC19) | PUT | `/api/admin/branches/{id}` | Admin |
 | Admin branches (UC19) | PATCH | `/api/admin/branches/{id}/status` | Admin |
@@ -224,6 +226,29 @@
 - `GET /api/categories`, `/api/categories/tree`, `/api/categories/{slug}`: chỉ trả danh mục `ACTIVE` **và** mọi danh mục tổ tiên `ACTIVE`.
 - `GET /api/products`, `/api/products/{slug}`: ẩn sản phẩm có danh mục, danh mục cha hoặc thương hiệu `INACTIVE`.
 - Frontend `/products` lấy bộ lọc từ `GET /api/categories` + `GET /api/brands` (`CatalogOption.id = slug`).
+
+## Admin Inventory DTO (UC18 - ADR-021, Proposed)
+
+- Quyền: `ROLE_STAFF` (ADMIN kế thừa); `ROLE_CUSTOMER` → `403`, không token → `401`.
+- `GET /api/admin/inventories?branchId={id}&q={text}` → dòng tồn (mọi trạng thái sản phẩm/chi nhánh), sắp theo tên sản phẩm rồi `branchId`; `q` khớp tên hoặc SKU, không phân biệt hoa thường:
+  ```json
+  [{ "inventoryId": 3, "productId": 1, "productName": "Laptop Nova 14", "sku": "LAP-NOV-14",
+     "branchId": 1, "branchName": "Chi nhánh Quận 1", "branchStatus": "ACTIVE",
+     "quantity": 8, "minStockAlert": 5, "updatedAt": "2026-11-22T10:00:00" }]
+  ```
+- `GET /api/admin/inventories/branches` → `[{ "id": 1, "name": "Chi nhánh Quận 1", "status": "ACTIVE" }]` (mọi trạng thái, chỉ đọc).
+- `POST /api/admin/inventories/adjust` (`200`, trả dòng tồn sau khi đổi):
+  ```json
+  { "productId": 1, "branchId": 1, "type": "INBOUND", "quantity": 10, "reason": "Nhập lô tháng 11" }
+  ```
+  `type` ∈ `INBOUND | OUTBOUND | SET`. INBOUND/OUTBOUND: `quantity > 0`; SET: `quantity >= 0`. OUTBOUND vượt tồn hoặc chưa có dòng → `409`. INBOUND/SET tự tạo dòng nếu chưa có.
+- `POST /api/admin/inventories/transfer` (`200`, trả `{ "from": InventoryItem, "to": InventoryItem }`):
+  ```json
+  { "productId": 1, "fromBranchId": 1, "toBranchId": 2, "quantity": 3, "reason": "Cân đối tồn" }
+  ```
+  `quantity > 0`; nguồn = đích → `400`; nguồn thiếu hàng/không có dòng → `409`; đích tự tạo dòng; tổng tồn không đổi.
+- Chung: `reason` ≤255; chi nhánh `INACTIVE` (adjust, nguồn hoặc đích) → `400`; sản phẩm/chi nhánh không tồn tại → `404`. Thao tác khóa sản phẩm rồi các dòng tồn (`PESSIMISTIC_WRITE`, TRANSFER theo `branchId` tăng dần). Mỗi thao tác thành công ghi 1 dòng `audit_logs` (`INVENTORY_INBOUND|OUTBOUND|SET|TRANSFER`).
+- `minStockAlert` chỉ đọc trong UC18.
 
 ## Admin Branches DTO (UC19 - ADR-020, Proposed)
 

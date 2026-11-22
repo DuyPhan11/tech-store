@@ -9,7 +9,7 @@
 | TBD | UC01–03 | Auth OTP | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC04–05 | Catalog | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC11–12 | Product CRUD + Cloudinary | TBD | TBD | In progress | feat/uc11-admin-products | TBD | AdminProductControllerTest, adminProductApi.test.mjs |
-| TBD | UC18–19 | Inventory + Branch (UC19 đang làm, UC18 Todo) | TBD | TBD | In progress | feat/uc19-branches | TBD | AdminBranchControllerTest, adminBranchApi.test.mjs |
+| TBD | UC18–19 | Inventory + Branch (UC19 xong, UC18 đang làm) | TBD | TBD | In progress | feat/uc18-inventory | TBD | AdminInventoryControllerTest, InventoryConcurrencyTest, adminInventoryApi.test.mjs |
 | TBD | UC06 | Cart | TBD | TBD | In review | feat/uc06-cart | — | — |
 | TBD | UC13 | Coupon | TBD | TBD | Todo | — | TBD | — |
 | TBD | UC07 | Checkout | TBD | TBD | Todo | — | TBD | — |

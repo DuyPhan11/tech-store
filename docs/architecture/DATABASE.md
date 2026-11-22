@@ -24,3 +24,6 @@
 |---|---|---|
 | `database/migrations/01_add_parent_id_to_categories.sql` | `categories.parent_id` tự tham chiếu | ADR-017 |
 | `database/migrations/02_add_country_to_brands.sql` | `brands.country VARCHAR(100) NULL` — quốc gia xuất xứ thương hiệu (Admin Catalog UC12) | ADR-018 (A5) |
+
+## Entity bổ sung không đổi schema
+- `audit_logs` → entity `com.techstore.common.audit.AuditLog` + `AuditLogService` (UC18, ADR-021). Map đúng các cột hiện có; `user_id` lưu id người thực hiện (không có FK trong schema).
