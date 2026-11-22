@@ -30,7 +30,9 @@
 | Orders | POST | `/api/orders/{id}/cancel` | Customer (owner) |
 | Reviews | POST | `/api/reviews` | Customer |
 | Profile | GET/PATCH | `/api/me` | Customer |
-| Admin products | POST/PUT | `/api/admin/products` / `/api/admin/products/{id}` | Staff/Admin |
+| Admin products (UC11) | GET/POST | `/api/admin/products` | Staff/Admin |
+| Admin products (UC11) | GET/PUT | `/api/admin/products/{id}` | Staff/Admin |
+| Admin products (UC11) | PATCH | `/api/admin/products/{id}/status` | Staff/Admin |
 | Admin categories (UC12) | GET/POST | `/api/admin/categories` | Admin |
 | Admin categories (UC12) | PUT | `/api/admin/categories/{id}` | Admin |
 | Admin categories (UC12) | PATCH | `/api/admin/categories/{id}/status` | Admin |
@@ -183,6 +185,37 @@
 - `PATCH /api/admin/categories/{id}/status`, `PATCH /api/admin/brands/{id}/status`: body `{ "status": "ACTIVE" | "INACTIVE" }` (giá trị khác → `400`); trả về DTO admin tương ứng.
 - `productCount`: số sản phẩm mọi trạng thái gắn trực tiếp với danh mục/thương hiệu.
 - Ảnh/logo Cloudinary: chưa hỗ trợ trong UC12 (ADR-018 A7); `imageUrl`/`logoUrl` chỉ đọc.
+
+## Admin Products DTO (UC11 - ADR-019, Proposed)
+
+- Quyền: `ROLE_STAFF` (ADMIN kế thừa). `ROLE_CUSTOMER` → `403`, không token → `401`. **Không có `DELETE`** (→ `405`); ẩn sản phẩm bằng trạng thái.
+- `GET /api/admin/products` → mọi sản phẩm kể cả `INACTIVE`, sắp `id` giảm dần (frontend lọc ở client). `GET /api/admin/products/{id}` → chi tiết (`404` nếu không tồn tại).
+- `AdminProductResponse`:
+  ```json
+  { "id": 12, "name": "Laptop Nova 14", "slug": "laptop-nova-14", "sku": "NOVA-14",
+    "categoryId": 2, "categoryName": "Laptop Gaming", "brandId": 1, "brandName": "Nova",
+    "price": 18990000.00, "costPrice": 15000000.00, "description": "...",
+    "specifications": [{ "label": "CPU", "value": "Core i7" }],
+    "status": "ACTIVE", "totalStock": 14, "primaryImageUrl": "https://res.cloudinary.com/...",
+    "images": [{ "id": 31, "url": "https://res.cloudinary.com/...", "primary": true, "displayOrder": 0 }],
+    "createdAt": "2026-11-22T10:00:00", "updatedAt": "2026-11-22T10:00:00" }
+  ```
+  `totalStock` = tổng `quantity` ở chi nhánh `ACTIVE`, chỉ đọc (điều chỉnh kho thuộc UC18).
+- `POST /api/admin/products` (`201`) / `PUT /api/admin/products/{id}` (`200`): `multipart/form-data`
+  - part `data` (`application/json`):
+    ```json
+    { "name": "Laptop Nova 14", "slug": "laptop-nova-14", "sku": "NOVA-14", "categoryId": 2, "brandId": 1,
+      "price": 18990000, "costPrice": 15000000, "description": "Tùy chọn",
+      "specifications": [{ "label": "CPU", "value": "Core i7" }],
+      "images": [{ "imageId": 31, "primary": false }, { "fileIndex": 0, "primary": true }] }
+    ```
+  - part `files`: 0..n ảnh mới, tham chiếu bằng `fileIndex` (vị trí trong `files`).
+  - `images` có thứ tự (= `displayOrder`). Mỗi phần tử có đúng một trong `imageId` (ảnh cũ của chính sản phẩm) hoặc `fileIndex`. Ảnh cũ không có trong mảng bị gỡ. Mọi file phải được tham chiếu đúng một lần. Tối đa **8** ảnh; có ảnh thì đúng **1** primary (không chỉ định → ảnh đầu tiên); >1 primary → `400`. Bỏ trống `images` (null) → giữ ảnh cũ theo thứ tự hiện tại và thêm các file mới vào cuối.
+  - Validate: `name` ≤200; `slug` ≤255 theo regex slug chung; `sku` ≤50, `^[A-Z0-9]+(-[A-Z0-9]+)*$`; `price`, `costPrice` ≥ 0 (tối đa 13 chữ số nguyên, 2 thập phân). Trùng `slug`/`sku` → `409`. Category/brand không tồn tại hoặc `INACTIVE` (kể cả danh mục cha) khi chọn mới → `400` (giữ nguyên category/brand cũ đã bị vô hiệu hóa vẫn được lưu). File không phải JPEG/PNG/WebP hoặc >5MB → `400`. Cloudinary lỗi hoặc chưa cấu hình → `502`.
+  - Sản phẩm mới mặc định `ACTIVE`.
+- `PATCH /api/admin/products/{id}/status`: body `{ "status": "ACTIVE" | "INACTIVE" }`, trả `AdminProductResponse`.
+- Cloudinary (BUSINESS_RULES §6): upload từ backend bằng credential trong biến môi trường; MySQL lưu `secure_url` + `public_id`. DB lỗi sau upload → xóa bù ảnh vừa upload. Ảnh bị gỡ chỉ bị xóa trên Cloudinary sau commit và khi không còn `order_items.product_image` tham chiếu.
+- Danh sách lựa chọn danh mục/thương hiệu trên form lấy từ `GET /api/categories` và `GET /api/brands` (chỉ `ACTIVE`).
 
 ### Ảnh hưởng tới catalog công khai
 - `GET /api/brands` (Public): `[{ "id": 1, "name": "Nova", "slug": "nova", "logoUrl": null }]`, chỉ `ACTIVE`, sắp theo tên.

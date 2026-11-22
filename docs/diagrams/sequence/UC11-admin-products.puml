@@ -31,5 +31,11 @@ else Dữ liệu hoặc upload lỗi
     S --> UI: 400 / 409 / 502
     UI --> U: Thông báo lỗi
 end
-note over S,Cloud: Lỗi lưu DB: dọn ảnh mới đã upload
+note over S,Cloud
+  Kiểm tra quyền, dữ liệu, SKU/slug, category/brand ACTIVE,
+  định dạng/dung lượng ảnh, tối đa 8 ảnh / 1 primary TRƯỚC khi upload (ADR-019).
+  Lỗi lưu DB: dọn ảnh mới đã upload.
+  Ảnh bị gỡ chỉ xóa trên Cloudinary sau commit và khi
+  không còn order_items.product_image tham chiếu.
+end note
 @enduml

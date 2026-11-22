@@ -16,8 +16,18 @@ spring:
       hibernate:
         format_sql: false
     show-sql: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 45MB
 
 app:
+  cloudinary:
+    # Test luôn mock ImageStorageService; không cấu hình credential thật.
+    cloud-name:
+    api-key:
+    api-secret:
+    folder: tech-store-test/products
   jwt:
     secret: 586e3272357538782f413f4428472b4b6250645367566b597033733676397924
     expiration-ms: 86400000

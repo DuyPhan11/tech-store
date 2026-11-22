@@ -17,6 +17,7 @@
   <properties>
     <java.version>17</java.version>
     <jjwt.version>0.12.6</jjwt.version>
+    <cloudinary.version>2.4.0</cloudinary.version>
   </properties>
 
   <dependencies>
@@ -58,6 +59,13 @@
       <artifactId>jjwt-jackson</artifactId>
       <version>${jjwt.version}</version>
       <scope>runtime</scope>
+    </dependency>
+
+    <!-- Cloudinary (UC11, ADR-019): upload ảnh authenticated từ backend -->
+    <dependency>
+      <groupId>com.cloudinary</groupId>
+      <artifactId>cloudinary-http5</artifactId>
+      <version>${cloudinary.version}</version>
     </dependency>
 
     <!-- Database Drivers -->

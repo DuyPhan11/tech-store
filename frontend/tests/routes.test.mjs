@@ -68,7 +68,9 @@ test('admin management sub-routes render with consistent navigation and table st
   const productsHtml = renderRoute('/admin/products')
   assert.match(productsHtml, /Quản lý sản phẩm/)
   assert.match(productsHtml, /Thêm sản phẩm mới/)
-  assert.match(productsHtml, /MSI-PRO-16/)
+  // UC11: dữ liệu lấy từ API thật, render đầu tiên ở trạng thái tải — không còn dữ liệu mock
+  assert.match(productsHtml, /Đang tải danh sách sản phẩm/)
+  assert.doesNotMatch(productsHtml, /MSI-PRO-16/)
 
   // Test Orders sub-route
   const ordersHtml = renderRoute('/admin/orders')

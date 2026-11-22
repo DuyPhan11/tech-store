@@ -147,4 +147,18 @@ public class SecurityRbacTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status", is(403)));
     }
+
+    @Test
+    @DisplayName("UC11: STAFF quản lý sản phẩm (/api/admin/products) -> 200; CUSTOMER -> 403; STAFF vẫn bị chặn ở UC12 -> 403")
+    void staff_ManagesProducts_ButNotCatalogAdmin() throws Exception {
+        mockMvc.perform(get("/api/admin/products")
+                        .header("Authorization", "Bearer " + staffToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/admin/products")
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/categories")
+                        .header("Authorization", "Bearer " + staffToken))
+                .andExpect(status().isForbidden());
+    }
 }

@@ -16,6 +16,10 @@ spring:
       hibernate:
         format_sql: true
     show-sql: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 45MB
   mail:
     host: ${MAIL_HOST:${SMTP_HOST:smtp.gmail.com}}
     port: ${MAIL_PORT:${SMTP_PORT:587}}
@@ -33,6 +37,12 @@ spring:
           writetimeout: 5000
 
 app:
+  cloudinary:
+    # Chỉ đọc từ biến môi trường; KHÔNG ghi giá trị thật vào file này (ADR-019).
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+    api-key: ${CLOUDINARY_API_KEY:}
+    api-secret: ${CLOUDINARY_API_SECRET:}
+    folder: tech-store/products
   jwt:
     secret: ${JWT_SECRET:586e3272357538782f413f4428472b4b6250645367566b597033733676397924}
     expiration-ms: 86400000 # 24 hours (86,400,000 ms)
