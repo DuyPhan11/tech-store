@@ -26,6 +26,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-020 | Hợp đồng API quản trị chi nhánh (UC19), quy tắc vô hiệu hóa và phạm vi hoãn | Proposed | API contract, Admin Branches UI, BranchRepository, OrderRepository |
 | ADR-021 | Hợp đồng API tồn kho / chuyển kho (UC18), khóa giao dịch và audit log | Proposed | API contract, Admin Inventory UI, InventoryRepository, audit_logs entity |
 | ADR-022 | Hợp đồng API quản trị coupon (UC13), CouponService dùng chung và coupon-preview | Proposed | API contract, Admin Coupons UI, coupon entities, GlobalExceptionHandler, DemoDataInitializer, checkoutApi (FE) |
+| ADR-023 | Hợp đồng API quản trị đơn hàng (UC14), luồng trạng thái, hủy đơn dùng chung và audit | Proposed | API contract, Admin Orders UI, OrderRepository, OrderServiceImpl (tách lõi hủy), audit_logs |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -340,4 +341,28 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   - **Operator chọn:** seed demo `TECHSTORE10` (10%, tối đa 2.000.000đ), `GIAM500K` (500.000đ, đơn từ 10.000.000đ), `HETHAN2025` (đã hết hạn) trong `DemoDataInitializer` (chỉ tạo khi mã chưa có); thêm `checkoutApi.previewCoupon` ở frontend nhưng chưa nối UI.
 - Hoãn sang FS16 / FS sau: áp coupon khi checkout, ghi `coupon_usages`, tăng/hoàn `used_count`, nối preview vào CartPage/CheckoutPage, test đồng thời lượt cuối.
 - Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `DATABASE.md`, `TASK_BOARD.md`; vẫn 21 bảng, không migration.
+- Who approved / PR URL: _(chờ duyệt)_
+
+### ADR-023 — Hợp đồng API quản trị đơn hàng (UC14), luồng trạng thái, hủy đơn dùng chung và audit
+
+- Date: 22/11/2026 — Trạng thái: **Proposed** (chờ Tech Lead duyệt trên PR).
+- Context:
+  1. `SCREEN_MAP.md` ghi `GET/PATCH /api/admin/orders` nhưng `API_CONTRACT.md` chưa có; `AdminOrdersPage.tsx` dùng mock, lý do hủy hardcode.
+  2. `OrderServiceImpl.cancelOrder` (UC08) đã khóa đơn, hoàn kho đúng 1 lần, cập nhật payment; chỉ khóa được theo `id + userId`. Chưa hoàn coupon.
+  3. Không có bảng lịch sử trạng thái; đã có `AuditLogService` (ADR-021). `users` không có `branch_id` nên Staff thấy mọi đơn.
+  4. Tech Lead đồng ý (ghi trong Issue) cho FS14 tách lõi hủy đơn trong `OrderServiceImpl` thành service dùng chung, không đổi hành vi UC08.
+- Decision đề xuất (quyền `ROLE_STAFF`, ADMIN kế thừa; không đổi `SecurityConfig`):
+  1. **Endpoint:** `GET /api/admin/orders?status=&q=&page=&size=` (q khớp mã đơn, tên hoặc SĐT người nhận; sắp `createdAt` giảm dần; trả trang + số đếm theo trạng thái), `GET /api/admin/orders/{id}` (chi tiết + items, payment, khách), `PATCH /api/admin/orders/{id}/status { status, reason? }`. DTO admin riêng `AdminOrderResponse` (= các trường `OrderResponse` + `customer` + `payment`); response `/api/orders/me` không đổi.
+  2. **Luồng:** `PENDING→CONFIRMED`, `CONFIRMED→SHIPPING`, `SHIPPING→COMPLETED`, `PENDING|CONFIRMED→CANCELLED` (reason bắt buộc, ≤ 500). Sai luồng (kể cả trạng thái đã bị người khác đổi) → `409`; dữ liệu sai → `400`; không tồn tại → `404`. Khóa dòng đơn (`PESSIMISTIC_WRITE`) trước khi kiểm tra.
+  3. **COMPLETED + COD:** payment `UNPAID → PAID`, set `paidAt`, `orders.payment_status = PAID`. ONLINE_MOCK giữ `PAID`.
+  4. **Hủy:** lõi hủy (hoàn kho theo productId tăng dần có khóa, cập nhật payment, đặt `CANCELLED`/`cancelReason`/`cancelledAt`) tách thành `OrderCancellationService` (propagation `MANDATORY`); khách và admin cùng gọi trong transaction đã khóa đơn. Khách giữ kiểm tra cũ (khóa `id + userId` → `404`, không hủy được → `400`, lý do trống → "Khách hàng yêu cầu hủy đơn"); admin khóa theo `id`, không hủy được → `409`, lý do bắt buộc. Hành vi `POST /api/orders/{id}/cancel` không đổi.
+  5. **Audit:** mỗi lần admin đổi trạng thái thành công ghi 1 dòng `audit_logs` cùng transaction: `action` = `ORDER_CONFIRMED|ORDER_SHIPPING|ORDER_COMPLETED|ORDER_CANCELLED`, `entity_name` = `orders`, `entity_id` = order id, `details` = JSON (`orderCode`, `from`, `to`, `reason`, `paymentStatusBefore`, `paymentStatusAfter`). Lỗi → rollback, không audit. Luồng khách hủy không ghi audit.
+  6. **Hoãn:** hoàn coupon khi hủy (issue coupon-checkout bổ sung vào `OrderCancellationService`), lọc đơn theo chi nhánh nhân viên (FS20), màn hình lịch sử trạng thái. Không đổi schema, không migration, không sửa `CheckoutServiceImpl`.
+- Chi tiết bổ sung (Claude đề xuất, cần Tech Lead xác nhận):
+  - `page` bắt đầu từ 0 (mặc định 0), `size` mặc định 20, cho phép 1–100 (ngoài khoảng → `400`); `status` sai → `400`. `q` khớp một phần, không phân biệt hoa thường.
+  - Response danh sách: `{ items, page, size, totalElements, totalPages, counts: { ALL, PENDING, CONFIRMED, SHIPPING, COMPLETED, CANCELLED } }`. **Operator chọn:** `counts` tính theo `q` (bỏ qua `status`).
+  - Đổi sang chính trạng thái hiện tại hoặc sang `PENDING` → `409`. `reason` gửi kèm bước khác hủy chỉ ghi vào audit, không lưu vào đơn.
+  - COMPLETED + COD mà thiếu dòng `payments` → vẫn đặt `orders.payment_status = PAID` (giống cách UC08 xử lý thiếu payment).
+  - **Operator chọn (UI):** modal nhập lý do hủy (bắt buộc, ≤ 500) và thanh phân trang 20 đơn/trang, tái dùng class có sẵn.
+- Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `TASK_BOARD.md`; sequence UC14 giữ nguyên (bước `reverseCoupon` hoãn); vẫn 21 bảng, không migration.
 - Who approved / PR URL: _(chờ duyệt)_

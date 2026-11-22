@@ -42,6 +42,9 @@
 | Admin coupons (UC13) | GET/POST | `/api/admin/coupons` | Staff/Admin |
 | Admin coupons (UC13) | GET/PUT | `/api/admin/coupons/{id}` | Staff/Admin |
 | Admin coupons (UC13) | PATCH | `/api/admin/coupons/{id}/status` | Staff/Admin |
+| Admin orders (UC14) | GET | `/api/admin/orders` | Staff/Admin |
+| Admin orders (UC14) | GET | `/api/admin/orders/{id}` | Staff/Admin |
+| Admin orders (UC14) | PATCH | `/api/admin/orders/{id}/status` | Staff/Admin |
 | Admin inventory (UC18) | GET | `/api/admin/inventories` | Staff/Admin |
 | Admin inventory (UC18) | GET | `/api/admin/inventories/branches` | Staff/Admin |
 | Admin inventory (UC18) | POST | `/api/admin/inventories/adjust` | Staff/Admin |
@@ -252,6 +255,29 @@
   `quantity > 0`; nguồn = đích → `400`; nguồn thiếu hàng/không có dòng → `409`; đích tự tạo dòng; tổng tồn không đổi.
 - Chung: `reason` ≤255; chi nhánh `INACTIVE` (adjust, nguồn hoặc đích) → `400`; sản phẩm/chi nhánh không tồn tại → `404`. Thao tác khóa sản phẩm rồi các dòng tồn (`PESSIMISTIC_WRITE`, TRANSFER theo `branchId` tăng dần). Mỗi thao tác thành công ghi 1 dòng `audit_logs` (`INVENTORY_INBOUND|OUTBOUND|SET|TRANSFER`).
 - `minStockAlert` chỉ đọc trong UC18.
+
+## Admin Orders DTO (UC14 - ADR-023, Proposed)
+
+- Quyền: `ROLE_STAFF` (ADMIN kế thừa); `ROLE_CUSTOMER` → `403`, không token → `401`. Staff thấy mọi đơn (chưa lọc theo chi nhánh — FS20).
+- `GET /api/admin/orders?status={status}&q={text}&page={0..}&size={1..100}`: sắp `createdAt` giảm dần; `q` khớp một phần (không phân biệt hoa thường) mã đơn, tên hoặc SĐT người nhận; `status` ∈ `PENDING|CONFIRMED|SHIPPING|COMPLETED|CANCELLED` (khác → `400`); mặc định `page=0`, `size=20` (ngoài khoảng → `400`).
+  ```json
+  { "items": [AdminOrderResponse], "page": 0, "size": 20, "totalElements": 42, "totalPages": 3,
+    "counts": { "ALL": 42, "PENDING": 5, "CONFIRMED": 3, "SHIPPING": 4, "COMPLETED": 25, "CANCELLED": 5 } }
+  ```
+  `counts` tính theo `q`, bỏ qua `status` (cho số trên các tab).
+- `AdminOrderResponse` = toàn bộ trường của `OrderResponse` (UC08: `id, orderCode, status, statusLabel, paymentMethod, paymentStatus, paymentStatusLabel, recipientName, recipientPhone, shippingAddress, branchId, branchName, totalItemsAmount, discountAmount, finalAmount, notes, cancelReason, cancelledAt, canCancel, itemSummary, items, createdAt, updatedAt`) cộng:
+  ```json
+  { "customer": { "id": 3, "fullName": "Khách hàng Thử nghiệm", "email": "customer@techstore.vn", "phone": "0903456789" },
+    "payment": { "method": "COD", "status": "UNPAID", "transactionCode": "COD-ORD-...", "amount": 18990000.00,
+                 "paidAt": null, "refundedAt": null } }
+  ```
+  `payment` có thể `null` nếu đơn thiếu dòng `payments`. Response `/api/orders/me` không đổi.
+- `GET /api/admin/orders/{id}` → `AdminOrderResponse`; không tồn tại → `404`.
+- `PATCH /api/admin/orders/{id}/status` body `{ "status": "CONFIRMED", "reason": null }` → `AdminOrderResponse`.
+  - Hợp lệ: `PENDING→CONFIRMED`, `CONFIRMED→SHIPPING`, `SHIPPING→COMPLETED`, `PENDING|CONFIRMED→CANCELLED`. Khác (nhảy cóc, lùi, giữ nguyên, về `PENDING`, hủy đơn đã giao/hủy) → `409`.
+  - `CANCELLED`: `reason` bắt buộc (không rỗng), ≤ 500 ký tự (→ `400`); hoàn kho đúng 1 lần về chi nhánh gốc; COD → payment `CANCELLED`; ONLINE_MOCK → `REFUNDED` + `refundedAt`; dùng chung lõi với `POST /api/orders/{id}/cancel`. Chưa hoàn coupon.
+  - `COMPLETED` + COD: payment `UNPAID → PAID`, `paidAt`, `orders.payment_status = PAID`.
+  - Khóa dòng đơn (`PESSIMISTIC_WRITE`) trước khi kiểm tra. Thành công ghi 1 dòng `audit_logs` (`ORDER_CONFIRMED|ORDER_SHIPPING|ORDER_COMPLETED|ORDER_CANCELLED`, `entity_name = orders`, details: `orderCode, from, to, reason, paymentStatusBefore, paymentStatusAfter`).
 
 ## Admin Coupon DTO (UC13 - ADR-022, Proposed)
 

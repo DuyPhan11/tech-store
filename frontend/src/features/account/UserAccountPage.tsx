@@ -6,6 +6,7 @@ import { profileApi } from '../../lib/api/profileApi'
 import { orderApi } from '../../lib/api/orderApi'
 import type { AddressItem, AddressPayload, UserProfile } from './accountTypes'
 import type { OrderResponse } from '../orders/orderTypes'
+import { recoverAfterCancelFailure } from './cancelOrderRecovery'
 import styles from './UserAccountPage.module.css'
 
 type TabType =
@@ -293,8 +294,17 @@ export function UserAccountPage() {
       setIsCancelModalOpen(false)
       showToastSuccess(`Đã gửi yêu cầu hủy đơn hàng #${cancellingOrder.orderCode} thành công. Tồn kho đã được hoàn lại.`)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể hủy đơn hàng'
-      showToastError(msg)
+      // Đơn có thể vừa bị cửa hàng đổi trạng thái (UC14): đóng modal, tải lại để hiện đúng trạng thái thật
+      setIsCancelModalOpen(false)
+      const result = await recoverAfterCancelFailure(err, cancellingOrder.id, {
+        getMyOrders: () => orderApi.getMyOrders(),
+        getOrderDetail: id => orderApi.getOrderDetail(id),
+      })
+      if (result.orders) setOrders(result.orders)
+      if (result.detail && selectedOrder && selectedOrder.id === result.detail.id) {
+        setSelectedOrder(result.detail)
+      }
+      showToastError(result.message)
     } finally {
       setIsCancelling(false)
     }
