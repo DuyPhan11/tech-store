@@ -29,6 +29,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-023 | Hợp đồng API quản trị đơn hàng (UC14), luồng trạng thái, hủy đơn dùng chung và audit | Proposed | API contract, Admin Orders UI, OrderRepository, OrderServiceImpl (tách lõi hủy), audit_logs |
 | ADR-024 | Áp coupon khi checkout, hoàn coupon khi hủy đơn và khóa đọc usage chống REPEATABLE READ | Proposed | CheckoutServiceImpl, OrderCancellationService, CouponService, Cart/Checkout UI |
 | ADR-025 | Hợp đồng thanh toán giả lập `ONLINE_MOCK` khi checkout (UC07) | Approved | API contract, CheckoutRequest, CheckoutServiceImpl, CheckoutPage, CheckoutSuccessPage |
+| ADR-026 | Hợp đồng API đánh giá sản phẩm (UC09): điều kiện đơn COMPLETED, uniqueness và ẩn mềm | Approved | API contract, Review entity/service/controller, ProductDetailPage, UserAccountPage |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -403,4 +404,18 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   3. Khi `paymentMethod = ONLINE_MOCK` và `mockPaymentSuccess = false`: trả `400 Bad Request` (`ErrorResponse` tiếng Việt) và rollback toàn bộ transaction (không tạo `Order`/`Payment`/`CouponUsage`, không trừ kho, không tăng `used_count`, không xóa giỏ hàng, không lưu `idempotencyCache`).
   4. UI `CheckoutPage.tsx`: hiển thị 2 tùy chọn giả lập (Thành công / Thất bại) ngay dưới radio `ONLINE_MOCK` khi được chọn; `CheckoutSuccessPage.tsx` hiển thị trạng thái thanh toán (`PAID` / `UNPAID`).
 - Consequences: cập nhật `API_CONTRACT.md`, `CheckoutRequest`, `CheckoutServiceImpl`, `CheckoutPage.tsx`, `CheckoutSuccessPage.tsx`, tests backend/frontend; không đổi schema DB (vẫn 21 bảng).
+- Who approved / PR URL: Tech Lead (chat duyệt 27/11/2026); PR: _(chưa tạo)_
+
+### ADR-026 — Hợp đồng API đánh giá sản phẩm (UC09): điều kiện đơn COMPLETED, uniqueness và ẩn mềm
+
+- Date: 27/11/2026 — Trạng thái: **Approved** bởi Tech Lead (chat duyệt 27/11/2026).
+- Context:
+  1. `API_CONTRACT.md` mới chỉ ghi `POST /api/reviews`, chưa có endpoint đọc đánh giá công khai, kiểm tra đơn `COMPLETED` đủ điều kiện, sửa và ẩn mềm đánh giá.
+  2. `ProductDetailPage.tsx` đang hiển thị placeholder trống cho khu vực đánh giá; `UserAccountPage.tsx` tab "Đánh giá sản phẩm của tôi" đang hiển thị text tĩnh.
+- Decision (Tech Lead duyệt):
+  1. Public `GET /api/products/{productId}/reviews`: trả danh sách `VISIBLE`, `averageRating` và `totalReviews` chỉ tính từ các đánh giá `VISIBLE`.
+  2. Customer `GET /api/reviews/eligible?productId={id}` (đơn `COMPLETED` chứa sản phẩm chưa có review) và `GET /api/reviews/me`.
+  3. Customer `POST /api/reviews` (`201`), `PUT /api/reviews/{id}` (`200`, chỉ sửa khi `VISIBLE`), `PATCH /api/reviews/{id}/hide` (`200`, ẩn mềm `HIDDEN_BY_OWNER`, không xóa vật lý).
+  4. Nếu review đã bị `HIDDEN_BY_ADMIN` hoặc `HIDDEN_BY_OWNER`, sửa hoặc ẩn lại trả về `409 Conflict`. Uniqueness `(user_id, product_id, order_id)` áp dụng cả khi review đã ẩn (`409`).
+- Consequences: cập nhật `API_CONTRACT.md`, `SecurityConfig` (đã cho phép `GET /api/products/**` và `/api/reviews/**`), không đổi schema DB (bảng `reviews` giữ nguyên).
 - Who approved / PR URL: Tech Lead (chat duyệt 27/11/2026); PR: _(chưa tạo)_

@@ -28,7 +28,12 @@
 | Checkout | POST | `/api/checkout` | Customer |
 | Orders | GET | `/api/orders/me` | Customer |
 | Orders | POST | `/api/orders/{id}/cancel` | Customer (owner) |
+| Reviews | GET | `/api/products/{productId}/reviews` | Public |
+| Reviews | GET | `/api/reviews/eligible?productId={id}` | Customer |
+| Reviews | GET | `/api/reviews/me` | Customer |
 | Reviews | POST | `/api/reviews` | Customer |
+| Reviews | PUT | `/api/reviews/{id}` | Customer (owner) |
+| Reviews | PATCH | `/api/reviews/{id}/hide` | Customer (owner) |
 | Profile | GET/PATCH | `/api/me` | Customer |
 | Admin products (UC11) | GET/POST | `/api/admin/products` | Staff/Admin |
 | Admin products (UC11) | GET/PUT | `/api/admin/products/{id}` | Staff/Admin |
@@ -532,6 +537,53 @@
     - Đơn đã hủy chuyển trạng thái `CANCELLED`, ghi nhận `cancelReason` và `cancelledAt`.
     - Trả về `400 Bad Request` nếu đơn hàng ở trạng thái không thể hủy (`SHIPPING`, `COMPLETED`, hoặc đã `CANCELLED`).
     - Trả về `404 Not Found` nếu đơn hàng không thuộc sở hữu của người dùng (BR49).
+
+## Review DTO tham chiếu (UC09 - ADR-026, Approved)
+
+- **GET `/api/products/{productId}/reviews` (Public):**
+  - Trả về danh sách đánh giá `VISIBLE` (sắp xếp `createdAt DESC`) kèm thống kê tổng hợp chỉ tính từ `VISIBLE`:
+  ```json
+  {
+    "productId": 1,
+    "averageRating": 4.5,
+    "totalReviews": 2,
+    "reviews": [
+      {
+        "id": 10,
+        "userId": 3,
+        "authorName": "Nguyễn Văn Khách Hàng",
+        "productId": 1,
+        "productName": "Laptop Nova 14",
+        "productSlug": "laptop-nova-14",
+        "orderId": 5,
+        "orderCode": "ORD-20261127-ABC123",
+        "rating": 5,
+        "comment": "Máy chạy mượt, màn hình đẹp.",
+        "status": "VISIBLE",
+        "hiddenAt": null,
+        "hiddenReason": null,
+        "createdAt": "2026-11-27T10:00:00",
+        "updatedAt": "2026-11-27T10:00:00"
+      }
+    ]
+  }
+  ```
+- **GET `/api/reviews/eligible?productId={id}` (Quyền: `ROLE_CUSTOMER`):**
+  - Trả về danh sách đơn hàng `COMPLETED` của người dùng hiện tại có chứa `productId` và chưa có bản ghi đánh giá nào (kể cả đã ẩn) cho `(userId, productId, orderId)`:
+  ```json
+  [{ "orderId": 5, "orderCode": "ORD-20261127-ABC123", "completedAt": "2026-11-27T09:00:00" }]
+  ```
+- **GET `/api/reviews/me` (Quyền: `ROLE_CUSTOMER`):**
+  - Trả về toàn bộ đánh giá của người dùng hiện tại (`VISIBLE`, `HIDDEN_BY_OWNER`, `HIDDEN_BY_ADMIN`), sắp xếp `createdAt DESC`.
+- **POST `/api/reviews` (`201 Created`, Quyền: `ROLE_CUSTOMER`):**
+  - Body: `{ "productId": 1, "orderId": 5, "rating": 5, "comment": "Rất hài lòng" }` (`rating` ∈ 1..5, `comment` bắt buộc ≤ 2000 ký tự).
+  - Kiểm tra: đơn hàng tồn tại & thuộc user (`404` nếu không), đơn có trạng thái `COMPLETED` (`409` nếu chưa hoàn tất), sản phẩm nằm trong đơn (`400` nếu không), chưa tồn tại review nào cho `(userId, productId, orderId)` kể cả khi đã ẩn (`409` nếu trùng).
+- **PUT `/api/reviews/{id}` (`200 OK`, Quyền: `ROLE_CUSTOMER` owner):**
+  - Body: `{ "rating": 4, "comment": "Cập nhật đánh giá" }`.
+  - Không thuộc user → `404`; đã bị ẩn (`HIDDEN_BY_OWNER` hoặc `HIDDEN_BY_ADMIN`) → `409`.
+- **PATCH `/api/reviews/{id}/hide` (`200 OK`, Quyền: `ROLE_CUSTOMER` owner):**
+  - Body tùy chọn: `{ "reason": "Không muốn hiển thị nữa" }`.
+  - Ẩn mềm: chuyển `status = HIDDEN_BY_OWNER`, lưu `hiddenAt`, `hiddenReason`; không xóa vật lý. Không thuộc user → `404`; đã ẩn trước đó (`HIDDEN_BY_OWNER` hoặc `HIDDEN_BY_ADMIN`) → `409`.
 
 ### Contract change protocol
 - Nếu cần đổi API: tạo Issue / ADR, cập nhật file này + backend DTO + frontend type + tests **trong cùng PR hoặc hai PR có thứ tự phụ thuộc rõ**.
