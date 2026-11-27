@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { cartApi } from '../../lib/api/cartApi'
+import { checkoutApi } from '../../lib/api/checkoutApi'
+import { buildPreviewRequest, couponErrorMessage, normalizeCouponCode, orderDisplayTotal } from '../checkout/couponPreview'
 import type { CartResponse } from './cartTypes'
 import styles from './CartPage.module.css'
 
@@ -14,8 +16,10 @@ export function CartPage() {
   const [actionLoading, setActionLoading] = useState(false)
 
   const [couponCode, setCouponCode] = useState('')
+  const [appliedCode, setAppliedCode] = useState<string | null>(null)
   const [discount, setDiscount] = useState(0)
   const [couponMsg, setCouponMsg] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
   const [shippingOpen, setShippingOpen] = useState(true)
   const [couponOpen, setCouponOpen] = useState(true)
 
@@ -42,10 +46,8 @@ export function CartPage() {
 
   const items = cart?.items ?? []
   const subtotal = cart?.totalPriceVnd ?? 0
-  const shippingFee = items.length === 0 ? 0 : 504000
-  const tax = items.length === 0 ? 0 : 45840
-  const gst = items.length === 0 ? 0 : 45840
-  const grandTotal = Math.max(0, subtotal - discount + shippingFee + tax + gst)
+  // Miễn phí vận chuyển, thuế/VAT đã gồm trong giá → tổng = đúng số server thu (ADR-024)
+  const grandTotal = orderDisplayTotal(subtotal, discount)
 
   const handleQuantityChange = async (itemId: number, delta: number) => {
     const currentItem = items.find(i => i.id === itemId)
@@ -57,6 +59,7 @@ export function CartPage() {
       setActionLoading(true)
       const updated = await cartApi.updateQuantity(itemId, newQty)
       setCart(updated)
+      await revalidateCoupon(updated)
     } catch (err: unknown) {
       alert((err as Error)?.message || 'Lỗi khi cập nhật số lượng sản phẩm')
     } finally {
@@ -70,6 +73,7 @@ export function CartPage() {
       setActionLoading(true)
       const updated = await cartApi.removeItem(itemId)
       setCart(updated)
+      await revalidateCoupon(updated)
     } catch (err: unknown) {
       alert((err as Error)?.message || 'Lỗi khi xóa sản phẩm khỏi giỏ hàng')
     } finally {
@@ -83,6 +87,7 @@ export function CartPage() {
       setActionLoading(true)
       const updated = await cartApi.clearCart()
       setCart(updated)
+      await revalidateCoupon(updated)
     } catch (err: unknown) {
       alert((err as Error)?.message || 'Lỗi khi xóa toàn bộ giỏ hàng')
     } finally {
@@ -90,16 +95,57 @@ export function CartPage() {
     }
   }
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (couponCode.trim().toUpperCase() === 'TECHSTORE10') {
-      const disc = Math.round(subtotal * 0.1)
-      setDiscount(disc)
-      setCouponMsg('Áp dụng mã giảm giá 10% thành công!')
-    } else {
+  // Xem trước mã ở server với toàn bộ dòng giỏ (checkout CART đặt toàn giỏ) — ADR-024
+  const previewFor = async (code: string, cartData: CartResponse | null) => {
+    const ids = (cartData?.items ?? []).map(i => i.id)
+    if (ids.length === 0) {
+      setAppliedCode(null)
       setDiscount(0)
-      setCouponMsg('Mã giảm giá không hợp lệ hoặc đã hết hạn.')
+      return
     }
+    try {
+      const res = await checkoutApi.previewCoupon(buildPreviewRequest(code, { source: 'CART', cartItemIds: ids }))
+      setAppliedCode(res.couponCode)
+      setDiscount(res.discountAmount)
+      setCouponMsg(`Đã áp dụng mã ${res.couponCode}: giảm ${currency.format(res.discountAmount)}.`)
+    } catch (err: unknown) {
+      setAppliedCode(null)
+      setDiscount(0)
+      setCouponMsg(couponErrorMessage(err))
+    }
+  }
+
+  const handleApplyCoupon = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const code = normalizeCouponCode(couponCode)
+    if (!code) {
+      setCouponMsg('Vui lòng nhập mã giảm giá.')
+      return
+    }
+    setCouponLoading(true)
+    await previewFor(code, cart)
+    setCouponLoading(false)
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCode(null)
+    setDiscount(0)
+    setCouponCode('')
+    setCouponMsg('')
+  }
+
+  // Giỏ thay đổi khi đang có mã → kiểm tra lại; mã không còn hợp lệ thì bỏ mã và báo
+  const revalidateCoupon = async (updated: CartResponse) => {
+    if (!appliedCode) return
+    if (updated.items.length === 0) {
+      handleRemoveCoupon()
+      return
+    }
+    await previewFor(appliedCode, updated)
+  }
+
+  const goToCheckout = () => {
+    navigate('/checkout', appliedCode ? { state: { couponCode: appliedCode } } : undefined)
   }
 
   return (
@@ -320,15 +366,22 @@ export function CartPage() {
                   <div className={styles.couponInputGroup}>
                     <input
                       type="text"
-                      placeholder="Nhập mã (VD: TECHSTORE10)"
+                      placeholder="Nhập mã giảm giá"
+                      aria-label="Mã giảm giá"
                       value={couponCode}
                       onChange={e => setCouponCode(e.target.value)}
+                      disabled={couponLoading}
                     />
-                    <button type="submit" className={styles.couponBtn}>
-                      Áp dụng
+                    <button type="submit" className={styles.couponBtn} disabled={couponLoading || items.length === 0}>
+                      {couponLoading ? 'Đang kiểm tra...' : 'Áp dụng'}
                     </button>
                   </div>
-                  {couponMsg && <p className={styles.couponNotice}>{couponMsg}</p>}
+                  {couponMsg && <p className={styles.couponNotice} role="status">{couponMsg}</p>}
+                  {appliedCode && (
+                    <button type="button" className={styles.couponBtn} onClick={handleRemoveCoupon}>
+                      Bỏ mã {appliedCode}
+                    </button>
+                  )}
                 </form>
               )}
             </div>
@@ -344,7 +397,7 @@ export function CartPage() {
 
               {discount > 0 && (
                 <div className={`${styles.summaryRow} ${styles.discountRow}`}>
-                  <span>Giảm giá</span>
+                  <span>Giảm giá{appliedCode ? ` (mã ${appliedCode})` : ''}</span>
                   <span>-{currency.format(discount)}</span>
                 </div>
               )}
@@ -352,21 +405,21 @@ export function CartPage() {
               <div className={styles.summaryRowCol}>
                 <div className={styles.summaryRow}>
                   <span>Phí vận chuyển</span>
-                  <strong>{currency.format(shippingFee)}</strong>
+                  <strong>Miễn phí</strong>
                 </div>
                 <small className={styles.shippingNotice}>
-                  (Cước tiêu chuẩn - Giá có thể thay đổi tùy khu vực giao nhận. Nhân viên Tech Store sẽ liên hệ xác nhận.)
+                  (Tech Store miễn phí vận chuyển cho mọi đơn hàng, kể cả giao Hỏa tốc.)
                 </small>
               </div>
 
               <div className={styles.summaryRow}>
                 <span>Thuế</span>
-                <strong>{currency.format(tax)}</strong>
+                <strong>Đã bao gồm trong giá</strong>
               </div>
 
               <div className={styles.summaryRow}>
                 <span>VAT (10%)</span>
-                <strong>{currency.format(gst)}</strong>
+                <strong>Đã bao gồm trong giá</strong>
               </div>
 
               <div className={`${styles.summaryRow} ${styles.totalRow}`}>
@@ -380,7 +433,7 @@ export function CartPage() {
               <button
                 type="button"
                 className={styles.proceedCheckoutBtn}
-                onClick={() => navigate('/checkout')}
+                onClick={goToCheckout}
               >
                 Tiến hành thanh toán
               </button>
@@ -399,7 +452,7 @@ export function CartPage() {
               <button
                 type="button"
                 className={styles.multipleAddressesBtn}
-                onClick={() => navigate('/checkout')}
+                onClick={goToCheckout}
               >
                 Thanh toán với nhiều địa chỉ
               </button>

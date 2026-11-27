@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * Bảng {@code coupon_usages} (UC13, ADR-022). FS15 chỉ đọc; ghi usage / đảo usage là FS16.
+ * Bảng {@code coupon_usages} (UC13, ADR-022). Checkout ghi ACTIVE, hủy đơn đảo sang REVERSED (ADR-024).
  * Khóa ngoại lưu dạng id để tránh nạp Order/User không cần thiết.
  */
 @Entity
@@ -54,6 +54,12 @@ public class CouponUsage {
         if (usedAt == null) {
             usedAt = LocalDateTime.now();
         }
+    }
+
+    /** ACTIVE → REVERSED khi hủy đơn (ADR-024). Bên gọi phải đã khóa dòng usage. */
+    public void markReversed(LocalDateTime now) {
+        this.status = CouponUsageStatus.REVERSED;
+        this.reversedAt = now;
     }
 
     public Long getId() { return id; }

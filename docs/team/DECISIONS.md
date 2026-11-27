@@ -27,6 +27,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-021 | Hợp đồng API tồn kho / chuyển kho (UC18), khóa giao dịch và audit log | Proposed | API contract, Admin Inventory UI, InventoryRepository, audit_logs entity |
 | ADR-022 | Hợp đồng API quản trị coupon (UC13), CouponService dùng chung và coupon-preview | Proposed | API contract, Admin Coupons UI, coupon entities, GlobalExceptionHandler, DemoDataInitializer, checkoutApi (FE) |
 | ADR-023 | Hợp đồng API quản trị đơn hàng (UC14), luồng trạng thái, hủy đơn dùng chung và audit | Proposed | API contract, Admin Orders UI, OrderRepository, OrderServiceImpl (tách lõi hủy), audit_logs |
+| ADR-024 | Áp coupon khi checkout, hoàn coupon khi hủy đơn và khóa đọc usage chống REPEATABLE READ | Proposed | CheckoutServiceImpl, OrderCancellationService, CouponService, Cart/Checkout UI |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -365,4 +366,26 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   - COMPLETED + COD mà thiếu dòng `payments` → vẫn đặt `orders.payment_status = PAID` (giống cách UC08 xử lý thiếu payment).
   - **Operator chọn (UI):** modal nhập lý do hủy (bắt buộc, ≤ 500) và thanh phân trang 20 đơn/trang, tái dùng class có sẵn.
 - Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `TASK_BOARD.md`; sequence UC14 giữ nguyên (bước `reverseCoupon` hoãn); vẫn 21 bảng, không migration.
+- Who approved / PR URL: _(chờ duyệt)_
+
+### ADR-024 — Áp coupon khi checkout, hoàn coupon khi hủy đơn và khóa đọc usage
+
+- Date: 23/11/2026 — Trạng thái: **Proposed** (chờ Tech Lead duyệt trên PR).
+- Context:
+  1. `CheckoutServiceImpl` bỏ qua `couponCode`, luôn `discountAmount = 0`. `OrderCancellationService` (ADR-023) để `TODO(coupon-checkout)`.
+  2. `CouponService.validate` / `calculateDiscount` (ADR-022) đã dùng cho preview. `coupons.used_count` = số usage `ACTIVE`; một user tối đa một usage `ACTIVE`/coupon; `coupon_usages` UNIQUE(`order_id`).
+  3. `CartPage` hardcode `TECHSTORE10` và tự tính 10% ở frontend; `CheckoutPage` gửi `couponCode: null`.
+  4. Tech Lead giao issue và đồng ý sửa `CheckoutServiceImpl`, `CheckoutPage.tsx`, `CartPage.tsx`, `OrderCancellationService`.
+- Decision đề xuất (theo Issue):
+  1. **Checkout có `couponCode`** (trim + UPPERCASE; rỗng = không dùng mã), cùng transaction checkout: sau khi tính subtotal ở server và khóa/trừ inventory, khóa dòng coupon theo code (`PESSIMISTIC_WRITE`); thứ tự khóa toàn hệ thống: order (nếu có) → inventory (productId tăng dần) → coupon. Kiểm tra + tính giảm bằng `CouponService` (không viết lại công thức). Lưu `orders.coupon_id`, `discount_amount`, `final_amount = subtotal − discount`; `payments.amount = final_amount`. Tạo `coupon_usages` (`ACTIVE`, user, order) và tăng `used_count` đúng 1. Mã không hợp lệ → `400` + `errors.reason` như preview; rollback toàn bộ (không tạo đơn, không trừ kho, không xóa giỏ). Không có mã → hành vi checkout giữ nguyên.
+  2. **Hủy** (`OrderCancellationService`, cả khách và admin): nếu đơn có `coupon_id` và usage `ACTIVE` của đơn → khóa coupon, usage `ACTIVE → REVERSED`, `reversed_at = now`, `used_count − 1` (không âm). Không có usage `ACTIVE` → bỏ qua (hoàn đúng 1 lần). Response/mã lỗi hai API hủy không đổi.
+  3. Response checkout giữ cấu trúc; `discountAmount` / `finalAmount` trả giá trị thật. Không thêm endpoint.
+  4. **Frontend:** Checkout có ô mã gọi `coupon-preview` (đúng source/items), hiển thị giảm/tổng/lý do lỗi, cho bỏ mã, gửi `couponCode` khi đặt. Cart bỏ hardcode, preview với toàn bộ dòng giỏ (giỏ không có chọn dòng — checkout CART đặt toàn giỏ), mang mã hợp lệ sang Checkout qua navigate state; Checkout preview lại trước khi hiển thị.
+  5. **Hoãn:** ONLINE_MOCK; danh sách/khóa chi nhánh khi checkout; idempotency lưu DB. Không đổi schema, migration, contract coupon-preview.
+- Chi tiết bổ sung (Claude đề xuất, cần Tech Lead xác nhận):
+  - **REPEATABLE READ (InnoDB mặc định):** checkout đọc user/cart trước khi khóa coupon nên snapshot đã chốt; kiểm tra "user đã có usage ACTIVE" bằng truy vấn thường sẽ **không thấy** usage do request song song của cùng khách vừa commit → có thể 2 usage `ACTIVE`. Thêm `CouponService.validateForCheckout(...)`: cùng thứ tự kiểm tra và thông báo với `validate`, nhưng bước kiểm tra usage dùng truy vấn khóa (`SELECT … FOR UPDATE`, luôn đọc bản mới nhất). Preview vẫn dùng `validate` (không khóa). `used_count` đúng vì dòng coupon đọc bằng khóa. Bước hoàn coupon cũng tìm usage bằng truy vấn khóa.
+  - Đặt hàng bị `400` do mã: UI giữ form, hiện lý do, gỡ mã đã áp dụng để khách thấy tổng chưa giảm trước khi đặt lại (không âm thầm đặt không mã).
+  - Khi giỏ đổi (số lượng/xóa dòng) mà đang có mã: Cart gọi preview lại; mã không còn hợp lệ → bỏ mã và báo.
+  - **Operator chọn — miễn phí vận chuyển mọi đơn (chỉ giao diện):** server không có cột phí ship (`final_amount = total_items_amount − discount_amount`), nên Cart/Checkout hiển thị "Miễn phí" cho cả giao Tiêu chuẩn và Hỏa tốc; dòng Thuế/VAT trên giỏ ghi "Đã bao gồm trong giá" thay vì cộng số giả. Tổng hiển thị = tạm tính − giảm giá = đúng số server thu. Lựa chọn Tiêu chuẩn/Hỏa tốc chưa được gửi lên server. Tính phí ship thật cần cột mới + migration → issue riêng.
+- Consequences: cập nhật `API_CONTRACT.md` (Checkout, UC08, Admin Orders), `DATABASE.md`, `SCREEN_MAP.md`, `TASK_BOARD.md`; sequence UC07/UC08/UC14 đã có bước coupon nên giữ nguyên; vẫn 21 bảng, không migration.
 - Who approved / PR URL: _(chờ duyệt)_

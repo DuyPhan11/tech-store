@@ -27,4 +27,4 @@
 
 ## Entity bổ sung không đổi schema
 - `audit_logs` → entity `com.techstore.common.audit.AuditLog` + `AuditLogService` (UC18, ADR-021). Map đúng các cột hiện có; `user_id` lưu id người thực hiện (không có FK trong schema).
-- `coupons` → entity `com.techstore.coupon.entity.Coupon`; `coupon_usages` → `CouponUsage` (UC13, ADR-022). Map đúng cột hiện có; FS15 chỉ đọc `coupon_usages`. `used_count` vẫn là số usage `ACTIVE`, do FS16 duy trì khi checkout/hủy.
+- `coupons` → entity `com.techstore.coupon.entity.Coupon`; `coupon_usages` → `CouponUsage` (UC13, ADR-022). Map đúng cột hiện có; Checkout ghi `coupon_usages` (`ACTIVE`) và tăng `used_count`; hủy đơn chuyển `REVERSED` + `reversed_at` và giảm `used_count` đúng 1 lần (ADR-024). `used_count` = số usage `ACTIVE`.
