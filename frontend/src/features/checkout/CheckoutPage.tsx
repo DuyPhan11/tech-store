@@ -56,6 +56,7 @@ export function CheckoutPage() {
   const [branchId, setBranchId] = useState<number>(1)
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard')
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE_MOCK'>('COD')
+  const [mockPaymentSuccess, setMockPaymentSuccess] = useState<boolean>(true)
   const [note, setNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -262,11 +263,6 @@ export function CheckoutPage() {
       return
     }
 
-    if (paymentMethod !== 'COD') {
-      alert('Phương thức thanh toán Online Mock sẽ được hỗ trợ trong phiên bản tiếp theo. Vui lòng chọn Thanh toán COD.')
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
@@ -280,7 +276,8 @@ export function CheckoutPage() {
         productId: isBuyNow ? items[0]?.productId : undefined,
         quantity: isBuyNow ? items[0]?.quantity : undefined,
         branchId: branchId,
-        paymentMethod: 'COD',
+        paymentMethod,
+        mockPaymentSuccess: paymentMethod === 'ONLINE_MOCK' ? mockPaymentSuccess : undefined,
         couponCode: appliedCoupon?.code ?? null,
         recipientName: recipientFullName,
         recipientPhone: phone.trim(),
@@ -300,6 +297,7 @@ export function CheckoutPage() {
           street,
           city,
           paymentMethod: response.paymentMethod,
+          paymentStatus: response.paymentStatus,
           shippingMethod,
           grandTotal: response.finalAmount,
           items: response.items,
@@ -586,10 +584,36 @@ export function CheckoutPage() {
                   onChange={() => setPaymentMethod('ONLINE_MOCK')}
                 />
                 <div className={styles.radioLabel}>
-                  <strong>Chuyển khoản Ngân hàng / Thẻ ATM, Visa</strong>
-                  <span>Hệ thống chuyển khoản tức thì qua cổng ngân hàng hoặc quét mã VietQR</span>
+                  <strong>Chuyển khoản Ngân hàng / Thẻ ATM, Visa (ONLINE_MOCK)</strong>
+                  <span>Thanh toán trực tuyến giả lập tức thì qua cổng ngân hàng</span>
                 </div>
               </label>
+
+              {paymentMethod === 'ONLINE_MOCK' && (
+                <div className={styles.mockOutcomeBox} role="group" aria-label="Kết quả thanh toán giả lập">
+                  <p className={styles.mockOutcomeTitle}>Tùy chọn giả lập cổng thanh toán:</p>
+                  <div className={styles.mockOutcomeOptions}>
+                    <label className={styles.mockOutcomeOption}>
+                      <input
+                        type="radio"
+                        name="mockPaymentSuccess"
+                        checked={mockPaymentSuccess === true}
+                        onChange={() => setMockPaymentSuccess(true)}
+                      />
+                      <span>Thanh toán thành công (Giả lập)</span>
+                    </label>
+                    <label className={styles.mockOutcomeOption}>
+                      <input
+                        type="radio"
+                        name="mockPaymentSuccess"
+                        checked={mockPaymentSuccess === false}
+                        onChange={() => setMockPaymentSuccess(false)}
+                      />
+                      <span>Thanh toán thất bại (Giả lập)</span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         </div>

@@ -29,7 +29,8 @@ export interface CheckoutRequest {
   productId?: number
   quantity?: number
   branchId: number
-  paymentMethod: 'COD'
+  paymentMethod: 'COD' | 'ONLINE_MOCK'
+  mockPaymentSuccess?: boolean
   couponCode?: string | null
   recipientName: string
   recipientPhone: string

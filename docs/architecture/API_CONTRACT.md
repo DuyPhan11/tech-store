@@ -373,6 +373,7 @@
     "selectedCartItemIds": [12, 15],
     "branchId": 1,
     "paymentMethod": "COD",
+    "mockPaymentSuccess": true,
     "couponCode": null,
     "recipientName": "Khách hàng Thử nghiệm",
     "recipientPhone": "0901234567",
@@ -381,7 +382,7 @@
     "idempotencyKey": "idemp-20261117-uuid"
   }
   ```
-  *Lưu ý:* Với `source = "BUY_NOW"`: gửi `productId` và `quantity` thay vì `selectedCartItemIds`. **Giá tiền và tổng tiền được tính toán 100% tại backend.**
+  *Lưu ý:* Với `source = "BUY_NOW"`: gửi `productId` và `quantity` thay vì `selectedCartItemIds`. `paymentMethod` ∈ `COD | ONLINE_MOCK`. Với `ONLINE_MOCK`, `mockPaymentSuccess` (`Boolean`, mặc định `true` nếu bỏ trống) dùng để giả lập thanh toán thành công (`true`) hoặc thất bại (`false`). **Giá tiền và tổng tiền được tính toán 100% tại backend.**
 - **Response Body (201 Created):**
   ```json
   {
@@ -409,6 +410,9 @@
     ]
   }
   ```
+- **ONLINE_MOCK (ADR-025):** Sau khi kiểm tra chi nhánh, sản phẩm, tồn kho và coupon hợp lệ:
+  - `mockPaymentSuccess = true` (hoặc `null`): Tạo `Order` (`PENDING`, `paymentMethod = ONLINE_MOCK`, `paymentStatus = PAID`) và `Payment` (`ONLINE_MOCK`, `PAID`, `paidAt = now`, `transactionCode = "MOCK-" + orderCode`), trừ tồn kho, ghi `coupon_usages` (`ACTIVE`) và tăng `used_count` (nếu có mã), xóa mục giỏ hàng đã đặt (nếu `CART`), lưu idempotency cache, trả `201 Created`.
+  - `mockPaymentSuccess = false`: Trả `400 Bad Request` (`ErrorResponse` tiếng Việt), rollback toàn bộ transaction — **không** tạo `Order`/`Payment`/`CouponUsage`, **không** trừ tồn kho, **không** tăng `used_count`, **không** xóa giỏ hàng, **không** lưu idempotency cache để khách có thể thử lại.
 - **Coupon (ADR-024, Proposed):** `couponCode` trim + UPPERCASE; `null`/rỗng = không dùng mã (hành vi cũ). Có mã: tính subtotal ở server → khóa/trừ tồn kho → khóa coupon (`PESSIMISTIC_WRITE`) → kiểm tra như `coupon-preview` (chưa tới hạn, hết hạn, tắt, hết lượt, dưới đơn tối thiểu, user đã có usage `ACTIVE`) → `discountAmount` theo cùng công thức preview, `finalAmount = totalItemsAmount − discountAmount`, `payments.amount = finalAmount`, `orders.coupon_id`; tạo `coupon_usages` (`ACTIVE`) và `used_count + 1`. Mã không hợp lệ → `400` với `errors.reason` (`NOT_FOUND | DISABLED | NOT_STARTED | EXPIRED | EXHAUSTED | MIN_ORDER_NOT_MET | ALREADY_USED`), rollback toàn bộ: không tạo đơn, không trừ kho, không xóa giỏ.
 - **Xử lý lỗi:**
   - `401 Unauthorized`: Chưa đăng nhập tài khoản.

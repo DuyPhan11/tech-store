@@ -11,6 +11,7 @@ import com.techstore.common.exception.AccountLockedException;
 import com.techstore.common.exception.CartItemNotFoundException;
 import com.techstore.common.exception.InsufficientStockException;
 import com.techstore.common.exception.InvalidCouponException;
+import com.techstore.common.exception.MockPaymentFailedException;
 import com.techstore.coupon.entity.Coupon;
 import com.techstore.coupon.entity.CouponUsage;
 import com.techstore.coupon.entity.CouponUsageStatus;
@@ -113,11 +114,8 @@ public class CheckoutServiceImpl implements CheckoutService {
             throw new AccountLockedException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ bộ phận hỗ trợ.");
         }
 
-        // 3. Phương thức thanh toán (UC07: chỉ hỗ trợ COD)
-        String methodStr = request.getPaymentMethod();
-        if (methodStr == null || !methodStr.equalsIgnoreCase("COD")) {
-            throw new IllegalArgumentException("UC07 chỉ hỗ trợ phương thức thanh toán tiền mặt khi nhận hàng (COD)");
-        }
+        // 3. Phương thức thanh toán (UC07: hỗ trợ COD và ONLINE_MOCK)
+        PaymentMethod paymentMethod = parsePaymentMethod(request.getPaymentMethod());
 
         // 4. Kiểm tra Chi nhánh (phải tồn tại và ACTIVE)
         if (request.getBranchId() == null) {
@@ -251,6 +249,18 @@ public class CheckoutServiceImpl implements CheckoutService {
         }
         BigDecimal finalAmount = totalItemsAmount.subtract(discountAmount);
 
+        // 8c. Giả lập thanh toán ONLINE_MOCK (ADR-025): thực hiện sau khi kiểm tra tồn kho và coupon.
+        // Nếu thất bại → ném ngoại lệ để rollback toàn bộ transaction (không tạo đơn/payment/coupon usage, không trừ kho, không xóa giỏ).
+        boolean isOnlineMock = paymentMethod == PaymentMethod.ONLINE_MOCK;
+        if (isOnlineMock && Boolean.FALSE.equals(request.getMockPaymentSuccess())) {
+            throw new MockPaymentFailedException(
+                    "Thanh toán trực tuyến (giả lập) thất bại. Đơn hàng chưa được tạo, vui lòng thử lại hoặc chọn phương thức khác."
+            );
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        PaymentStatus initialPaymentStatus = isOnlineMock ? PaymentStatus.PAID : PaymentStatus.UNPAID;
+
         // 9. Tạo Order (trạng thái PENDING)
         String orderCode = generateOrderCode();
         Order order = new Order();
@@ -264,8 +274,8 @@ public class CheckoutServiceImpl implements CheckoutService {
         order.setDiscountAmount(discountAmount);
         order.setFinalAmount(finalAmount);
         order.setStatus(OrderStatus.PENDING);
-        order.setPaymentMethod(PaymentMethod.COD);
-        order.setPaymentStatus(PaymentStatus.UNPAID);
+        order.setPaymentMethod(paymentMethod);
+        order.setPaymentStatus(initialPaymentStatus);
         order.setNotes(request.getNotes() != null ? request.getNotes().trim() : null);
         if (appliedCoupon != null) {
             order.setCouponId(appliedCoupon.getId());
@@ -306,13 +316,16 @@ public class CheckoutServiceImpl implements CheckoutService {
             ));
         }
 
-        // 11. Tạo Payment (trạng thái UNPAID, method COD)
+        // 11. Tạo Payment (COD → UNPAID; ONLINE_MOCK thành công → PAID + paidAt)
         Payment payment = new Payment();
         payment.setOrder(savedOrder);
-        payment.setPaymentMethod(PaymentMethod.COD);
+        payment.setPaymentMethod(paymentMethod);
         payment.setAmount(finalAmount);
-        payment.setStatus(PaymentStatus.UNPAID);
-        payment.setTransactionCode("COD-" + orderCode);
+        payment.setStatus(initialPaymentStatus);
+        payment.setTransactionCode((isOnlineMock ? "MOCK-" : "COD-") + orderCode);
+        if (isOnlineMock) {
+            payment.setPaidAt(now);
+        }
         paymentRepository.save(payment);
 
         // 12. Dọn dẹp giỏ hàng nếu nguồn là CART
@@ -341,10 +354,24 @@ public class CheckoutServiceImpl implements CheckoutService {
             idempotencyCache.put(userId + ":" + idempotencyKey.trim(), response);
         }
 
-        log.info("Đặt hàng COD thành công: orderId={}, orderCode={}, finalAmount={}, userId={}",
-                savedOrder.getId(), savedOrder.getOrderCode(), savedOrder.getFinalAmount(), userId);
+        log.info("Đặt hàng {} thành công: orderId={}, orderCode={}, paymentStatus={}, finalAmount={}, userId={}",
+                paymentMethod, savedOrder.getId(), savedOrder.getOrderCode(), savedOrder.getPaymentStatus(), savedOrder.getFinalAmount(), userId);
 
         return response;
+    }
+
+    private PaymentMethod parsePaymentMethod(String methodStr) {
+        if (methodStr == null || methodStr.isBlank()) {
+            throw new IllegalArgumentException("Phương thức thanh toán không được để trống");
+        }
+        String normalized = methodStr.trim().toUpperCase(Locale.ROOT);
+        if ("COD".equals(normalized)) {
+            return PaymentMethod.COD;
+        }
+        if ("ONLINE_MOCK".equals(normalized)) {
+            return PaymentMethod.ONLINE_MOCK;
+        }
+        throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ (chỉ chấp nhận 'COD' hoặc 'ONLINE_MOCK')");
     }
 
     private String generateOrderCode() {

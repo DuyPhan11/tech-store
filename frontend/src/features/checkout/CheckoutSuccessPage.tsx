@@ -10,6 +10,7 @@ interface LocationState {
   street?: string
   city?: string
   paymentMethod?: string
+  paymentStatus?: string
   grandTotal?: number
 }
 
@@ -26,6 +27,9 @@ export function CheckoutSuccessPage() {
   const paymentMethodText = state.paymentMethod === 'ONLINE_MOCK'
     ? 'Chuyển khoản Ngân hàng / Thẻ (Online Mock)'
     : 'Thanh toán tiền mặt khi nhận hàng (COD)'
+  const paymentStatusText = state.paymentStatus === 'PAID'
+    ? 'Đã thanh toán (PAID)'
+    : 'Chưa thanh toán (UNPAID)'
 
   return (
     <div className={styles.successPage}>
@@ -54,6 +58,10 @@ export function CheckoutSuccessPage() {
           <div className={styles.infoRow}>
             <span>Phương thức thanh toán:</span>
             <strong>{paymentMethodText}</strong>
+          </div>
+          <div className={styles.infoRow}>
+            <span>Trạng thái thanh toán:</span>
+            <strong>{paymentStatusText}</strong>
           </div>
           {state.grandTotal && (
             <div className={styles.infoRow}>
