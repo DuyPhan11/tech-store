@@ -5,6 +5,7 @@ import { ApiError } from '../../../lib/api/apiClient'
 import { cartApi } from '../../../lib/api/cartApi'
 import { ProductCard } from '../ProductCard'
 import { ProductGallery } from './ProductGallery'
+import { ProductReviewsSection } from '../../reviews/ProductReviewsSection'
 import { apiProductDetailSource } from './apiProductDetailSource'
 import { categories as defaultCategories, brands as defaultBrands, catalogProducts } from '../catalogData'
 import type { CatalogOption, ProductDetail, ProductDetailSource } from '../list/catalogTypes'
@@ -292,10 +293,10 @@ export function ProductDetailPage({
         </section>
       )}
 
-      {/* 5. Khu vực Đánh giá (Empty state theo quy định) */}
+      {/* 5. Khu vực Đánh giá sản phẩm (UC09) */}
       <section aria-labelledby="reviews-heading" className={styles.sectionGroup}>
         <h2 id="reviews-heading" className={styles.sectionTitle}>Đánh giá từ khách hàng</h2>
-        <p className={styles.emptyReviews}>Chưa có đánh giá nào cho sản phẩm này.</p>
+        <ProductReviewsSection productId={Number(product.id)} />
       </section>
 
       {/* 6. Sản phẩm liên quan (Tái sử dụng ProductCard) */}

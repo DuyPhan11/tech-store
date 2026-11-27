@@ -4,8 +4,10 @@ import { useAuth } from '../auth/AuthContext'
 import { Button } from '../../components/ui/Button'
 import { profileApi } from '../../lib/api/profileApi'
 import { orderApi } from '../../lib/api/orderApi'
+import { reviewApi } from '../../lib/api/reviewApi'
 import type { AddressItem, AddressPayload, UserProfile } from './accountTypes'
 import type { OrderResponse } from '../orders/orderTypes'
+import type { ReviewResponse } from '../reviews/reviewTypes'
 import { recoverAfterCancelFailure } from './cancelOrderRecovery'
 import styles from './UserAccountPage.module.css'
 
@@ -73,6 +75,10 @@ export function UserAccountPage() {
   const [modalIsDefault, setModalIsDefault] = useState(false)
   const [modalSubmitting, setModalSubmitting] = useState(false)
 
+  // My Reviews State (UC09)
+  const [myReviews, setMyReviews] = useState<ReviewResponse[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(false)
+
   // Load profile and addresses from API
   const fetchProfileAndAddresses = async () => {
     if (!isAuthenticated) return
@@ -108,9 +114,23 @@ export function UserAccountPage() {
     }
   }
 
+  const fetchMyReviews = async () => {
+    if (!isAuthenticated) return
+    setLoadingReviews(true)
+    try {
+      const data = await reviewApi.getMyReviews()
+      setMyReviews(data)
+    } catch {
+      // ignore
+    } finally {
+      setLoadingReviews(false)
+    }
+  }
+
   useEffect(() => {
     fetchProfileAndAddresses()
     fetchOrders()
+    fetchMyReviews()
   }, [isAuthenticated])
 
   const showToastSuccess = (text: string) => {
@@ -894,9 +914,76 @@ export function UserAccountPage() {
             <div className={styles.tabPane}>
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>Đánh giá sản phẩm của tôi</h2>
+                  <h2 className={styles.sectionTitle}>Đánh giá sản phẩm của tôi ({myReviews.length})</h2>
                 </div>
-                <p className={styles.infoMuted}>Bạn chưa viết bài đánh giá sản phẩm nào.</p>
+                {loadingReviews ? (
+                  <p className={styles.infoMuted}>Đang tải danh sách đánh giá...</p>
+                ) : myReviews.length === 0 ? (
+                  <p className={styles.infoMuted}>Bạn chưa viết bài đánh giá sản phẩm nào.</p>
+                ) : (
+                  <table className={styles.orderTable}>
+                    <thead>
+                      <tr>
+                        <th>Sản phẩm</th>
+                        <th>Đơn hàng</th>
+                        <th>Đánh giá</th>
+                        <th>Nhận xét</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {myReviews.map(rev => (
+                        <tr key={rev.id}>
+                          <td>
+                            <button
+                              type="button"
+                              className={styles.actionLink}
+                              onClick={() => navigate(`/products/${rev.productSlug}`)}
+                            >
+                              {rev.productName}
+                            </button>
+                          </td>
+                          <td>#{rev.orderCode}</td>
+                          <td>{rev.rating} ★</td>
+                          <td>{rev.comment}</td>
+                          <td>
+                            <span
+                              className={`${styles.badge} ${
+                                rev.status === 'VISIBLE' ? styles.badgeCompleted : styles.badgeCancelled
+                              }`}
+                            >
+                              {rev.status === 'VISIBLE'
+                                ? 'Đang hiển thị'
+                                : rev.status === 'HIDDEN_BY_OWNER'
+                                  ? 'Bạn đã ẩn'
+                                  : 'Admin đã ẩn'}
+                            </span>
+                          </td>
+                          <td>
+                            {rev.status === 'VISIBLE' && (
+                              <button
+                                type="button"
+                                className={styles.cancelOrderBtn}
+                                onClick={async () => {
+                                  try {
+                                    await reviewApi.hideReview(rev.id)
+                                    showToastSuccess('Đã ẩn đánh giá thành công.')
+                                    await fetchMyReviews()
+                                  } catch (err: unknown) {
+                                    showToastError((err as Error)?.message || 'Không thể ẩn đánh giá.')
+                                  }
+                                }}
+                              >
+                                Ẩn đánh giá
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           )}

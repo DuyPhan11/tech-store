@@ -47,5 +47,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o.status, COUNT(o) FROM Order o WHERE (:pattern IS NULL OR LOWER(o.orderCode) LIKE :pattern "
             + "OR LOWER(o.recipientName) LIKE :pattern OR LOWER(o.recipientPhone) LIKE :pattern) GROUP BY o.status")
     List<Object[]> countByStatusForAdmin(@Param("pattern") String pattern);
+
+    /** Các đơn COMPLETED của user chứa productId và chưa từng tạo review (UC09). */
+    @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE o.user.id = :userId AND o.status = 'COMPLETED' "
+            + "AND i.product.id = :productId AND NOT EXISTS ("
+            + "SELECT r.id FROM Review r WHERE r.user.id = :userId AND r.product.id = :productId AND r.order.id = o.id"
+            + ") ORDER BY o.createdAt DESC")
+    List<Order> findEligibleCompletedOrdersForReview(@Param("userId") Long userId, @Param("productId") Long productId);
 }
 
