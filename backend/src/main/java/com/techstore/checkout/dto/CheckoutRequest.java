@@ -22,6 +22,9 @@ public class CheckoutRequest {
     @NotBlank(message = "Phương thức thanh toán không được để trống")
     private String paymentMethod = "COD";
 
+    /** Dùng khi paymentMethod = ONLINE_MOCK: true/null = thành công, false = giả lập thất bại (ADR-025). */
+    private Boolean mockPaymentSuccess;
+
     private String couponCode;
 
     @NotBlank(message = "Tên người nhận không được để trống")
@@ -86,6 +89,14 @@ public class CheckoutRequest {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public Boolean getMockPaymentSuccess() {
+        return mockPaymentSuccess;
+    }
+
+    public void setMockPaymentSuccess(Boolean mockPaymentSuccess) {
+        this.mockPaymentSuccess = mockPaymentSuccess;
     }
 
     public String getCouponCode() {

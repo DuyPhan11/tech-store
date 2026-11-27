@@ -193,6 +193,45 @@
   color: var(--ts-color-primary);
 }
 
+.mockOutcomeBox {
+  margin-top: -0.25rem;
+  margin-left: 1.75rem;
+  padding: 0.875rem 1rem;
+  background: #f5f7ff;
+  border: 1px solid var(--ts-color-border);
+  border-radius: var(--ts-radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mockOutcomeTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ts-color-text-main);
+  margin: 0;
+}
+
+.mockOutcomeOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.mockOutcomeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--ts-color-text-main);
+  cursor: pointer;
+}
+
+.mockOutcomeOption input[type="radio"] {
+  accent-color: var(--ts-color-primary);
+  cursor: pointer;
+}
+
 /* Right Summary */
 .summarySection {
   position: sticky;

@@ -225,6 +225,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    /** Thanh toán giả lập ONLINE_MOCK thất bại (UC07, ADR-025) → 400 Bad Request. */
+    @ExceptionHandler(MockPaymentFailedException.class)
+    public ResponseEntity<ErrorResponse> handleMockPaymentFailed(MockPaymentFailedException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.BAD_REQUEST.value(),
+            "Bad Request",
+            ex.getMessage(),
+            request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
     /** Sửa coupon vi phạm quy tắc đã dùng / usageLimit (UC13, ADR-022) → 409. */
     @ExceptionHandler(CouponConflictException.class)
     public ResponseEntity<ErrorResponse> handleCouponConflict(CouponConflictException ex, HttpServletRequest request) {

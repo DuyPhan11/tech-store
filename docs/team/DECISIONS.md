@@ -28,6 +28,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-022 | Hợp đồng API quản trị coupon (UC13), CouponService dùng chung và coupon-preview | Proposed | API contract, Admin Coupons UI, coupon entities, GlobalExceptionHandler, DemoDataInitializer, checkoutApi (FE) |
 | ADR-023 | Hợp đồng API quản trị đơn hàng (UC14), luồng trạng thái, hủy đơn dùng chung và audit | Proposed | API contract, Admin Orders UI, OrderRepository, OrderServiceImpl (tách lõi hủy), audit_logs |
 | ADR-024 | Áp coupon khi checkout, hoàn coupon khi hủy đơn và khóa đọc usage chống REPEATABLE READ | Proposed | CheckoutServiceImpl, OrderCancellationService, CouponService, Cart/Checkout UI |
+| ADR-025 | Hợp đồng thanh toán giả lập `ONLINE_MOCK` khi checkout (UC07) | Approved | API contract, CheckoutRequest, CheckoutServiceImpl, CheckoutPage, CheckoutSuccessPage |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -389,3 +390,17 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   - **Operator chọn — miễn phí vận chuyển mọi đơn (chỉ giao diện):** server không có cột phí ship (`final_amount = total_items_amount − discount_amount`), nên Cart/Checkout hiển thị "Miễn phí" cho cả giao Tiêu chuẩn và Hỏa tốc; dòng Thuế/VAT trên giỏ ghi "Đã bao gồm trong giá" thay vì cộng số giả. Tổng hiển thị = tạm tính − giảm giá = đúng số server thu. Lựa chọn Tiêu chuẩn/Hỏa tốc chưa được gửi lên server. Tính phí ship thật cần cột mới + migration → issue riêng.
 - Consequences: cập nhật `API_CONTRACT.md` (Checkout, UC08, Admin Orders), `DATABASE.md`, `SCREEN_MAP.md`, `TASK_BOARD.md`; sequence UC07/UC08/UC14 đã có bước coupon nên giữ nguyên; vẫn 21 bảng, không migration.
 - Who approved / PR URL: _(chờ duyệt)_
+
+### ADR-025 — Hợp đồng thanh toán giả lập `ONLINE_MOCK` khi checkout (UC07)
+
+- Date: 27/11/2026 — Trạng thái: **Approved** bởi Tech Lead (chat duyệt 27/11/2026).
+- Context:
+  1. `CheckoutServiceImpl` mới chỉ hỗ trợ `COD`; `ONLINE_MOCK` bị từ chối ở backend và bị chặn bằng `alert` trên `CheckoutPage.tsx`.
+  2. `API_CONTRACT.md` chưa quy định trường giả lập kết quả thanh toán `ONLINE_MOCK` và mã lỗi HTTP khi thất bại.
+- Decision (Tech Lead duyệt):
+  1. Thêm trường tùy chọn `mockPaymentSuccess` (`Boolean`, mặc định `true` nếu bỏ trống) vào `CheckoutRequest` cho `POST /api/checkout`.
+  2. Khi `paymentMethod = ONLINE_MOCK` và `mockPaymentSuccess = true` (hoặc `null`): sau khi khóa/trừ tồn kho và kiểm tra coupon hợp lệ, tạo `Order` (`PENDING`, `ONLINE_MOCK`, `PAID`) và `Payment` (`ONLINE_MOCK`, `PAID`, `paidAt = now`, `transactionCode = "MOCK-" + orderCode`). Hành vi `COD` giữ nguyên (`UNPAID`).
+  3. Khi `paymentMethod = ONLINE_MOCK` và `mockPaymentSuccess = false`: trả `400 Bad Request` (`ErrorResponse` tiếng Việt) và rollback toàn bộ transaction (không tạo `Order`/`Payment`/`CouponUsage`, không trừ kho, không tăng `used_count`, không xóa giỏ hàng, không lưu `idempotencyCache`).
+  4. UI `CheckoutPage.tsx`: hiển thị 2 tùy chọn giả lập (Thành công / Thất bại) ngay dưới radio `ONLINE_MOCK` khi được chọn; `CheckoutSuccessPage.tsx` hiển thị trạng thái thanh toán (`PAID` / `UNPAID`).
+- Consequences: cập nhật `API_CONTRACT.md`, `CheckoutRequest`, `CheckoutServiceImpl`, `CheckoutPage.tsx`, `CheckoutSuccessPage.tsx`, tests backend/frontend; không đổi schema DB (vẫn 21 bảng).
+- Who approved / PR URL: Tech Lead (chat duyệt 27/11/2026); PR: _(chưa tạo)_
