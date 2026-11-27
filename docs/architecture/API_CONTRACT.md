@@ -57,6 +57,8 @@
 | Admin branches (UC19) | GET/POST | `/api/admin/branches` | Admin |
 | Admin branches (UC19) | PUT | `/api/admin/branches/{id}` | Admin |
 | Admin branches (UC19) | PATCH | `/api/admin/branches/{id}/status` | Admin |
+| Admin reviews (UC20) | GET | `/api/admin/reviews` | Admin |
+| Admin reviews (UC20) | PATCH | `/api/admin/reviews/{id}/hide` | Admin |
 
 ## Auth DTO tham chiếu (UC01 - Đã triển khai)
 
@@ -584,6 +586,21 @@
 - **PATCH `/api/reviews/{id}/hide` (`200 OK`, Quyền: `ROLE_CUSTOMER` owner):**
   - Body tùy chọn: `{ "reason": "Không muốn hiển thị nữa" }`.
   - Ẩn mềm: chuyển `status = HIDDEN_BY_OWNER`, lưu `hiddenAt`, `hiddenReason`; không xóa vật lý. Không thuộc user → `404`; đã ẩn trước đó (`HIDDEN_BY_OWNER` hoặc `HIDDEN_BY_ADMIN`) → `409`.
+
+## Admin Review Moderation DTO (UC20 - ADR-027, Approved)
+
+- Quyền: chỉ `ROLE_ADMIN` (`ROLE_STAFF`/`ROLE_CUSTOMER` → `403`, không token → `401`). **Không xóa vật lý.**
+- `GET /api/admin/reviews?status={status}&q={text}` → danh sách đánh giá (sắp `createdAt` giảm dần); `status` ∈ `VISIBLE | HIDDEN_BY_OWNER | HIDDEN_BY_ADMIN` (khác → `400`); `q` khớp một phần tên sản phẩm, tên/email khách hàng hoặc nội dung đánh giá (không phân biệt hoa thường):
+  ```json
+  [{ "id": 10, "productId": 1, "productName": "Laptop Nova 14", "productSlug": "laptop-nova-14",
+     "userId": 3, "customerName": "Nguyễn Văn Khách Hàng", "customerEmail": "customer@techstore.vn",
+     "orderId": 5, "orderCode": "ORD-20261127-ABC123", "rating": 5, "comment": "Máy chạy mượt",
+     "status": "VISIBLE", "hiddenAt": null, "hiddenReason": null,
+     "createdAt": "2026-11-27T10:00:00", "updatedAt": "2026-11-27T10:00:00" }]
+  ```
+- `PATCH /api/admin/reviews/{id}/hide` (`200 OK`): body `{ "reason": "Ngôn từ không phù hợp" }` (`reason` bắt buộc, ≤ 255 ký tự → `400`).
+  - Khóa dòng review (`PESSIMISTIC_WRITE`). Chỉ ẩn được khi đang `VISIBLE` (đã `HIDDEN_BY_ADMIN` hoặc `HIDDEN_BY_OWNER` → `409`; không tồn tại → `404`).
+  - Chuyển `status = HIDDEN_BY_ADMIN`, đặt `hiddenAt = now`, `hiddenReason = reason`, giữ bản ghi DB, ghi 1 dòng `audit_logs` (`action = REVIEW_HIDDEN_BY_ADMIN`, `entity_name = reviews`, `entity_id = reviewId`) trong cùng transaction. Đánh giá bị ẩn tự động bị loại khỏi `GET /api/products/{productId}/reviews` và `averageRating`.
 
 ### Contract change protocol
 - Nếu cần đổi API: tạo Issue / ADR, cập nhật file này + backend DTO + frontend type + tests **trong cùng PR hoặc hai PR có thứ tự phụ thuộc rõ**.

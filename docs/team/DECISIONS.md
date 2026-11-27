@@ -30,6 +30,7 @@ Các quyết định dưới đây phản ánh thiết kế hiện đang dự ki
 | ADR-024 | Áp coupon khi checkout, hoàn coupon khi hủy đơn và khóa đọc usage chống REPEATABLE READ | Proposed | CheckoutServiceImpl, OrderCancellationService, CouponService, Cart/Checkout UI |
 | ADR-025 | Hợp đồng thanh toán giả lập `ONLINE_MOCK` khi checkout (UC07) | Approved | API contract, CheckoutRequest, CheckoutServiceImpl, CheckoutPage, CheckoutSuccessPage |
 | ADR-026 | Hợp đồng API đánh giá sản phẩm (UC09): điều kiện đơn COMPLETED, uniqueness và ẩn mềm | Approved | API contract, Review entity/service/controller, ProductDetailPage, UserAccountPage |
+| ADR-027 | Hợp đồng kiểm duyệt đánh giá (UC20): quyền ADMIN, ẩn mềm + audit_logs và trạng thái chuẩn DB | Approved | API contract, SecurityConfig, AdminReviewController/Service, AdminReviewsPage |
 
 ### ADR-009 — Tạm triển khai Home Page theo quy trình Code-first
 
@@ -418,4 +419,18 @@ Không cập nhật chỉ trong chat cá nhân: quyết định cuối phải xu
   3. Customer `POST /api/reviews` (`201`), `PUT /api/reviews/{id}` (`200`, chỉ sửa khi `VISIBLE`), `PATCH /api/reviews/{id}/hide` (`200`, ẩn mềm `HIDDEN_BY_OWNER`, không xóa vật lý).
   4. Nếu review đã bị `HIDDEN_BY_ADMIN` hoặc `HIDDEN_BY_OWNER`, sửa hoặc ẩn lại trả về `409 Conflict`. Uniqueness `(user_id, product_id, order_id)` áp dụng cả khi review đã ẩn (`409`).
 - Consequences: cập nhật `API_CONTRACT.md`, `SecurityConfig` (đã cho phép `GET /api/products/**` và `/api/reviews/**`), không đổi schema DB (bảng `reviews` giữ nguyên).
+- Who approved / PR URL: Tech Lead (chat duyệt 27/11/2026); PR: _(chưa tạo)_
+
+### ADR-027 — Hợp đồng kiểm duyệt đánh giá (UC20): quyền ADMIN, ẩn mềm + audit_logs và trạng thái chuẩn DB
+
+- Date: 28/11/2026 — Trạng thái: **Approved** bởi Tech Lead (chat duyệt 27/11/2026).
+- Context:
+  1. `UC_MATRIX.md` và `UC20-admin-review-moderation.puml` quy định UC20 chỉ dành cho `ROLE_ADMIN`, nhưng `SecurityConfig` đang để `/api/admin/reviews/**` rơi vào `hasRole("STAFF")`.
+  2. `AdminReviewsPage.tsx` dùng mock `initialReviews` với trạng thái `APPROVED`/`PENDING` không khớp schema `reviews` (`VISIBLE | HIDDEN_BY_OWNER | HIDDEN_BY_ADMIN`).
+- Decision (Tech Lead duyệt):
+  1. Bổ sung `/api/admin/reviews`, `/api/admin/reviews/**` vào rule `hasRole("ADMIN")` trong `SecurityConfig`.
+  2. Endpoint: `GET /api/admin/reviews?status=&q=` và `PATCH /api/admin/reviews/{id}/hide` (`{ reason }` bắt buộc ≤ 255 ký tự).
+  3. Chỉ ẩn mềm từ `VISIBLE → HIDDEN_BY_ADMIN` (đã ẩn → `409`), khóa `PESSIMISTIC_WRITE`, không xóa vật lý, ghi 1 dòng `audit_logs` (`REVIEW_HIDDEN_BY_ADMIN`) trong cùng transaction.
+  4. `AdminReviewsPage.tsx` bỏ mock, dùng đúng 4 tab trạng thái chuẩn DB (`ALL`, `VISIBLE`, `HIDDEN_BY_OWNER`, `HIDDEN_BY_ADMIN`) và modal nhập lý do ẩn vi phạm.
+- Consequences: cập nhật `API_CONTRACT.md`, `SCREEN_MAP.md`, `SecurityConfig`, `ReviewRepository`, `AdminReview*`, `AdminReviewsPage.tsx`; không đổi schema DB.
 - Who approved / PR URL: Tech Lead (chat duyệt 27/11/2026); PR: _(chưa tạo)_
