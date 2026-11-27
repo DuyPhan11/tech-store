@@ -5,7 +5,16 @@ import { cartApi } from '../../lib/api/cartApi'
 import { catalogApi } from '../../lib/api/catalogApi'
 import { checkoutApi } from '../../lib/api/checkoutApi'
 import type { CheckoutRequest, CheckoutResponse } from './checkoutTypes'
+import {
+  buildPreviewRequest,
+  couponErrorMessage,
+  couponRejectReason,
+  normalizeCouponCode,
+  orderDisplayTotal,
+  type CouponItemsInput,
+} from './couponPreview'
 import styles from './CheckoutPage.module.css'
+import cartStyles from '../cart/CartPage.module.css'
 
 interface DisplayOrderItem {
   id: string
@@ -50,6 +59,14 @@ export function CheckoutPage() {
   const [note, setNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  // Mã giảm giá (ADR-024): mã mang từ giỏ hàng được xem trước lại ở đây trước khi hiển thị
+  const stateCoupon = normalizeCouponCode((location.state as { couponCode?: string } | null)?.couponCode)
+  const [couponInput, setCouponInput] = useState(stateCoupon)
+  const [pendingCoupon, setPendingCoupon] = useState(stateCoupon)
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null)
+  const [couponMsg, setCouponMsg] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
 
   // Điền thông tin người dùng từ tài khoản đăng nhập
   useEffect(() => {
@@ -164,10 +181,71 @@ export function CheckoutPage() {
     }
   }, [isBuyNow, productIdParam, quantityParam, isAuthenticated, location.state])
 
-  // Tính toán tiền hàng
+  // Nguồn hàng gửi kèm khi xem trước mã: đúng source / dòng giỏ hoặc sản phẩm Mua ngay
+  const couponItems = (): CouponItemsInput | null => {
+    if (items.length === 0) return null
+    if (isBuyNow) return { source: 'BUY_NOW', productId: items[0].productId, quantity: items[0].quantity }
+    return { source: 'CART', cartItemIds: items.map(i => i.cartItemId!).filter(Boolean) }
+  }
+
+  // Mã mang sang từ giỏ hàng: xem trước lại sau khi tải xong danh sách hàng
+  useEffect(() => {
+    if (loadingItems || !pendingCoupon || items.length === 0) return
+    let active = true
+    const input: CouponItemsInput = isBuyNow
+      ? { source: 'BUY_NOW', productId: items[0].productId, quantity: items[0].quantity }
+      : { source: 'CART', cartItemIds: items.map(i => i.cartItemId!).filter(Boolean) }
+    checkoutApi.previewCoupon(buildPreviewRequest(pendingCoupon, input))
+      .then(res => {
+        if (!active) return
+        setAppliedCoupon({ code: res.couponCode, discount: res.discountAmount })
+        setCouponMsg(`Đã áp dụng mã ${res.couponCode}: giảm ${currency.format(res.discountAmount)}.`)
+      })
+      .catch(err => {
+        if (!active) return
+        setAppliedCoupon(null)
+        setCouponMsg(couponErrorMessage(err))
+      })
+      .finally(() => {
+        if (active) setPendingCoupon('')
+      })
+    return () => {
+      active = false
+    }
+  }, [loadingItems, items, pendingCoupon, isBuyNow])
+
+  const handleApplyCoupon = async () => {
+    const code = normalizeCouponCode(couponInput)
+    const input = couponItems()
+    if (!code) {
+      setCouponMsg('Vui lòng nhập mã giảm giá.')
+      return
+    }
+    if (!input) return
+    setCouponLoading(true)
+    try {
+      const res = await checkoutApi.previewCoupon(buildPreviewRequest(code, input))
+      setAppliedCoupon({ code: res.couponCode, discount: res.discountAmount })
+      setCouponMsg(`Đã áp dụng mã ${res.couponCode}: giảm ${currency.format(res.discountAmount)}.`)
+    } catch (err: unknown) {
+      setAppliedCoupon(null)
+      setCouponMsg(couponErrorMessage(err))
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponInput('')
+    setCouponMsg('')
+  }
+
+  // Tính toán tiền hàng (số tiền giảm lấy từ server; đơn thật do server tính lại khi đặt)
   const subtotal = items.reduce((sum, item) => sum + item.priceVnd * item.quantity, 0)
-  const shippingFee = shippingMethod === 'standard' ? 0 : 150000
-  const grandTotal = subtotal + shippingFee
+  // Miễn phí vận chuyển cho mọi phương thức (kể cả Hỏa tốc) → tổng = đúng số server thu (ADR-024)
+  const discount = appliedCoupon?.discount ?? 0
+  const grandTotal = orderDisplayTotal(subtotal, discount)
 
   // Xử lý gửi đơn hàng
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -203,7 +281,7 @@ export function CheckoutPage() {
         quantity: isBuyNow ? items[0]?.quantity : undefined,
         branchId: branchId,
         paymentMethod: 'COD',
-        couponCode: null,
+        couponCode: appliedCoupon?.code ?? null,
         recipientName: recipientFullName,
         recipientPhone: phone.trim(),
         shippingAddress: fullShippingAddress,
@@ -229,7 +307,14 @@ export function CheckoutPage() {
       })
     } catch (err: unknown) {
       const message = (err as Error)?.message || 'Đã xảy ra lỗi khi tạo đơn hàng. Vui lòng thử lại.'
-      setSubmitError(message)
+      if (couponRejectReason(err)) {
+        // Mã không còn hợp lệ lúc đặt: đơn CHƯA được tạo; gỡ mã để khách thấy tổng chưa giảm rồi đặt lại
+        setAppliedCoupon(null)
+        setCouponMsg(message)
+        setSubmitError(`Mã giảm giá không áp dụng được: ${message} Đơn hàng chưa được tạo — vui lòng kiểm tra lại tổng tiền rồi đặt hàng lại.`)
+      } else {
+        setSubmitError(message)
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -463,9 +548,9 @@ export function CheckoutPage() {
                 />
                 <div className={styles.radioLabel}>
                   <strong>Giao hàng Hỏa tốc 24H</strong>
-                  <span>Nhận hàng ngay trong ngày hoặc ngày hôm sau</span>
+                  <span>Nhận hàng ngay trong ngày hoặc ngày hôm sau • Miễn phí vận chuyển</span>
                 </div>
-                <div className={styles.radioPrice}>{currency.format(150000)}</div>
+                <div className={styles.radioPrice}>Miễn phí</div>
               </label>
             </div>
           </section>
@@ -531,14 +616,56 @@ export function CheckoutPage() {
 
             <div className={styles.divider} />
 
+            {/* Mã giảm giá — tái dùng style ô coupon của CartPage; không lồng <form> trong form đặt hàng */}
+            <div className={cartStyles.couponForm}>
+              <div className={cartStyles.couponInputGroup}>
+                <input
+                  type="text"
+                  placeholder="Nhập mã giảm giá"
+                  aria-label="Mã giảm giá"
+                  value={couponInput}
+                  onChange={e => setCouponInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      void handleApplyCoupon()
+                    }
+                  }}
+                  disabled={couponLoading || isSubmitting}
+                />
+                <button
+                  type="button"
+                  className={cartStyles.couponBtn}
+                  onClick={() => void handleApplyCoupon()}
+                  disabled={couponLoading || isSubmitting}
+                >
+                  {couponLoading ? 'Đang kiểm tra...' : 'Áp dụng'}
+                </button>
+              </div>
+              {couponMsg && <p className={cartStyles.couponNotice} role="status">{couponMsg}</p>}
+              {appliedCoupon && (
+                <button type="button" className={cartStyles.couponBtn} onClick={handleRemoveCoupon} disabled={isSubmitting}>
+                  Bỏ mã {appliedCoupon.code}
+                </button>
+              )}
+            </div>
+
+            <div className={styles.divider} />
+
             <div className={styles.summaryDetails}>
               <div className={styles.summaryRow}>
                 <span>Tạm tính</span>
                 <strong>{currency.format(subtotal)}</strong>
               </div>
+              {appliedCoupon && discount > 0 && (
+                <div className={`${styles.summaryRow} ${cartStyles.discountRow}`}>
+                  <span>Giảm giá (mã {appliedCoupon.code})</span>
+                  <span>-{currency.format(discount)}</span>
+                </div>
+              )}
               <div className={styles.summaryRow}>
                 <span>Phí vận chuyển</span>
-                <span>{shippingFee === 0 ? 'Miễn phí' : currency.format(shippingFee)}</span>
+                <span>Miễn phí</span>
               </div>
               <div className={styles.divider} />
               <div className={`${styles.summaryRow} ${styles.grandTotalRow}`}>

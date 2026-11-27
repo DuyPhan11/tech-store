@@ -26,4 +26,9 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Coupon c where c.id = :id")
     Optional<Coupon> findByIdForUpdate(@Param("id") Long id);
+
+    /** Khóa dòng coupon theo mã khi checkout (ADR-024) — sau khi đã khóa inventory. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Coupon c where c.code = :code")
+    Optional<Coupon> findByCodeForUpdate(@Param("code") String code);
 }

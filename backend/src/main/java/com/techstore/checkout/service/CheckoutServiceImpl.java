@@ -10,6 +10,13 @@ import com.techstore.checkout.dto.OrderItemResponse;
 import com.techstore.common.exception.AccountLockedException;
 import com.techstore.common.exception.CartItemNotFoundException;
 import com.techstore.common.exception.InsufficientStockException;
+import com.techstore.common.exception.InvalidCouponException;
+import com.techstore.coupon.entity.Coupon;
+import com.techstore.coupon.entity.CouponUsage;
+import com.techstore.coupon.entity.CouponUsageStatus;
+import com.techstore.coupon.repository.CouponRepository;
+import com.techstore.coupon.repository.CouponUsageRepository;
+import com.techstore.coupon.service.CouponService;
 import com.techstore.common.exception.ProductNotFoundException;
 import com.techstore.order.entity.*;
 import com.techstore.order.repository.OrderItemRepository;
@@ -49,6 +56,9 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
+    private final CouponRepository couponRepository;
+    private final CouponUsageRepository couponUsageRepository;
+    private final CouponService couponService;
 
     // Idempotency cache to prevent duplicate order placement on retry
     private final Map<String, CheckoutResponse> idempotencyCache = new ConcurrentHashMap<>();
@@ -62,7 +72,10 @@ public class CheckoutServiceImpl implements CheckoutService {
                                CartItemRepository cartItemRepository,
                                OrderRepository orderRepository,
                                OrderItemRepository orderItemRepository,
-                               PaymentRepository paymentRepository) {
+                               PaymentRepository paymentRepository,
+                               CouponRepository couponRepository,
+                               CouponUsageRepository couponUsageRepository,
+                               CouponService couponService) {
         this.userRepository = userRepository;
         this.branchRepository = branchRepository;
         this.productRepository = productRepository;
@@ -73,6 +86,9 @@ public class CheckoutServiceImpl implements CheckoutService {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.paymentRepository = paymentRepository;
+        this.couponRepository = couponRepository;
+        this.couponUsageRepository = couponUsageRepository;
+        this.couponService = couponService;
     }
 
     @Override
@@ -220,7 +236,19 @@ public class CheckoutServiceImpl implements CheckoutService {
             orderItemDataList.add(new OrderItemData(prod, prod.getName(), prod.getSku(), imageUrl, unitPrice, item.quantity, subtotal));
         }
 
+        // 8b. Coupon (ADR-024): khóa coupon SAU inventory (thứ tự khóa: order → inventory → coupon),
+        // kiểm tra như preview (khóa đọc usage) và tính giảm bằng CouponService — không viết lại công thức.
         BigDecimal discountAmount = BigDecimal.ZERO;
+        Coupon appliedCoupon = null;
+        String couponCode = request.getCouponCode() != null ? request.getCouponCode().trim().toUpperCase(Locale.ROOT) : "";
+        if (!couponCode.isEmpty()) {
+            final String code = couponCode;
+            appliedCoupon = couponRepository.findByCodeForUpdate(code)
+                    .orElseThrow(() -> new InvalidCouponException(InvalidCouponException.Reason.NOT_FOUND,
+                            "Mã giảm giá " + code + " không tồn tại"));
+            couponService.validateForCheckout(appliedCoupon, userId, totalItemsAmount, LocalDateTime.now());
+            discountAmount = couponService.calculateDiscount(appliedCoupon, totalItemsAmount);
+        }
         BigDecimal finalAmount = totalItemsAmount.subtract(discountAmount);
 
         // 9. Tạo Order (trạng thái PENDING)
@@ -239,8 +267,18 @@ public class CheckoutServiceImpl implements CheckoutService {
         order.setPaymentMethod(PaymentMethod.COD);
         order.setPaymentStatus(PaymentStatus.UNPAID);
         order.setNotes(request.getNotes() != null ? request.getNotes().trim() : null);
+        if (appliedCoupon != null) {
+            order.setCouponId(appliedCoupon.getId());
+        }
 
         Order savedOrder = orderRepository.save(order);
+
+        // 9b. Ghi lượt dùng coupon ACTIVE và tăng used_count đúng 1 (ADR-024), cùng transaction với đơn
+        if (appliedCoupon != null) {
+            couponUsageRepository.save(new CouponUsage(appliedCoupon.getId(), userId, savedOrder.getId(), CouponUsageStatus.ACTIVE));
+            appliedCoupon.setUsedCount(appliedCoupon.getUsedCount() + 1);
+            couponRepository.save(appliedCoupon);
+        }
 
         // 10. Tạo các OrderItem
         List<OrderItemResponse> responseItems = new ArrayList<>();

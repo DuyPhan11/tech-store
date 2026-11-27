@@ -275,7 +275,7 @@
 - `GET /api/admin/orders/{id}` → `AdminOrderResponse`; không tồn tại → `404`.
 - `PATCH /api/admin/orders/{id}/status` body `{ "status": "CONFIRMED", "reason": null }` → `AdminOrderResponse`.
   - Hợp lệ: `PENDING→CONFIRMED`, `CONFIRMED→SHIPPING`, `SHIPPING→COMPLETED`, `PENDING|CONFIRMED→CANCELLED`. Khác (nhảy cóc, lùi, giữ nguyên, về `PENDING`, hủy đơn đã giao/hủy) → `409`.
-  - `CANCELLED`: `reason` bắt buộc (không rỗng), ≤ 500 ký tự (→ `400`); hoàn kho đúng 1 lần về chi nhánh gốc; COD → payment `CANCELLED`; ONLINE_MOCK → `REFUNDED` + `refundedAt`; dùng chung lõi với `POST /api/orders/{id}/cancel`. Chưa hoàn coupon.
+  - `CANCELLED`: `reason` bắt buộc (không rỗng), ≤ 500 ký tự (→ `400`); hoàn kho đúng 1 lần về chi nhánh gốc; COD → payment `CANCELLED`; ONLINE_MOCK → `REFUNDED` + `refundedAt`; dùng chung lõi với `POST /api/orders/{id}/cancel`; đơn có coupon → usage `ACTIVE → REVERSED`, `used_count − 1` đúng 1 lần (ADR-024).
   - `COMPLETED` + COD: payment `UNPAID → PAID`, `paidAt`, `orders.payment_status = PAID`.
   - Khóa dòng đơn (`PESSIMISTIC_WRITE`) trước khi kiểm tra. Thành công ghi 1 dòng `audit_logs` (`ORDER_CONFIRMED|ORDER_SHIPPING|ORDER_COMPLETED|ORDER_CANCELLED`, `entity_name = orders`, details: `orderCode, from, to, reason, paymentStatusBefore, paymentStatusAfter`).
 
@@ -409,6 +409,7 @@
     ]
   }
   ```
+- **Coupon (ADR-024, Proposed):** `couponCode` trim + UPPERCASE; `null`/rỗng = không dùng mã (hành vi cũ). Có mã: tính subtotal ở server → khóa/trừ tồn kho → khóa coupon (`PESSIMISTIC_WRITE`) → kiểm tra như `coupon-preview` (chưa tới hạn, hết hạn, tắt, hết lượt, dưới đơn tối thiểu, user đã có usage `ACTIVE`) → `discountAmount` theo cùng công thức preview, `finalAmount = totalItemsAmount − discountAmount`, `payments.amount = finalAmount`, `orders.coupon_id`; tạo `coupon_usages` (`ACTIVE`) và `used_count + 1`. Mã không hợp lệ → `400` với `errors.reason` (`NOT_FOUND | DISABLED | NOT_STARTED | EXPIRED | EXHAUSTED | MIN_ORDER_NOT_MET | ALREADY_USED`), rollback toàn bộ: không tạo đơn, không trừ kho, không xóa giỏ.
 - **Xử lý lỗi:**
   - `401 Unauthorized`: Chưa đăng nhập tài khoản.
   - `403 Forbidden`: Tài khoản bị khóa (`LOCKED`) hoặc không có quyền `ROLE_CUSTOMER`.
@@ -522,6 +523,7 @@
     - Chỉ cho phép hủy khi đơn ở trạng thái `PENDING` hoặc `CONFIRMED` (BR18).
     - Khóa bi quan (`PESSIMISTIC_WRITE`) chống tranh chấp hủy đồng thời (BR48).
     - Hoàn trả số lượng tồn kho nguyên tử đúng 1 lần về chi nhánh gốc (BR32, BR48). Sắp xếp theo `productId` tăng dần khi khóa tồn kho để phòng ngừa deadlock.
+    - Đơn có coupon: khóa coupon, usage `ACTIVE → REVERSED` + `reversedAt`, `used_count − 1` (không âm), đúng 1 lần; khách dùng lại được mã sau khi hủy (ADR-024).
     - Cập nhật trạng thái thanh toán (BR19, BR21): đơn COD chuyển sang `CANCELLED`; đơn ONLINE_MOCK chuyển sang `REFUNDED` và cập nhật `refundedAt`.
     - Đơn đã hủy chuyển trạng thái `CANCELLED`, ghi nhận `cancelReason` và `cancelledAt`.
     - Trả về `400 Bad Request` nếu đơn hàng ở trạng thái không thể hủy (`SHIPPING`, `COMPLETED`, hoặc đã `CANCELLED`).

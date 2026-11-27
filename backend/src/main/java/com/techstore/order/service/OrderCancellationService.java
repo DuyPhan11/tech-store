@@ -1,5 +1,9 @@
 package com.techstore.order.service;
 
+import com.techstore.coupon.entity.Coupon;
+import com.techstore.coupon.entity.CouponUsageStatus;
+import com.techstore.coupon.repository.CouponRepository;
+import com.techstore.coupon.repository.CouponUsageRepository;
 import com.techstore.order.entity.Order;
 import com.techstore.order.entity.OrderItem;
 import com.techstore.order.entity.OrderStatus;
@@ -25,7 +29,7 @@ import java.util.Optional;
  * <p>
  * Bên gọi PHẢI đã khóa dòng đơn (PESSIMISTIC_WRITE) và kiểm tra quyền/trạng thái trong cùng transaction
  * (propagation MANDATORY). Nội dung chuyển nguyên văn từ {@code OrderServiceImpl.cancelOrder} (UC08, PR #26).
- * Hoàn coupon sẽ được bổ sung tại đây bởi issue coupon-checkout.
+ * Hoàn coupon (ADR-024) nằm sau bước hoàn kho, giữ thứ tự khóa order → inventory → coupon.
  */
 @Service
 public class OrderCancellationService {
@@ -33,13 +37,19 @@ public class OrderCancellationService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final InventoryRepository inventoryRepository;
+    private final CouponRepository couponRepository;
+    private final CouponUsageRepository couponUsageRepository;
 
     public OrderCancellationService(OrderRepository orderRepository,
                                     PaymentRepository paymentRepository,
-                                    InventoryRepository inventoryRepository) {
+                                    InventoryRepository inventoryRepository,
+                                    CouponRepository couponRepository,
+                                    CouponUsageRepository couponUsageRepository) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.inventoryRepository = inventoryRepository;
+        this.couponRepository = couponRepository;
+        this.couponUsageRepository = couponUsageRepository;
     }
 
     /**
@@ -89,7 +99,11 @@ public class OrderCancellationService {
             }
         }
 
-        // TODO(coupon-checkout): đảo CouponUsage ACTIVE → REVERSED và giảm used_count đúng 1 lần tại đây.
+        // ADR-024: hoàn coupon đúng 1 lần — khóa coupon (sau inventory), usage ACTIVE của đơn → REVERSED,
+        // used_count − 1 (không âm). Không còn usage ACTIVE (đã hoàn trước đó) → bỏ qua.
+        if (order.getCouponId() != null) {
+            reverseCouponUsage(order);
+        }
 
         // Cập nhật trạng thái đơn hàng thành CANCELLED
         order.setStatus(OrderStatus.CANCELLED);
@@ -97,5 +111,19 @@ public class OrderCancellationService {
         order.setCancelledAt(LocalDateTime.now());
 
         return orderRepository.save(order);
+    }
+
+    private void reverseCouponUsage(Order order) {
+        Coupon coupon = couponRepository.findByIdForUpdate(order.getCouponId()).orElse(null);
+        if (coupon == null) {
+            return;
+        }
+        couponUsageRepository.findByOrderIdAndStatusForUpdate(order.getId(), CouponUsageStatus.ACTIVE)
+                .ifPresent(usage -> {
+                    usage.markReversed(LocalDateTime.now());
+                    couponUsageRepository.save(usage);
+                    coupon.setUsedCount(Math.max(0, coupon.getUsedCount() - 1));
+                    couponRepository.save(coupon);
+                });
     }
 }

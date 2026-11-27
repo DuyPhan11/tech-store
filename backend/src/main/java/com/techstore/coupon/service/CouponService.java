@@ -40,6 +40,19 @@ public class CouponService {
      * @throws InvalidCouponException (400) kèm lý do cụ thể
      */
     public void validate(Coupon coupon, Long userId, BigDecimal subtotal, LocalDateTime now) {
+        doValidate(coupon, userId, subtotal, now, false);
+    }
+
+    /**
+     * Như {@link #validate} nhưng kiểm tra "user đã có usage ACTIVE" bằng truy vấn khóa (SELECT … FOR UPDATE)
+     * để luôn thấy usage vừa commit bởi request song song — đúng cả dưới REPEATABLE READ của InnoDB (ADR-024).
+     * Chỉ gọi trong transaction checkout, sau khi đã khóa dòng coupon.
+     */
+    public void validateForCheckout(Coupon coupon, Long userId, BigDecimal subtotal, LocalDateTime now) {
+        doValidate(coupon, userId, subtotal, now, true);
+    }
+
+    private void doValidate(Coupon coupon, Long userId, BigDecimal subtotal, LocalDateTime now, boolean lockingUsageCheck) {
         if (coupon == null) {
             throw new InvalidCouponException(Reason.NOT_FOUND, "Mã giảm giá không tồn tại");
         }
@@ -63,10 +76,16 @@ public class CouponService {
             throw new InvalidCouponException(Reason.MIN_ORDER_NOT_MET,
                     "Đơn hàng chưa đạt giá trị tối thiểu " + formatVnd(minOrder) + " để dùng mã " + code);
         }
-        if (userId != null && couponUsageRepository.existsByCouponIdAndUserIdAndStatus(
-                coupon.getId(), userId, CouponUsageStatus.ACTIVE)) {
+        if (userId != null && hasActiveUsage(coupon.getId(), userId, lockingUsageCheck)) {
             throw new InvalidCouponException(Reason.ALREADY_USED, "Bạn đã sử dụng mã giảm giá " + code);
         }
+    }
+
+    private boolean hasActiveUsage(Long couponId, Long userId, boolean locking) {
+        if (locking) {
+            return !couponUsageRepository.lockByCouponIdAndUserIdAndStatus(couponId, userId, CouponUsageStatus.ACTIVE).isEmpty();
+        }
+        return couponUsageRepository.existsByCouponIdAndUserIdAndStatus(couponId, userId, CouponUsageStatus.ACTIVE);
     }
 
     /**
