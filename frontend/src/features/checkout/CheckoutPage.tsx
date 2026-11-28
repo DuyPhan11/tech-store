@@ -4,6 +4,8 @@ import { useAuth } from '../auth/AuthContext'
 import { cartApi } from '../../lib/api/cartApi'
 import { catalogApi } from '../../lib/api/catalogApi'
 import { checkoutApi } from '../../lib/api/checkoutApi'
+import { profileApi } from '../../lib/api/profileApi'
+import type { AddressItem } from '../account/accountTypes'
 import type { CheckoutRequest, CheckoutResponse } from './checkoutTypes'
 import {
   buildPreviewRequest,
@@ -29,6 +31,19 @@ interface DisplayOrderItem {
 
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
 
+const PRESET_CITIES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng']
+
+function normalizeCityOption(rawCity?: string | null): string {
+  const val = (rawCity || '').trim()
+  if (!val) return 'Hồ Chí Minh'
+  if (/hồ chí minh|hcm|tp\.?\s*hcm/i.test(val)) return 'Hồ Chí Minh'
+  if (/hà nội/i.test(val)) return 'Hà Nội'
+  if (/đà nẵng/i.test(val)) return 'Đà Nẵng'
+  if (/cần thơ/i.test(val)) return 'Cần Thơ'
+  if (/hải phòng/i.test(val)) return 'Hải Phòng'
+  return PRESET_CITIES.includes(val) ? val : val
+}
+
 export function CheckoutPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -51,8 +66,10 @@ export function CheckoutPage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
-  const [street, setStreet] = useState('123 Nguyễn Huệ, Phường Bến Nghé')
+  const [street, setStreet] = useState('')
   const [city, setCity] = useState('Hồ Chí Minh')
+  const [savedAddresses, setSavedAddresses] = useState<AddressItem[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('manual')
   const [branchId, setBranchId] = useState<number>(1)
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard')
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE_MOCK'>('COD')
@@ -69,23 +86,67 @@ export function CheckoutPage() {
   const [couponMsg, setCouponMsg] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
 
+  const applySavedAddress = (addr: AddressItem) => {
+    if (addr.recipientName) {
+      const parts = addr.recipientName.trim().split(/\s+/)
+      if (parts.length > 1) {
+        setLastName(parts[0])
+        setFirstName(parts.slice(1).join(' '))
+      } else {
+        setLastName('')
+        setFirstName(addr.recipientName.trim())
+      }
+    }
+    if (addr.phone) {
+      setPhone(addr.phone)
+    }
+    const fullStreet = [addr.streetAddress, addr.ward, addr.district].filter(Boolean).join(', ')
+    setStreet(fullStreet || addr.fullAddress || '')
+    setCity(normalizeCityOption(addr.city))
+  }
+
   // Điền thông tin người dùng từ tài khoản đăng nhập
   useEffect(() => {
     if (user) {
       setEmail(user.email || '')
-      setPhone(user.phone || '')
+      setPhone(prev => prev || user.phone || '')
       if (user.fullName) {
         const parts = user.fullName.trim().split(' ')
         if (parts.length > 1) {
-          setLastName(parts[0])
-          setFirstName(parts.slice(1).join(' '))
+          setLastName(prev => prev || parts[0])
+          setFirstName(prev => prev || parts.slice(1).join(' '))
         } else {
-          setLastName('')
-          setFirstName(user.fullName)
+          setFirstName(prev => prev || user.fullName || '')
         }
       }
     }
   }, [user])
+
+  // Tải sổ địa chỉ đã lưu của tài khoản và tự điền địa chỉ mặc định
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setSavedAddresses([])
+      setSelectedAddressId('manual')
+      return
+    }
+    let isMounted = true
+    profileApi.getAddresses()
+      .then(list => {
+        if (!isMounted) return
+        setSavedAddresses(list)
+        if (list.length > 0) {
+          const defaultAddr = list.find(a => a.isDefault) ?? list[0]
+          setSelectedAddressId(String(defaultAddr.id))
+          applySavedAddress(defaultAddr)
+        }
+      })
+      .catch(() => {
+        // Không chặn thanh toán nếu không tải được sổ địa chỉ
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [isAuthenticated])
 
   // Tải danh sách sản phẩm cần thanh toán
   useEffect(() => {
@@ -428,6 +489,34 @@ export function CheckoutPage() {
                 </select>
               </div>
 
+              {savedAddresses.length > 0 && (
+                <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
+                  <label htmlFor="chk-saved-address">Địa chỉ nhận hàng đã lưu</label>
+                  <select
+                    id="chk-saved-address"
+                    value={selectedAddressId}
+                    onChange={e => {
+                      const val = e.target.value
+                      setSelectedAddressId(val)
+                      if (val === 'manual') {
+                        setStreet('')
+                        return
+                      }
+                      const found = savedAddresses.find(a => String(a.id) === val)
+                      if (found) applySavedAddress(found)
+                    }}
+                  >
+                    {savedAddresses.map(addr => (
+                      <option key={addr.id} value={String(addr.id)}>
+                        {addr.recipientName} ({addr.phone}) — {addr.fullAddress}
+                        {addr.isDefault ? ' (Mặc định)' : ''}
+                      </option>
+                    ))}
+                    <option value="manual">+ Nhập địa chỉ giao hàng mới</option>
+                  </select>
+                </div>
+              )}
+
               <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
                 <label htmlFor="chk-email">Địa chỉ Email <span className={styles.required}>*</span></label>
                 <input
@@ -496,6 +585,9 @@ export function CheckoutPage() {
                   <option value="Đà Nẵng">Đà Nẵng</option>
                   <option value="Cần Thơ">Cần Thơ</option>
                   <option value="Hải Phòng">Hải Phòng</option>
+                  {!PRESET_CITIES.includes(city) && city !== 'Khác' && (
+                    <option value={city}>{city}</option>
+                  )}
                   <option value="Khác">Tỉnh thành khác</option>
                 </select>
               </div>

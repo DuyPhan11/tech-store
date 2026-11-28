@@ -3,6 +3,8 @@ package com.techstore.user;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.techstore.auth.dto.LoginRequest;
 import com.techstore.auth.dto.LoginResponse;
+import com.techstore.common.storage.ImageStorageService;
+import com.techstore.common.storage.StoredImage;
 import com.techstore.user.dto.AddressRequest;
 import com.techstore.user.dto.ChangePasswordRequest;
 import com.techstore.user.dto.UpdateProfileRequest;
@@ -20,8 +22,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
@@ -54,6 +61,9 @@ public class ProfileControllerTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @MockBean
+    private ImageStorageService imageStorageService;
 
     private String customerToken;
     private String customer2Token;
@@ -320,5 +330,55 @@ public class ProfileControllerTest {
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].id", is(addr2.getId().intValue())))
                 .andExpect(jsonPath("$[0].isDefault", is(true)));
+    }
+
+    @Test
+    @DisplayName("Avatar: Upload ảnh đại diện hợp lệ lên Cloudinary và lưu avatarUrl")
+    void testUploadAvatarSuccess() throws Exception {
+        when(imageStorageService.upload(any()))
+                .thenReturn(new StoredImage("https://res.cloudinary.com/demo/image/upload/v1/avatar.png", "tech-store/avatars/u1"));
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "avatar.png",
+                "image/png",
+                new byte[]{1, 2, 3, 4}
+        );
+
+        mockMvc.perform(multipart("/api/me/avatar")
+                        .file(file)
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarUrl", is("https://res.cloudinary.com/demo/image/upload/v1/avatar.png")));
+    }
+
+    @Test
+    @DisplayName("Avatar: Từ chối file không phải ảnh (400 Bad Request)")
+    void testUploadAvatarInvalidMimeType() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "notes.txt",
+                "text/plain",
+                "not-an-image".getBytes()
+        );
+
+        mockMvc.perform(multipart("/api/me/avatar")
+                        .file(file)
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Avatar: Chưa đăng nhập không thể upload ảnh đại diện")
+    void testUploadAvatarUnauthenticated() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "avatar.png",
+                "image/png",
+                new byte[]{1, 2, 3, 4}
+        );
+
+        mockMvc.perform(multipart("/api/me/avatar").file(file))
+                .andExpect(status().isUnauthorized());
     }
 }

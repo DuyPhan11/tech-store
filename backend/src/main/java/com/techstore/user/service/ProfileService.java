@@ -1,6 +1,7 @@
 package com.techstore.user.service;
 
 import com.techstore.user.dto.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -9,6 +10,8 @@ public interface ProfileService {
     UserProfileResponse getProfile(Long userId);
 
     UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request);
+
+    UserProfileResponse uploadAvatar(Long userId, MultipartFile file);
 
     void changePassword(Long userId, ChangePasswordRequest request);
 

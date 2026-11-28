@@ -38,6 +38,8 @@ export function ProductDetailPage({
   const [state, setState] = useState<DetailState>({ status: 'loading' })
   const [quantity, setQuantity] = useState(1)
   const [attempt, setAttempt] = useState(0)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [cartFeedback, setCartFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -140,17 +142,28 @@ export function ProductDetailPage({
     const numId = Number(product.id)
     if (!isNaN(numId) && numId > 0) {
       try {
-        await cartApi.addItem(numId, quantity)
-        navigate('/cart')
+        setAddingToCart(true)
+        setCartFeedback(null)
+        const updatedCart = await cartApi.addItem(numId, quantity)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('techstore:cart-updated', { detail: updatedCart }))
+        }
+        setCartFeedback({
+          type: 'success',
+          text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng.`,
+        })
       } catch (err: unknown) {
         if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 401) {
           navigate('/login?redirect=' + encodeURIComponent(window.location.pathname))
         } else {
-          alert((err as Error)?.message || 'Không thể thêm sản phẩm vào giỏ hàng')
+          setCartFeedback({
+            type: 'error',
+            text: (err as Error)?.message || 'Không thể thêm sản phẩm vào giỏ hàng',
+          })
         }
+      } finally {
+        setAddingToCart(false)
       }
-    } else {
-      navigate('/cart')
     }
   }
 
@@ -251,10 +264,10 @@ export function ProductDetailPage({
             <div className={styles.actionButtons}>
               <Button
                 variant="outline"
-                disabled={!product.inStock}
+                disabled={!product.inStock || addingToCart}
                 onClick={handleAddToCartClick}
               >
-                Thêm vào giỏ hàng
+                {addingToCart ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
               </Button>
               <Button
                 variant="primary"
@@ -264,6 +277,44 @@ export function ProductDetailPage({
                 Mua ngay
               </Button>
             </div>
+
+            {cartFeedback && (
+              <div
+                role="status"
+                style={{
+                  marginTop: '10px',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  background: cartFeedback.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                  color: cartFeedback.type === 'success' ? '#065f46' : '#991b1b',
+                  border: `1px solid ${cartFeedback.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+                }}
+              >
+                <span>{cartFeedback.text}</span>
+                {cartFeedback.type === 'success' && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/cart')}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#0156ff',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      padding: 0,
+                    }}
+                  >
+                    Xem giỏ hàng →
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

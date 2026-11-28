@@ -28,7 +28,7 @@ const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: '
 export function UserAccountPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout, updateUser } = useAuth()
 
   const initialTab: TabType = location.pathname.includes('/orders') ? 'orders' : 'dashboard'
   const [activeTab, setActiveTab] = useState<TabType>(initialTab)
@@ -56,6 +56,7 @@ export function UserAccountPage() {
   const [fullNameInput, setFullNameInput] = useState('')
   const [phoneInput, setPhoneInput] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   // Form states for password change
   const [oldPassword, setOldPassword] = useState('')
@@ -92,6 +93,11 @@ export function UserAccountPage() {
       setAddresses(addrData)
       setFullNameInput(profData.fullName || '')
       setPhoneInput(profData.phone || '')
+      updateUser?.({
+        avatarUrl: profData.avatarUrl,
+        fullName: profData.fullName || user?.fullName || '',
+        phone: profData.phone || user?.phone || '',
+      })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Không thể tải dữ liệu tài khoản'
       setErrorMessage(msg)
@@ -156,12 +162,47 @@ export function UserAccountPage() {
         phone: phoneInput.trim() || undefined,
       })
       setProfile(updated)
+      updateUser?.({
+        fullName: updated.fullName || user?.fullName || '',
+        phone: updated.phone || user?.phone || '',
+      })
       showToastSuccess('Cập nhật thông tin tài khoản thành công!')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Cập nhật thất bại. Vui lòng kiểm tra lại.'
       showToastError(msg)
     } finally {
       setProfileSaving(false)
+    }
+  }
+
+  // Handle Upload Avatar to Cloudinary
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowed.includes(file.type.toLowerCase())) {
+      showToastError('Chỉ chấp nhận ảnh định dạng JPG, PNG hoặc WEBP.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToastError('Kích thước ảnh đại diện tối đa 5MB.')
+      return
+    }
+
+    setAvatarUploading(true)
+    setErrorMessage('')
+    try {
+      const updated = await profileApi.uploadAvatar(file)
+      setProfile(updated)
+      updateUser?.({ avatarUrl: updated.avatarUrl })
+      showToastSuccess('Cập nhật ảnh đại diện thành công!')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể tải ảnh đại diện lên Cloudinary.'
+      showToastError(msg)
+    } finally {
+      setAvatarUploading(false)
     }
   }
 
@@ -504,6 +545,43 @@ export function UserAccountPage() {
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>Thông tin tài khoản</h2>
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                  {profile?.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt={displayName}
+                      style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e2e8f0' }}
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '50%',
+                        background: '#0156ff',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '22px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {displayName.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '15px', marginBottom: '4px' }}>{displayName}</strong>
+                    <button
+                      type="button"
+                      className={styles.actionLink}
+                      onClick={() => setActiveTab('account_info')}
+                    >
+                      Đổi ảnh đại diện
+                    </button>
+                  </div>
+                </div>
                 <div className={styles.twoColGrid}>
                   <div className={styles.infoCol}>
                     <h3 className={styles.subTitle}>Thông tin liên lạc</h3>
@@ -766,6 +844,66 @@ export function UserAccountPage() {
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>Chỉnh sửa thông tin tài khoản</h2>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '22px', paddingBottom: '18px', borderBottom: '1px solid #e2e8f0' }}>
+                  {profile?.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt={displayName}
+                      style={{ width: '76px', height: '76px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e2e8f0' }}
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        width: '76px',
+                        height: '76px',
+                        borderRadius: '50%',
+                        background: '#0156ff',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '26px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {displayName.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <strong style={{ fontSize: '14px' }}>Ảnh đại diện (Lưu trên Cloudinary)</strong>
+                    <span className={styles.infoMuted} style={{ fontSize: '12px' }}>
+                      Hỗ trợ JPG, PNG, WEBP. Dung lượng tối đa 5MB.
+                    </span>
+                    <div>
+                      <label
+                        htmlFor="usr-avatar-upload"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '6px 16px',
+                          borderRadius: '50px',
+                          border: '1px solid var(--ts-color-primary)',
+                          color: 'var(--ts-color-primary)',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: avatarUploading ? 'not-allowed' : 'pointer',
+                          opacity: avatarUploading ? 0.6 : 1,
+                        }}
+                      >
+                        {avatarUploading ? 'Đang tải lên Cloudinary...' : 'Chọn ảnh đại diện'}
+                      </label>
+                      <input
+                        id="usr-avatar-upload"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        disabled={avatarUploading}
+                        onChange={handleAvatarChange}
+                        style={{ display: 'none' }}
+                      />
+                    </div>
+                  </div>
                 </div>
                 <form className={styles.infoForm} onSubmit={handleProfileSubmit}>
                   <div className={styles.formRow}>

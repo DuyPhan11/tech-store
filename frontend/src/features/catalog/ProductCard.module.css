@@ -198,7 +198,14 @@
 .priceRow {
   display: flex;
   flex-direction: column;
-  margin-top: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  transform: translateY(44px);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.productCard:hover .priceRow {
+  transform: translateY(0);
 }
 
 .oldPrice {
@@ -217,18 +224,19 @@
 /* Hover Add To Cart Pill Button */
 .hoverCartWrap {
   margin-top: 10px;
+  height: 34px;
   opacity: 0;
-  max-height: 0;
-  overflow: hidden;
+  transform: translateY(6px);
   pointer-events: none;
-  transition: opacity 0.2s ease, max-height 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
 .productCard:hover .hoverCartWrap {
   opacity: 1;
-  max-height: 44px;
+  transform: translateY(0);
   pointer-events: auto;
 }
 
@@ -252,4 +260,47 @@
 .addToCartPillBtn:hover {
   background: var(--ts-color-primary);
   color: #ffffff;
+}
+
+/* List View Mode */
+.productCardList {
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  background: #ffffff;
+  border: 1px solid #cacdd8;
+  padding: 16px 20px;
+}
+
+.productCardList .mediaContainer {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.productCardList .priceRow {
+  transform: none;
+}
+
+.productCardList .hoverCartWrap {
+  opacity: 1;
+  height: auto;
+  transform: none;
+  pointer-events: auto;
+  justify-content: flex-start;
+}
+
+.productCardList .addToCartPillBtn {
+  width: auto;
+  padding: 6px 20px;
+}
+
+@media (max-width: 640px) {
+  .productCardList {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .productCardList .mediaContainer {
+    width: 100%;
+  }
 }

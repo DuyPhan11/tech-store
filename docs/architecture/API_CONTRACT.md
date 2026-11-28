@@ -166,9 +166,9 @@
 
 ## Catalog DTO tham chiếu (UC04, UC05)
 
-- `GET /api/products?q={text}&category={cat}&brand={brand}&min={min}&max={max}&sort={sort}&page={page}`:
+- `GET /api/products?q={text}&category={cat}&brand={brand}&min={min}&max={max}&sort={sort}&page={page}&size={size}`:
   - Chỉ trả về sản phẩm `status = 'ACTIVE'`.
-  - Phân trang `pageSize = 8`.
+  - Phân trang mặc định `pageSize = 8` (hỗ trợ `size` trong `1..48`, UI dùng `8 | 16 | 24`).
   - Phản hồi: `{ "products": CatalogProduct[], "total": number, "page": number }`.
 - `GET /api/products/{slug}`:
   - Tra cứu bằng `slug`. Chỉ trả về khi `status = 'ACTIVE'`.
@@ -470,6 +470,11 @@
     }
     ```
   - Lỗi: `409 Conflict` nếu số điện thoại đã được đăng ký bởi tài khoản khác.
+
+- **POST `/api/me/avatar` (Quyền: `ROLE_CUSTOMER`)**
+  - Upload ảnh đại diện lên Cloudinary từ backend (`multipart/form-data` với part `file` định dạng JPG/PNG/WEBP, tối đa 5MB).
+  - Response `200 OK`: `UserProfileResponse` đã cập nhật `avatarUrl` (`https://res.cloudinary.com/...`).
+  - Lỗi: `400 Bad Request` nếu tệp trống/sai định dạng/quá 5MB; `502 Bad Gateway` nếu Cloudinary chưa được cấu hình hoặc upload thất bại.
 
 - **POST `/api/me/change-password` (Quyền: `ROLE_CUSTOMER`)**
   - Đổi mật khẩu tài khoản. Mật khẩu cũ được kiểm tra qua BCrypt; mật khẩu mới tối thiểu 6 ký tự.

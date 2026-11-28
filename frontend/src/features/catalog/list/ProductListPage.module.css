@@ -168,7 +168,7 @@
   border: 1px solid var(--ts-color-border);
   border-radius: 2px;
   height: 38px;
-  padding: 0 28px 0 14px;
+  padding: 0;
   position: relative;
   cursor: pointer;
   box-sizing: border-box;
@@ -180,15 +180,22 @@
 }
 
 .selectPrefix {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 13px;
   color: #a2a6b0;
   font-weight: 400;
-  margin-right: 6px;
   white-space: nowrap;
   pointer-events: none;
+  z-index: 1;
 }
 
 .inlineSelect {
+  width: 100%;
+  height: 36px;
+  line-height: 36px;
   border: none;
   background: transparent;
   font-size: 13px;
@@ -196,11 +203,20 @@
   color: #000000;
   outline: none;
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
   font-family: inherit;
-  padding: 0;
+  padding: 0 12px 0 74px;
   margin: 0;
+  box-sizing: border-box;
+}
+
+.sortSelect {
+  min-width: 220px;
+  padding-left: 78px;
+}
+
+.sizeSelect {
+  min-width: 162px;
+  padding-left: 74px;
 }
 
 .selectChevron {
@@ -588,6 +604,12 @@
 .fiveColGrid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.listStack {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 

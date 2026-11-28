@@ -424,30 +424,38 @@
 }
 
 .orderTable th {
-  padding: 0 16px 14px 0;
+  padding: 0 14px 14px 0;
   border-bottom: 1px solid #cacdd8;
   font-size: 13px;
   font-weight: 600;
   color: #000000;
   text-align: left;
+  white-space: nowrap;
 }
 
 .orderTable td {
-  padding: 18px 16px 18px 0;
+  padding: 18px 14px 18px 0;
   border-bottom: 1px solid #cacdd8;
   font-size: 13px;
   color: #000000;
   vertical-align: middle;
 }
 
+.orderTable td:nth-child(5) {
+  white-space: nowrap;
+}
+
 /* Order Badges */
 .badge {
-  display: inline-block;
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
   border-radius: var(--ts-radius-pill);
   font-size: 12px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .badgePending { background: #fef3c7; color: #92400e; }
@@ -462,9 +470,16 @@
   color: #666666 !important;
   border-radius: 50px !important;
   font-size: 12px !important;
-  padding: 6px 16px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  padding: 6px 14px !important;
   background: transparent !important;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cancelOrderBtn:hover {
@@ -477,9 +492,16 @@
   color: #ffffff !important;
   border-radius: 50px !important;
   font-size: 12px !important;
-  padding: 6px 18px !important;
-  border: none !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  padding: 6px 16px !important;
+  border: 1px solid var(--ts-color-primary) !important;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Form Styles */
@@ -555,9 +577,16 @@
   color: var(--ts-color-primary) !important;
   border-radius: 50px !important;
   font-size: 12px !important;
-  padding: 6px 16px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  padding: 6px 14px !important;
   background: transparent !important;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s ease;
 }
 

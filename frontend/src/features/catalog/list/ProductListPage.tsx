@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { ProductCard } from '../ProductCard'
 import { Pagination } from './Pagination'
-import { pageSize, readQuery, type CatalogOption, type CatalogPage, type CatalogQuery, type CatalogSource } from './catalogTypes'
+import { allowedPageSizes, pageSize, readQuery, type CatalogOption, type CatalogPage, type CatalogQuery, type CatalogSource } from './catalogTypes'
 import { apiCatalogSource } from './apiCatalogSource'
 import styles from './ProductListPage.module.css'
 
@@ -261,12 +261,16 @@ type ResultState = { status: 'loading' } | { status: 'error' } | { status: 'read
 function CatalogResults({
   state,
   brands,
+  viewMode,
+  currentSize,
   changePage,
   reset,
   retry,
 }: {
   state: ResultState
   brands: readonly CatalogOption[]
+  viewMode: 'grid' | 'list'
+  currentSize: number
   changePage: (page: number) => void
   reset: () => void
   retry: () => void
@@ -307,17 +311,18 @@ function CatalogResults({
 
   return (
     <>
-      <div className={styles.fiveColGrid}>
+      <div className={viewMode === 'list' ? styles.listStack : styles.fiveColGrid}>
         {products.map(product => (
           <ProductCard
             key={product.id}
             product={product}
+            layout={viewMode}
             brandName={brands.find(brand => brand.id === product.brandId)?.name || product.brandName}
           />
         ))}
       </div>
 
-      <Pagination page={page} pages={Math.ceil(total / pageSize)} onChange={changePage} />
+      <Pagination page={page} pages={Math.ceil(total / currentSize)} onChange={changePage} />
     </>
   )
 }
@@ -442,6 +447,7 @@ export function ProductListPage({
   }
 
   const totalCount = state.status === 'ready' ? state.data.total : undefined
+  const currentSize = query.size ?? pageSize
   const currentPage = state.status === 'ready' ? state.data.page : 1
 
   return (
@@ -512,7 +518,7 @@ export function ProductListPage({
               <span className={styles.itemsRange}>
                 {state.status === 'ready'
                   ? state.data.total > 0
-                    ? `Hiển thị ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, state.data.total)} trong ${state.data.total} sản phẩm`
+                    ? `Hiển thị ${(currentPage - 1) * currentSize + 1}–${Math.min(currentPage * currentSize, state.data.total)} trong ${state.data.total} sản phẩm`
                     : 'Không tìm thấy sản phẩm nào'
                   : 'Đang tải danh sách sản phẩm…'}
               </span>
@@ -524,23 +530,31 @@ export function ProductListPage({
                   <select
                     value={query.sort}
                     onChange={e => update({ sort: e.target.value })}
-                    className={styles.inlineSelect}
+                    className={`${styles.inlineSelect} ${styles.sortSelect}`}
                     aria-label="Sắp xếp sản phẩm"
                   >
                     <option value="default">Vị trí mặc định</option>
                     <option value="price-asc">Giá: Thấp đến Cao</option>
                     <option value="price-desc">Giá: Cao đến Thấp</option>
                   </select>
-                  <span className={styles.selectChevron} aria-hidden="true">▾</span>
                 </label>
 
                 {/* Show per page Select Box */}
                 <label className={styles.selectBox}>
                   <span className={styles.selectPrefix}>Hiển thị:</span>
-                  <select defaultValue="8" className={styles.inlineSelect} aria-label="Số sản phẩm trên trang" disabled>
-                    <option value="8">8 / trang</option>
+                  <select
+                    value={currentSize}
+                    onChange={e => {
+                      const nextSize = Number(e.target.value)
+                      update({ size: nextSize === pageSize ? '' : String(nextSize) })
+                    }}
+                    className={`${styles.inlineSelect} ${styles.sizeSelect}`}
+                    aria-label="Số sản phẩm trên trang"
+                  >
+                    {allowedPageSizes.map(n => (
+                      <option key={n} value={n}>{n} / trang</option>
+                    ))}
                   </select>
-                  <span className={styles.selectChevron} aria-hidden="true">▾</span>
                 </label>
 
                 {/* View Toggles */}
@@ -653,6 +667,8 @@ export function ProductListPage({
           <CatalogResults
             state={state}
             brands={brands}
+            viewMode={viewMode}
+            currentSize={currentSize}
             changePage={page => update({ page: String(page) })}
             reset={reset}
             retry={() => {

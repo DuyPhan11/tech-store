@@ -133,7 +133,17 @@ export function AdminLayout({ children }: PropsWithChildren) {
           </div>
 
           <div className={styles.adminUserSection}>
-            <span aria-hidden="true" className={styles.avatar}>{initials}</span>
+            <span aria-hidden="true" className={styles.avatar} style={{ overflow: 'hidden' }}>
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={displayName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+                />
+              ) : (
+                initials
+              )}
+            </span>
             <div className={styles.identity}>
               <strong>{displayName}</strong>
               <small>{roleLabel}</small>

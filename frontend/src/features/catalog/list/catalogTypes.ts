@@ -16,9 +16,12 @@ export interface CatalogProduct {
   image: string
   specification: string
   status?: 'ACTIVE' | 'INACTIVE'
+  averageRating?: number
+  reviewCount?: number
 }
 
 export const pageSize = 8
+export const allowedPageSizes = [8, 16, 24] as const
 export type CatalogSort = 'default' | 'price-asc' | 'price-desc'
 
 export interface CatalogQuery {
@@ -29,6 +32,7 @@ export interface CatalogQuery {
   maxPrice?: number
   sort: CatalogSort
   page: number
+  size?: number
 }
 
 export interface CatalogPage {
@@ -41,6 +45,7 @@ export type CatalogSource = (query: CatalogQuery, signal: AbortSignal) => Promis
 
 export function readQuery(params: URLSearchParams): CatalogQuery {
   const page = Number(params.get('page'))
+  const rawSize = Number(params.get('size'))
   const sort = params.get('sort')
   function price(key: string) {
     const raw = params.get(key)
@@ -48,6 +53,7 @@ export function readQuery(params: URLSearchParams): CatalogQuery {
     const value = Number(raw)
     return Number.isSafeInteger(value) ? value : undefined
   }
+  const size = allowedPageSizes.includes(rawSize as (typeof allowedPageSizes)[number]) ? rawSize : pageSize
   return {
     keyword: params.get('q')?.trim() ?? '',
     category: params.get('category') ?? '',
@@ -55,6 +61,7 @@ export function readQuery(params: URLSearchParams): CatalogQuery {
     minPrice: price('min'), maxPrice: price('max'),
     sort: sort === 'price-asc' || sort === 'price-desc' ? sort : 'default',
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
+    ...(size !== pageSize ? { size } : {}),
   }
 }
 
