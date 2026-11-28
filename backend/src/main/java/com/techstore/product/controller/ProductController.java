@@ -26,8 +26,9 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal min,
             @RequestParam(required = false) BigDecimal max,
             @RequestParam(required = false, defaultValue = "default") String sort,
-            @RequestParam(required = false, defaultValue = "1") Integer page) {
-        CatalogPageResponse response = productService.getProducts(q, category, brand, min, max, sort, page);
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "8") Integer size) {
+        CatalogPageResponse response = productService.getProducts(q, category, brand, min, max, sort, page, size);
         return ResponseEntity.ok(response);
     }
 

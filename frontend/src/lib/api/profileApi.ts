@@ -26,6 +26,18 @@ export const profileApi = {
   },
 
   /**
+   * Upload ảnh đại diện lên Cloudinary qua backend
+   */
+  uploadAvatar(file: File): Promise<UserProfile> {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiFetch<UserProfile>('/me/avatar', {
+      method: 'POST',
+      body: formData,
+    })
+  },
+
+  /**
    * Đổi mật khẩu tài khoản
    */
   changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {

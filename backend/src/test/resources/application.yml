@@ -33,6 +33,7 @@ app:
     expiration-ms: 86400000
   demo:
     enabled: true
+    seed-products: true
     admin-password: Admin@123
     staff-password: Staff@123
     customer-password: Customer@123

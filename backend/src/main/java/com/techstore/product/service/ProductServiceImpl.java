@@ -14,6 +14,8 @@ import com.techstore.product.entity.ProductImage;
 import com.techstore.product.repository.InventoryRepository;
 import com.techstore.product.repository.ProductImageRepository;
 import com.techstore.product.repository.ProductRepository;
+import com.techstore.review.entity.ReviewStatus;
+import com.techstore.review.repository.ReviewRepository;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -42,15 +44,18 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final InventoryRepository inventoryRepository;
+    private final ReviewRepository reviewRepository;
     private final ObjectMapper objectMapper;
 
     public ProductServiceImpl(ProductRepository productRepository,
                               ProductImageRepository productImageRepository,
                               InventoryRepository inventoryRepository,
+                              ReviewRepository reviewRepository,
                               ObjectMapper objectMapper) {
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
         this.inventoryRepository = inventoryRepository;
+        this.reviewRepository = reviewRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -58,6 +63,13 @@ public class ProductServiceImpl implements ProductService {
     public CatalogPageResponse getProducts(String q, String category, String brand,
                                            BigDecimal min, BigDecimal max,
                                            String sort, Integer page) {
+        return getProducts(q, category, brand, min, max, sort, page, PAGE_SIZE);
+    }
+
+    @Override
+    public CatalogPageResponse getProducts(String q, String category, String brand,
+                                           BigDecimal min, BigDecimal max,
+                                           String sort, Integer page, Integer size) {
         Specification<Product> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -136,18 +148,39 @@ public class ProductServiceImpl implements ProductService {
         }
 
         int requestedPage = (page != null && page > 0) ? page : 1;
-        Pageable pageable = PageRequest.of(requestedPage - 1, PAGE_SIZE, sortOrder);
+        int requestedSize = (size != null && size >= 1 && size <= 48) ? size : PAGE_SIZE;
+        Pageable pageable = PageRequest.of(requestedPage - 1, requestedSize, sortOrder);
         Page<Product> productPage = productRepository.findAll(spec, pageable);
 
-        List<ProductSummaryDto> summaryList = productPage.getContent().stream()
-                .map(this::mapToSummaryDto)
+        List<Product> pageContent = productPage.getContent();
+        java.util.Map<Long, long[]> reviewStatsMap = new java.util.HashMap<>();
+        java.util.Map<Long, Double> reviewAvgMap = new java.util.HashMap<>();
+        if (!pageContent.isEmpty()) {
+            List<Long> productIds = pageContent.stream().map(Product::getId).toList();
+            for (Object[] row : reviewRepository.aggregateByProductIdsAndStatus(productIds, ReviewStatus.VISIBLE)) {
+                Long pid = ((Number) row[0]).longValue();
+                long count = ((Number) row[1]).longValue();
+                double avg = row[2] != null ? Math.round(((Number) row[2]).doubleValue() * 10.0) / 10.0 : 0.0;
+                reviewStatsMap.put(pid, new long[]{count});
+                reviewAvgMap.put(pid, avg);
+            }
+        }
+
+        List<ProductSummaryDto> summaryList = pageContent.stream()
+                .map(p -> {
+                    ProductSummaryDto dto = mapToSummaryDto(p);
+                    long[] cnt = reviewStatsMap.get(p.getId());
+                    dto.setReviewCount(cnt != null ? cnt[0] : 0L);
+                    dto.setAverageRating(reviewAvgMap.getOrDefault(p.getId(), 0.0));
+                    return dto;
+                })
                 .toList();
 
         return new CatalogPageResponse(
                 summaryList,
                 productPage.getTotalElements(),
                 requestedPage,
-                PAGE_SIZE,
+                requestedSize,
                 productPage.getTotalPages()
         );
     }

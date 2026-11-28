@@ -10,5 +10,11 @@ public interface ProductService {
                                     BigDecimal min, BigDecimal max,
                                     String sort, Integer page);
 
+    default CatalogPageResponse getProducts(String q, String category, String brand,
+                                            BigDecimal min, BigDecimal max,
+                                            String sort, Integer page, Integer size) {
+        return getProducts(q, category, brand, min, max, sort, page);
+    }
+
     ProductDetailDto getProductDetail(String slug);
 }

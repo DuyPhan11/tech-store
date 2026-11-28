@@ -3,6 +3,7 @@ export interface AuthUser {
   email: string
   phone: string
   fullName: string
+  avatarUrl?: string | null
   status: 'ACTIVE' | 'LOCKED'
   roles: string[]
 }
@@ -68,4 +69,5 @@ export interface AuthContextValue {
   hasRole: (role: string) => boolean
   login: (credentials: LoginRequest) => Promise<LoginResponse>
   logout: () => void
+  updateUser?: (patch: Partial<AuthUser>) => void
 }

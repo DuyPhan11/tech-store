@@ -30,16 +30,60 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
     )
   }
 
-  const currentImage = sortedImages[selectedIndex] ?? sortedImages[0]
+  const total = sortedImages.length
+
+  const handlePrev = () => {
+    setSelectedIndex(prev => (prev - 1 + total) % total)
+  }
+
+  const handleNext = () => {
+    setSelectedIndex(prev => (prev + 1) % total)
+  }
 
   return (
     <div className={styles.gallery}>
       <div className={styles.mainImageWrapper}>
-        <img
-          src={currentImage.url}
-          alt={currentImage.alt || `${productName} - Ảnh ${selectedIndex + 1}`}
-          className={styles.mainImage}
-        />
+        {total > 1 && (
+          <button
+            type="button"
+            className={`${styles.galleryNavBtn} ${styles.galleryNavPrev}`}
+            aria-label="Ảnh trước"
+            onClick={handlePrev}
+          >
+            ‹
+          </button>
+        )}
+
+        <div
+          className={styles.galleryTrack}
+          style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
+        >
+          {sortedImages.map((img, index) => (
+            <div key={img.id ?? index} className={styles.gallerySlide}>
+              <img
+                src={img.url}
+                alt={img.alt || `${productName} - Ảnh ${index + 1}`}
+                className={styles.mainImage}
+              />
+            </div>
+          ))}
+        </div>
+
+        {total > 1 && (
+          <>
+            <button
+              type="button"
+              className={`${styles.galleryNavBtn} ${styles.galleryNavNext}`}
+              aria-label="Ảnh kế tiếp"
+              onClick={handleNext}
+            >
+              ›
+            </button>
+            <span className={styles.galleryCounter}>
+              {selectedIndex + 1} / {total}
+            </span>
+          </>
+        )}
       </div>
 
       {sortedImages.length > 1 && (

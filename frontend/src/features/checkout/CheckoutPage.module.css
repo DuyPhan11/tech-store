@@ -56,10 +56,10 @@
 }
 
 .stepBlock {
-  background: var(--ts-color-surface);
-  border: 1px solid var(--ts-color-border);
-  border-radius: var(--ts-radius-md);
-  padding: 1.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0.75rem 0;
 }
 
 .stepHeader {
@@ -240,7 +240,7 @@
 
 .summaryCard {
   background: #f5f7ff;
-  border: 1px solid var(--ts-color-border);
+  border: none;
   border-radius: var(--ts-radius-md);
   padding: 1.75rem;
 }

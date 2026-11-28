@@ -15,6 +15,12 @@ import java.util.Optional;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    @Query("SELECT r.product.id, COUNT(r), COALESCE(AVG(r.rating), 0) "
+            + "FROM Review r WHERE r.product.id IN :productIds AND r.status = :status "
+            + "GROUP BY r.product.id")
+    List<Object[]> aggregateByProductIdsAndStatus(@Param("productIds") List<Long> productIds,
+                                                  @Param("status") ReviewStatus status);
+
     @Query("SELECT r FROM Review r JOIN FETCH r.user JOIN FETCH r.product JOIN FETCH r.order "
             + "WHERE r.product.id = :productId AND r.status = :status ORDER BY r.createdAt DESC")
     List<Review> findByProductIdAndStatusOrderByCreatedAtDesc(@Param("productId") Long productId,

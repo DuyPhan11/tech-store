@@ -6,8 +6,17 @@ import { MinicartFlyout } from './MinicartFlyout'
 import { MegaMenuFlyout } from './MegaMenuFlyout'
 import { useAuth } from '../../features/auth/AuthContext'
 import { cartApi } from '../../lib/api/cartApi'
+import { catalogApi } from '../../lib/api/catalogApi'
 import type { CartResponse } from '../../features/cart/cartTypes'
 import styles from './Layouts.module.css'
+
+const DEFAULT_PARENT_CATEGORIES: Array<{ name: string; slug: string }> = [
+  { name: 'Laptop', slug: 'laptop' },
+  { name: 'Điện thoại', slug: 'dien-thoai' },
+  { name: 'Màn hình', slug: 'man-hinh' },
+  { name: 'Âm thanh', slug: 'am-thanh' },
+  { name: 'Phụ kiện', slug: 'phu-kien' },
+]
 
 export function CustomerLayout({ children }: PropsWithChildren) {
   const location = useLocation()
@@ -16,12 +25,39 @@ export function CustomerLayout({ children }: PropsWithChildren) {
   const currentSearch = new URLSearchParams(location.search).get('q') ?? ''
 
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false)
+  const [activeMegaParent, setActiveMegaParent] = useState<string>('laptop')
+  const [parentSlugsWithChildren, setParentSlugsWithChildren] = useState<string[]>(['laptop'])
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [cart, setCart] = useState<CartResponse | null>(null)
+  const [parentCategories, setParentCategories] = useState<Array<{ name: string; slug: string }>>(DEFAULT_PARENT_CATEGORIES)
+  const [searchFocused, setSearchFocused] = useState(false)
   const megaTimeoutRef = useRef<number | null>(null)
   const cartTimeoutRef = useRef<number | null>(null)
 
-  // Cập nhật giỏ hàng khi đăng nhập hoặc chuyển trang
+  useEffect(() => {
+    const controller = new AbortController()
+    catalogApi.getCategories(controller.signal)
+      .then(list => {
+        const parents = list
+          .filter(c => !c.parentSlug)
+          .map(c => ({ name: c.name, slug: c.slug }))
+        const withChildren = Array.from(
+          new Set(list.map(c => c.parentSlug).filter((slug): slug is string => Boolean(slug)))
+        )
+        if (parents.length > 0) {
+          setParentCategories(parents)
+        }
+        if (withChildren.length > 0) {
+          setParentSlugsWithChildren(withChildren)
+        }
+      })
+      .catch(() => {
+        // Keep fallback parent categories when offline or in unit tests
+      })
+    return () => controller.abort()
+  }, [])
+
+  // Cập nhật giỏ hàng khi đăng nhập, chuyển trang, hoặc có sự kiện thêm/sửa giỏ hàng
   useEffect(() => {
     if (isAuthenticated) {
       cartApi.getCart()
@@ -32,6 +68,21 @@ export function CustomerLayout({ children }: PropsWithChildren) {
       setIsCartOpen(false)
     }
   }, [isAuthenticated, location.pathname])
+
+  useEffect(() => {
+    const handleCartUpdated = (event: Event) => {
+      const custom = event as CustomEvent<CartResponse | undefined>
+      if (custom.detail) {
+        setCart(custom.detail)
+      } else if (isAuthenticated) {
+        cartApi.getCart()
+          .then(res => setCart(res))
+          .catch(() => {})
+      }
+    }
+    window.addEventListener('techstore:cart-updated', handleCartUpdated)
+    return () => window.removeEventListener('techstore:cart-updated', handleCartUpdated)
+  }, [isAuthenticated])
 
   const handleMinicartRemove = async (itemId: number) => {
     try {
@@ -62,8 +113,11 @@ export function CustomerLayout({ children }: PropsWithChildren) {
     navigate(path)
   }
 
-  const handleMegaEnter = () => {
+  const handleMegaEnter = (parentSlug?: string) => {
     if (megaTimeoutRef.current) clearTimeout(megaTimeoutRef.current)
+    if (parentSlug) {
+      setActiveMegaParent(parentSlug)
+    }
     setIsMegaMenuOpen(true)
   }
 
@@ -140,29 +194,57 @@ export function CustomerLayout({ children }: PropsWithChildren) {
 
           {/* Main Navigation Menu (Single row on Desktop) */}
           <nav className={styles.categories} aria-label="Danh mục sản phẩm">
-            <div
-              className={styles.navCategoryItem}
-              onMouseEnter={handleMegaEnter}
-              onMouseLeave={handleMegaLeave}
+            {parentCategories.map(cat =>
+              parentSlugsWithChildren.includes(cat.slug) ? (
+                <div
+                  key={cat.slug}
+                  className={styles.navCategoryItem}
+                  onMouseEnter={() => handleMegaEnter(cat.slug)}
+                  onMouseLeave={handleMegaLeave}
+                >
+                  <a
+                    href={`/products?category=${cat.slug}`}
+                    className={`${styles.navLink} ${isMegaMenuOpen && activeMegaParent === cat.slug ? styles.navLinkActive : ''}`}
+                    onClick={e => {
+                      e.preventDefault()
+                      handleMegaNavigate(`/products?category=${cat.slug}`)
+                    }}
+                  >
+                    {cat.name}
+                  </a>
+                </div>
+              ) : (
+                <a
+                  key={cat.slug}
+                  href={`/products?category=${cat.slug}`}
+                  onClick={e => {
+                    e.preventDefault()
+                    navigate(`/products?category=${cat.slug}`)
+                  }}
+                >
+                  {cat.name}
+                </a>
+              )
+            )}
+            <a
+              href="/products"
+              onClick={e => {
+                e.preventDefault()
+                navigate('/products')
+              }}
             >
-              <a
-                href="/products?category=laptop"
-                className={`${styles.navLink} ${isMegaMenuOpen ? styles.navLinkActive : ''}`}
-                onClick={e => {
-                  e.preventDefault()
-                  handleMegaNavigate('/products?category=laptop')
-                }}
-              >
-                Laptop
-              </a>
-            </div>
-            <a href="/products?category=dien-thoai">Máy tính để bàn</a>
-            <a href="/products?category=man-hinh">Thiết bị mạng</a>
-            <a href="/products?category=am-thanh">Máy in &amp; Máy quét</a>
-            <a href="/products?category=phu-kien">Linh kiện PC</a>
-            <a href="/products">Tất cả sản phẩm</a>
-            <a href="/products">Dịch vụ sửa chữa</a>
-            <a href="/products" className={styles.dealsPillBtn}>Ưu đãi sốc</a>
+              Tất cả sản phẩm
+            </a>
+            <a
+              href="/products"
+              className={styles.dealsPillBtn}
+              onClick={e => {
+                e.preventDefault()
+                navigate('/products')
+              }}
+            >
+              Ưu đãi sốc
+            </a>
           </nav>
 
           {/* Header Action Icons: Search, Cart, Avatar */}
@@ -187,7 +269,9 @@ export function CustomerLayout({ children }: PropsWithChildren) {
                 name="q"
                 defaultValue={currentSearch}
                 aria-label="Tìm kiếm sản phẩm"
-                placeholder="Tìm kiếm sản phẩm..."
+                placeholder={searchFocused ? 'Tìm kiếm sản phẩm...' : 'Tìm kiếm'}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
                 className={styles.searchInput}
               />
               <button type="submit" className={styles.searchIconBtn} aria-label="Tìm kiếm">
@@ -234,8 +318,16 @@ export function CustomerLayout({ children }: PropsWithChildren) {
                   }}
                   title={user.fullName || 'Tài khoản của tôi'}
                 >
-                  <span className={styles.userAvatar}>
-                    {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+                  <span className={styles.userAvatar} style={{ overflow: 'hidden' }}>
+                    {user.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.fullName || 'Avatar'}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+                      />
+                    ) : (
+                      user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'
+                    )}
                   </span>
                 </button>
                 <button
@@ -269,8 +361,9 @@ export function CustomerLayout({ children }: PropsWithChildren) {
         {/* Mega Menu Dropdown Flyout */}
         <MegaMenuFlyout
           isOpen={isMegaMenuOpen}
+          parentSlug={activeMegaParent}
           onNavigate={handleMegaNavigate}
-          onMouseEnter={handleMegaEnter}
+          onMouseEnter={() => handleMegaEnter()}
           onMouseLeave={handleMegaLeave}
         />
       </header>

@@ -16,17 +16,31 @@
   width: 100%;
 }
 
+.heroViewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid #1a1a1a;
+}
+
+.heroTrack {
+  display: flex;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
 .heroBanner {
   position: relative;
+  flex: 0 0 100%;
+  min-width: 100%;
+  box-sizing: border-box;
   background: radial-gradient(circle at 70% 50%, #1f0204 0%, #080808 60%, #000000 100%);
-  border-radius: 6px;
   padding: 2.5rem 3.5rem;
   min-height: 330px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   overflow: hidden;
-  border: 1px solid #1a1a1a;
 }
 
 .bannerArrowLeft, .bannerArrowRight {
@@ -282,6 +296,26 @@
   border-color: #0156ff;
 }
 
+.carouselViewport {
+  width: 100%;
+  overflow: hidden;
+  padding: 10px 0 24px;
+  margin: -10px 0 -24px;
+}
+
+.carouselTrack {
+  display: flex;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.carouselSlide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
 .productRowSix {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -354,18 +388,19 @@
 /* Hover Add To Cart Pill Button */
 .hoverCartWrap {
   margin-top: 10px;
+  height: 34px;
   opacity: 0;
-  max-height: 0;
-  overflow: hidden;
+  transform: translateY(6px);
   pointer-events: none;
-  transition: opacity 0.2s ease, max-height 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
 .productCard:hover .hoverCartWrap {
   opacity: 1;
-  max-height: 44px;
+  transform: translateY(0);
   pointer-events: auto;
 }
 
@@ -492,6 +527,13 @@
   display: flex;
   flex-direction: column;
   margin-top: auto;
+  padding-top: 8px;
+  transform: translateY(44px);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.productCard:hover .priceRow {
+  transform: translateY(0);
 }
 
 .oldPrice {

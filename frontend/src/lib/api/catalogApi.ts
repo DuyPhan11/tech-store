@@ -11,6 +11,7 @@ export const catalogApi = {
     if (query.maxPrice !== undefined && query.maxPrice !== null) params.set('max', String(query.maxPrice))
     if (query.sort && query.sort !== 'default') params.set('sort', query.sort)
     if (query.page && query.page > 1) params.set('page', String(query.page))
+    if (query.size && query.size !== 8) params.set('size', String(query.size))
 
     const queryString = params.toString()
     const endpoint = queryString ? `/products?${queryString}` : '/products'

@@ -42,6 +42,9 @@ public class DemoDataInitializer implements CommandLineRunner {
     @Value("${app.demo.enabled:true}")
     private boolean demoEnabled;
 
+    @Value("${app.demo.seed-products:false}")
+    private boolean seedDemoProducts;
+
     @Value("${app.demo.admin-password:Admin@123}")
     private String adminPassword;
 
@@ -196,16 +199,21 @@ public class DemoDataInitializer implements CommandLineRunner {
         Category catAudio = getOrCreateCategory("Âm thanh", "am-thanh", "Thiết bị âm thanh chính hãng", null);
         getOrCreateCategory("Phụ kiện", "phu-kien", "Phụ kiện công nghệ", null);
 
-        // 2. Brands
-        Brand brandNova = getOrCreateBrand("Nova", "nova", "Thương hiệu Nova Technology");
-        Brand brandOrbit = getOrCreateBrand("Orbit", "orbit", "Thương hiệu Orbit Smart Devices");
-        Brand brandVista = getOrCreateBrand("Vista", "vista", "Thương hiệu Vista Displays");
-        Brand brandEcho = getOrCreateBrand("Echo", "echo", "Thương hiệu Echo Audio Systems");
-
         // 3. Branches
         Branch branchQ1 = getOrCreateBranch("Chi nhánh Quận 1", "02811112222", "123 Lê Lợi, Quận 1, TP.HCM", ActiveStatus.ACTIVE);
         Branch branchQ7 = getOrCreateBranch("Chi nhánh Quận 7", "02833334444", "456 Nguyễn Thị Thập, Quận 7, TP.HCM", ActiveStatus.ACTIVE);
         Branch branchMaintenance = getOrCreateBranch("Kho bảo trì", "02855556666", "789 Kha Vạn Cân, TP.Thủ Đức, TP.HCM", ActiveStatus.INACTIVE);
+
+        if (!seedDemoProducts) {
+            log.info("Bỏ qua khởi tạo sản phẩm demo (app.demo.seed-products=false); dùng dữ liệu seed thực tế từ database/seeds/.");
+            return;
+        }
+
+        // 2. Brands (chỉ tạo khi app.demo.seed-products=true)
+        Brand brandNova = getOrCreateBrand("Nova", "nova", "Thương hiệu Nova Technology");
+        Brand brandOrbit = getOrCreateBrand("Orbit", "orbit", "Thương hiệu Orbit Smart Devices");
+        Brand brandVista = getOrCreateBrand("Vista", "vista", "Thương hiệu Vista Displays");
+        Brand brandEcho = getOrCreateBrand("Echo", "echo", "Thương hiệu Echo Audio Systems");
 
         // 4. Products (8+ active, 1 out of stock, 1 inactive)
         // 4.1 Laptop Nova 14

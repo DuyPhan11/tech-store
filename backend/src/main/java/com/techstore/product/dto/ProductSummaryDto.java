@@ -16,6 +16,8 @@ public class ProductSummaryDto {
     private String image;
     private String specification;
     private String status;
+    private double averageRating;
+    private long reviewCount;
 
     public ProductSummaryDto() {
     }
@@ -157,5 +159,21 @@ public class ProductSummaryDto {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public long getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(long reviewCount) {
+        this.reviewCount = reviewCount;
     }
 }

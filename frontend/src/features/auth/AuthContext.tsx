@@ -59,6 +59,15 @@ export function AuthProvider({ children, initialUser, initialToken }: AuthProvid
     setUser(null)
   }, [])
 
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser(prev => {
+      if (!prev) return prev
+      const next = { ...prev, ...patch }
+      setStoredUser(next)
+      return next
+    })
+  }, [])
+
   useEffect(() => {
     setUnauthorizedHandler(logout)
     return () => {
@@ -100,8 +109,9 @@ export function AuthProvider({ children, initialUser, initialToken }: AuthProvid
       hasRole,
       login,
       logout,
+      updateUser,
     }),
-    [user, token, isAuthenticated, isLoading, isAdmin, isStaff, isCustomer, hasRole, login, logout],
+    [user, token, isAuthenticated, isLoading, isAdmin, isStaff, isCustomer, hasRole, login, logout, updateUser],
   )
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>

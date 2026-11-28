@@ -2,6 +2,8 @@ package com.techstore.user.service;
 
 import com.techstore.common.exception.AddressNotFoundException;
 import com.techstore.common.exception.DuplicateResourceException;
+import com.techstore.common.storage.ImageStorageService;
+import com.techstore.common.storage.StoredImage;
 import com.techstore.user.dto.*;
 import com.techstore.user.entity.Address;
 import com.techstore.user.entity.User;
@@ -13,26 +15,34 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class ProfileServiceImpl implements ProfileService {
 
     private static final Logger log = LoggerFactory.getLogger(ProfileServiceImpl.class);
+    private static final long MAX_AVATAR_BYTES = 5L * 1024 * 1024;
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/jpeg", "image/jpg", "image/png", "image/webp");
 
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ImageStorageService imageStorageService;
 
     public ProfileServiceImpl(UserRepository userRepository,
                               AddressRepository addressRepository,
-                              PasswordEncoder passwordEncoder) {
+                              PasswordEncoder passwordEncoder,
+                              ImageStorageService imageStorageService) {
         this.userRepository = userRepository;
         this.addressRepository = addressRepository;
         this.passwordEncoder = passwordEncoder;
+        this.imageStorageService = imageStorageService;
     }
 
     private User getUserOrThrow(Long userId) {
@@ -71,6 +81,34 @@ public class ProfileServiceImpl implements ProfileService {
 
         User savedUser = userRepository.save(user);
         log.info("Cập nhật thông tin hồ sơ thành công: userId={}, fullName={}", userId, savedUser.getFullName());
+
+        AddressResponse defaultAddress = addressRepository.findByUserIdAndIsDefaultTrue(userId)
+                .map(AddressResponse::fromEntity)
+                .orElse(null);
+        return UserProfileResponse.fromEntity(savedUser, defaultAddress);
+    }
+
+    @Override
+    @Transactional
+    public UserProfileResponse uploadAvatar(Long userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng chọn tệp ảnh đại diện");
+        }
+        if (file.getSize() > MAX_AVATAR_BYTES) {
+            throw new IllegalArgumentException("Kích thước ảnh đại diện tối đa 5MB");
+        }
+        String contentType = file.getContentType() != null
+                ? file.getContentType().trim().toLowerCase(Locale.ROOT)
+                : "";
+        if (!ALLOWED_IMAGE_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Chỉ chấp nhận ảnh định dạng JPG, PNG hoặc WEBP");
+        }
+
+        User user = getUserOrThrow(userId);
+        StoredImage stored = imageStorageService.upload(file);
+        user.setAvatarUrl(stored.secureUrl());
+        User savedUser = userRepository.save(user);
+        log.info("Cập nhật ảnh đại diện Cloudinary thành công: userId={}, publicId={}", userId, stored.publicId());
 
         AddressResponse defaultAddress = addressRepository.findByUserIdAndIsDefaultTrue(userId)
                 .map(AddressResponse::fromEntity)

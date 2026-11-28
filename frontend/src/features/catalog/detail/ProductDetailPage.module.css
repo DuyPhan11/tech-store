@@ -46,11 +46,10 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--ts-space-32);
   align-items: start;
-  background: var(--ts-color-surface);
-  border: 1px solid var(--ts-color-border);
-  border-radius: var(--ts-radius-4);
-  padding: var(--ts-space-32);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: var(--ts-space-16) 0;
 }
 
 /* Gallery */
@@ -60,12 +59,28 @@
 }
 
 .mainImageWrapper {
+  position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
   background: #ffffff;
   border: 1px solid var(--ts-color-border);
   border-radius: var(--ts-radius-4);
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+.galleryTrack {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.gallerySlide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
   padding: var(--ts-space-16);
@@ -77,6 +92,56 @@
   height: 100%;
   object-fit: contain;
   display: block;
+}
+
+.galleryNavBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--ts-color-border);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1e293b;
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.galleryNavBtn:hover {
+  background: var(--ts-color-primary);
+  border-color: var(--ts-color-primary);
+  color: #ffffff;
+  transform: translateY(-50%) scale(1.06);
+}
+
+.galleryNavPrev {
+  left: 12px;
+}
+
+.galleryNavNext {
+  right: 12px;
+}
+
+.galleryCounter {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: rgba(15, 23, 42, 0.68);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--ts-radius-pill);
+  z-index: 4;
+  pointer-events: none;
 }
 
 .imageFallback {
@@ -305,11 +370,10 @@
 .sectionGroup {
   display: grid;
   gap: var(--ts-space-24);
-  background: var(--ts-color-surface);
-  border: 1px solid var(--ts-color-border);
-  border-radius: var(--ts-radius-4);
-  padding: var(--ts-space-32);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: var(--ts-space-16) 0;
 }
 
 .sectionTitle {
